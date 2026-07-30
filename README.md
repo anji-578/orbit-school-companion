@@ -84,10 +84,12 @@ Open the live site → pick a profile → sign in:
 
 | Profile | Email | Password |
 |--|--|--|
-| Student | `student@orbit.demo` | `student123` |
-| Parent | `parent@orbit.demo` | `parent123` |
-| Teacher | `teacher@orbit.demo` | `teacher123` |
-| School | `admin@orbit.demo` | `admin123` |
+| Student | `student@orbit.app` | `student123` |
+| Parent | `parent@orbit.app` | `parent123` |
+| Teacher | `teacher@orbit.app` | `teacher123` |
+| School | `admin@orbit.app` | `admin123` |
+
+**Supabase Auth setting (required for demos):** Authentication → Providers → Email → turn **OFF** “Confirm email”, then retry login (first login auto-creates the user).
 
 When you create a Supabase project: paste URL + anon key into `.env` / Vercel env, run `supabase/schema.sql`, then we switch auth off demo.
 
