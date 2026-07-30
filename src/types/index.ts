@@ -43,7 +43,7 @@ export interface RosterStudent {
 }
 
 export interface FeeItem {
-  id: number
+  id: string
   name: string
   amount: number
   status: FeeStatus

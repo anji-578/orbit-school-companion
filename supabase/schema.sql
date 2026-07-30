@@ -304,3 +304,90 @@ drop policy if exists "calendar_write_school" on public.calendar_events;
 create policy "calendar_write_school" on public.calendar_events for all
   using (public.current_profile_role() = 'school')
   with check (public.current_profile_role() = 'school');
+
+-- Phase 1 — attendance roster names, grades, fee writes, demo identity seed
+alter table public.students add column if not exists display_name text;
+
+create table if not exists public.student_grades (
+  id text primary key,
+  school_id uuid not null references public.schools (id) on delete cascade,
+  student_id uuid references public.students (id) on delete set null,
+  student_name text not null,
+  math text not null default '',
+  science text not null default '',
+  chem text not null default '',
+  comment text not null default '',
+  updated_at timestamptz not null default now()
+);
+
+alter table public.student_grades enable row level security;
+
+drop policy if exists grades_select_scoped on public.student_grades;
+create policy grades_select_scoped on public.student_grades for select
+  using (school_id = public.current_school_id());
+
+drop policy if exists grades_write_staff on public.student_grades;
+create policy grades_write_staff on public.student_grades for all
+  using (
+    school_id = public.current_school_id()
+    and public.current_profile_role() in ('teacher', 'school')
+  )
+  with check (
+    school_id = public.current_school_id()
+    and public.current_profile_role() in ('teacher', 'school')
+  );
+
+drop policy if exists fee_items_write_school on public.fee_items;
+create policy fee_items_write_school on public.fee_items for all
+  using (
+    school_id = public.current_school_id()
+    and public.current_profile_role() in ('school', 'teacher', 'parent')
+  )
+  with check (
+    school_id = public.current_school_id()
+    and public.current_profile_role() in ('school', 'teacher', 'parent')
+  );
+
+drop policy if exists students_update_staff_or_claim on public.students;
+create policy students_update_staff_or_claim on public.students for update
+  using (
+    school_id = public.current_school_id()
+    and (
+      public.current_profile_role() in ('teacher', 'school')
+      or (
+        public.current_profile_role() = 'student'
+        and id = 'a1111111-1111-4111-8111-111111111101'
+        and (profile_id is null or profile_id = auth.uid())
+      )
+    )
+  )
+  with check (
+    school_id = public.current_school_id()
+    and (
+      public.current_profile_role() in ('teacher', 'school')
+      or (
+        public.current_profile_role() = 'student'
+        and id = 'a1111111-1111-4111-8111-111111111101'
+        and profile_id = auth.uid()
+      )
+    )
+  );
+
+drop policy if exists parent_links_select_scoped on public.parent_links;
+create policy parent_links_select_scoped on public.parent_links for select
+  using (
+    parent_profile_id = auth.uid()
+    or public.current_profile_role() in ('teacher', 'school')
+    or exists (
+      select 1 from public.students s
+      where s.id = parent_links.student_id and s.profile_id = auth.uid()
+    )
+  );
+
+drop policy if exists parent_links_insert_self on public.parent_links;
+create policy parent_links_insert_self on public.parent_links for insert
+  with check (
+    parent_profile_id = auth.uid()
+    and public.current_profile_role() = 'parent'
+    and student_id = 'a1111111-1111-4111-8111-111111111101'
+  );

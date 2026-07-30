@@ -199,9 +199,9 @@ export const initialRoster: RosterStudent[] = [
 ]
 
 export const initialFees: FeeItem[] = [
-  { id: 1, name: 'Q1 Tuition Fee Bill', amount: 35000, status: 'Unpaid', category: 'Tuition' },
-  { id: 2, name: 'School Science Lab Deposit', amount: 4500, status: 'Unpaid', category: 'Science Labs' },
-  { id: 3, name: 'Quarterly School Bus Service', amount: 3000, status: 'Unpaid', category: 'Bus Transit' },
+  { id: '1', name: 'Q1 Tuition Fee Bill', amount: 35000, status: 'Unpaid', category: 'Tuition' },
+  { id: '2', name: 'School Science Lab Deposit', amount: 4500, status: 'Unpaid', category: 'Science Labs' },
+  { id: '3', name: 'Quarterly School Bus Service', amount: 3000, status: 'Unpaid', category: 'Bus Transit' },
 ]
 
 export const initialPaymentHistory: PaymentRecord[] = [

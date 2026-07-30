@@ -33,6 +33,14 @@ import {
   syncSubmitLeave,
   syncToggleHomework,
 } from '../lib/schoolOpsApi'
+import {
+  claimDemoLinks,
+  fetchAttendanceHistory,
+  fetchRosterWithTodayAttendance,
+  upsertAttendanceMark,
+} from '../lib/attendanceApi'
+import { fetchStudentGrades, saveStudentGrades } from '../lib/gradesApi'
+import { fetchFeeItems, markAllFeesPaid, markFeeItemsStatus } from '../lib/feesApi'
 import type {
   AttendanceRecord,
   BroadcastMessage,
@@ -343,26 +351,35 @@ export const useOrbitStore = create<OrbitState>()(
         set({
           roster: state.roster.map((r) => (r.id === id ? { ...r, present: nextPresent } : r)),
         })
+        void upsertAttendanceMark(id, nextPresent)
 
-        // Real cross-node sync for demo student Ananya
+        // Cross-role sync for demo student Ananya (and any isDemo flag)
         if (student.isDemo) {
-          const today = state.attendanceRecords[state.attendanceRecords.length - 1]
-          if (today) {
-            const attendanceRecords = state.attendanceRecords.map((rec, idx, arr) => {
-              if (idx !== arr.length - 1) return rec
-              return {
-                ...rec,
-                status: (nextPresent ? 'Present' : 'Absent') as AttendanceRecord['status'],
-                reason: nextPresent ? undefined : 'Marked absent by class teacher',
-              }
-            })
-            const studyScore = computeStudyScore(attendancePercent(attendanceRecords), homeworkPercent(state.tasks))
-            set({ attendanceRecords, studyScore })
-          }
+          const todayLabel = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
+          const todayDay = new Date().toLocaleDateString('en-US', { weekday: 'short' })
+          set((s) => {
+            const records = [...s.attendanceRecords]
+            const last = records[records.length - 1]
+            const nextRec = {
+              date: todayLabel,
+              day: todayDay,
+              status: (nextPresent ? 'Present' : 'Absent') as AttendanceRecord['status'],
+              reason: nextPresent ? undefined : 'Marked absent by class teacher',
+            }
+            if (last && last.date === todayLabel) {
+              records[records.length - 1] = nextRec
+            } else {
+              records.push(nextRec)
+            }
+            return {
+              attendanceRecords: records,
+              studyScore: computeStudyScore(attendancePercent(records), homeworkPercent(s.tasks)),
+            }
+          })
           get().pushNotification({
             role: 'parent',
             title: nextPresent ? 'Attendance: Present' : 'Attendance Alert',
-            body: `Ananya Rao marked ${nextPresent ? 'Present' : 'Absent'} in Class 11-A.`,
+            body: `${student.name} marked ${nextPresent ? 'Present' : 'Absent'} in Class 11-A.`,
           })
           get().pushNotification({
             role: 'student',
@@ -370,7 +387,7 @@ export const useOrbitStore = create<OrbitState>()(
             body: `Your status is now ${nextPresent ? 'Present' : 'Absent'} for today.`,
           })
           get().triggerToast(
-            `Synced: Ananya marked ${nextPresent ? 'Present' : 'Absent'} across Student + Parent nodes.`,
+            `Synced: ${student.name} marked ${nextPresent ? 'Present' : 'Absent'} across Student + Parent nodes.`,
           )
         }
       },
@@ -457,17 +474,24 @@ export const useOrbitStore = create<OrbitState>()(
         })),
 
       saveGrades: () => {
-        get().pushNotification({
-          role: 'student',
-          title: 'Marks updated',
-          body: 'Your teacher saved new midterm scores and diagnostic notes.',
+        const grades = get().studentGrades
+        void saveStudentGrades(grades).then((result) => {
+          if (!result.ok) {
+            get().triggerToast(result.error ?? 'Could not save marks to cloud.')
+            return
+          }
+          get().pushNotification({
+            role: 'student',
+            title: 'Marks updated',
+            body: 'Your teacher saved new midterm scores and diagnostic notes.',
+          })
+          get().pushNotification({
+            role: 'parent',
+            title: 'Report card updated',
+            body: "Ananya's marks and teacher comments were updated.",
+          })
+          get().triggerToast('Marks saved and synced to Student + Parent portals.')
         })
-        get().pushNotification({
-          role: 'parent',
-          title: 'Report card updated',
-          body: "Ananya's marks and teacher comments were updated.",
-        })
-        get().triggerToast('Marks saved and synced to Student + Parent portals.')
       },
 
       setPaymentMethod: (paymentMethod) => set({ paymentMethod }),
@@ -532,28 +556,45 @@ export const useOrbitStore = create<OrbitState>()(
         set((s) => ({ schoolPaymentSettings: { ...s.schoolPaymentSettings, ...patch } })),
 
       loadPaymentWorkspace: async () => {
-        const [settings, submissions] = await Promise.all([
+        const [settings, submissions, fees] = await Promise.all([
           fetchSchoolPaymentSettings(),
           fetchPaymentSubmissions(),
+          fetchFeeItems(),
         ])
+        const outstandingFees = fees.length
+          ? fees.filter((f) => f.status !== 'Paid').reduce((sum, f) => sum + f.amount, 0)
+          : undefined
         set((s) => ({
           schoolPaymentSettings: settings,
           paymentSubmissions: submissions.length ? submissions : s.paymentSubmissions,
+          fees: fees.length ? fees : s.fees,
+          outstandingFees: outstandingFees ?? s.outstandingFees,
         }))
       },
 
       hydrateFromSupabase: async () => {
-        const [ops] = await Promise.all([loadSchoolOpsSnapshot(), get().loadPaymentWorkspace()])
-        set((s) => ({
-          tasks: ops.tasks ?? s.tasks,
-          leaves: ops.leaves ?? s.leaves,
-          broadcasts: ops.broadcasts ?? s.broadcasts,
-          calendarEvents: ops.calendarEvents ?? s.calendarEvents,
-          studyScore: computeStudyScore(
-            attendancePercent(s.attendanceRecords),
-            homeworkPercent(ops.tasks ?? s.tasks),
-          ),
-        }))
+        await claimDemoLinks()
+        const [ops, roster, attendanceRecords, studentGrades] = await Promise.all([
+          loadSchoolOpsSnapshot(),
+          fetchRosterWithTodayAttendance(),
+          fetchAttendanceHistory(),
+          fetchStudentGrades(),
+          get().loadPaymentWorkspace(),
+        ])
+        set((s) => {
+          const tasks = ops.tasks ?? s.tasks
+          const nextAttendance = attendanceRecords.length ? attendanceRecords : s.attendanceRecords
+          return {
+            tasks,
+            leaves: ops.leaves ?? s.leaves,
+            broadcasts: ops.broadcasts ?? s.broadcasts,
+            calendarEvents: ops.calendarEvents ?? s.calendarEvents,
+            roster: roster.length ? roster : s.roster,
+            attendanceRecords: nextAttendance,
+            studentGrades: studentGrades.length ? studentGrades : s.studentGrades,
+            studyScore: computeStudyScore(attendancePercent(nextAttendance), homeworkPercent(tasks)),
+          }
+        })
       },
 
       submitUtrPayment: async (input) => {
@@ -570,6 +611,7 @@ export const useOrbitStore = create<OrbitState>()(
           paymentSubmissions: [result.submission, ...s.paymentSubmissions],
           fees: s.fees.map((f) => (f.status !== 'Paid' ? { ...f, status: 'Pending' as const } : f)),
         }))
+        void markFeeItemsStatus('Pending')
         get().pushNotification({
           role: 'school',
           title: 'UTR payment submitted',
@@ -626,6 +668,7 @@ export const useOrbitStore = create<OrbitState>()(
           ],
           paymentReceipt: { id: receiptId, date, amount, ref: id },
         }))
+        void markAllFeesPaid()
         get().pushNotification({
           role: 'parent',
           title: 'Fee payment verified',
