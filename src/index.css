@@ -1,0 +1,237 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+  --accent: #7c6cff;
+  --accent2: #4da6ff;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+  background: #05070f;
+  color: #e8eaf2;
+  font-family: 'Space Grotesk', 'Noto Sans Telugu', system-ui, sans-serif;
+}
+
+.orbit-root {
+  font-family: 'Space Grotesk', 'Noto Sans Telugu', system-ui, sans-serif;
+  background:
+    radial-gradient(1100px 600px at 85% -10%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 60%),
+    radial-gradient(900px 700px at -10% 100%, color-mix(in srgb, var(--accent2) 8%, transparent), transparent 55%),
+    #05070f;
+  color: #e8eaf2;
+  transition: background 700ms ease;
+}
+
+.font-display {
+  font-family: 'Space Grotesk', 'Noto Sans Telugu', sans-serif;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.glass-strong {
+  background: rgba(10, 13, 28, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+.glass-hover {
+  transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+}
+
+.glass-hover:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--accent) 40%, rgba(255, 255, 255, 0.1));
+  box-shadow: 0 12px 30px -15px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.btn-accent {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #05070f;
+  font-weight: 700;
+  transition: filter 0.2s ease, transform 0.15s ease;
+}
+
+.btn-accent:hover {
+  filter: brightness(1.12);
+}
+
+.btn-accent:active {
+  transform: scale(0.97);
+}
+
+.btn-accent:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  filter: none;
+}
+
+.btn-ghost {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.nav-node {
+  position: relative;
+  transition: background 0.25s ease, color 0.25s ease;
+}
+
+.nav-node.active {
+  background: color-mix(in srgb, var(--accent) 11%, transparent);
+  color: #fff;
+}
+
+.nav-node.active::before {
+  content: '';
+  position: absolute;
+  left: -1px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  border-radius: 99px;
+  background: var(--accent);
+  box-shadow: 0 0 10px 2px color-mix(in srgb, var(--accent) 60%, transparent);
+  animation: nodepulse 2.2s ease-in-out infinite;
+}
+
+.field {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  color: #e8eaf2;
+}
+
+.field:focus {
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+  outline: none;
+}
+
+.field::placeholder {
+  color: rgba(232, 234, 242, 0.3);
+}
+
+.orbit-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.orbit-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 99px;
+}
+
+.prose-ai h3 {
+  font-weight: 700;
+  margin: 12px 0 6px;
+  color: #fff;
+}
+
+.prose-ai p {
+  margin: 8px 0;
+  line-height: 1.6;
+}
+
+.prose-ai li {
+  margin: 4px 0 4px 16px;
+  list-style: disc;
+  line-height: 1.55;
+}
+
+.prose-ai strong {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.prose-ai code {
+  background: rgba(255, 255, 255, 0.07);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@keyframes nodepulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes spinSlow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.fade-up,
+.animate-fade-in {
+  animation: fadeUp 0.4s ease both;
+}
+
+.toast-in {
+  animation: toastIn 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
+}
+
+.animate-spin-slow {
+  animation: spinSlow 12s linear infinite;
+}
