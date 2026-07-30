@@ -84,17 +84,31 @@ export async function supabaseLogin(
 
   let user = signedIn.data.user
 
-  // First-time: create the account with role metadata (demo bootstrap)
   if (signedIn.error || !user) {
     const msg = (signedIn.error?.message ?? '').toLowerCase()
-    const missing =
+
+    if (msg.includes('confirm') || msg.includes('not confirmed')) {
+      return {
+        ok: false,
+        error:
+          'Email not confirmed. In Supabase → Authentication → Users, open this user → Confirm user (or turn OFF “Confirm email” under Providers → Email). Then wait ~1 min if you hit rate limits and try again.',
+      }
+    }
+
+    if (msg.includes('rate limit')) {
+      return {
+        ok: false,
+        error: 'Auth rate limit hit. Wait about 1 hour (or confirm the user in Supabase dashboard), then retry — do not keep clicking Sign in.',
+      }
+    }
+
+    const canAutoCreate =
       msg.includes('invalid login') ||
       msg.includes('invalid credentials') ||
-      msg.includes('user not found') ||
-      !user
+      msg.includes('user not found')
 
-    if (signedIn.error && !missing) {
-      return { ok: false, error: signedIn.error.message }
+    if (!canAutoCreate) {
+      return { ok: false, error: signedIn.error?.message ?? 'Sign-in failed.' }
     }
 
     const signedUp = await supabase.auth.signUp({
@@ -110,23 +124,24 @@ export async function supabaseLogin(
     })
 
     if (signedUp.error) {
-      return {
-        ok: false,
-        error: `Sign-in failed${signedIn.error ? `: ${signedIn.error.message}` : ''}. Auto-create failed: ${signedUp.error.message}`,
+      const up = signedUp.error.message.toLowerCase()
+      if (up.includes('rate limit')) {
+        return {
+          ok: false,
+          error:
+            'Email rate limit exceeded (too many signup emails). Wait ~1 hour, or in Supabase → Authentication → Users confirm/delete the pending user, and turn OFF Confirm email.',
+        }
       }
+      return { ok: false, error: signedUp.error.message }
     }
 
     user = signedUp.data.user
     if (!signedUp.data.session || !user) {
-      const again = await supabase.auth.signInWithPassword({ email: normalized, password })
-      if (again.error || !again.data.user) {
-        return {
-          ok: false,
-          error:
-            'Account created but email confirmation may be required. Disable “Confirm email” in Supabase Auth settings for demos, then retry.',
-        }
+      return {
+        ok: false,
+        error:
+          'User created but needs confirmation. Supabase → Authentication → Providers → Email → disable Confirm email, then Authentication → Users → Confirm user for this email.',
       }
-      user = again.data.user
     }
   }
 
