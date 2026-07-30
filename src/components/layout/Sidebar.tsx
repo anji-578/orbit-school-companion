@@ -143,6 +143,10 @@ export function Sidebar() {
   const profileName = session?.displayName ?? (role === 'teacher' ? 'Mrs. Sarah Davis' : role === 'school' ? 'Admin Desk' : 'Ananya Rao')
   const profileSub = session?.subtitle ?? t(meta.subKey)
 
+  const handleLogout = () => {
+    void logout().then(() => setMobileMenuOpen(false))
+  }
+
   return (
     <>
       {mobileMenuOpen ? (
@@ -240,10 +244,7 @@ export function Sidebar() {
           </button>
           <button
             type="button"
-            onClick={() => {
-              logout()
-              setMobileMenuOpen(false)
-            }}
+            onClick={handleLogout}
             className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-[11px] font-bold bg-[#0D1120] text-slate-200 hover:text-white border border-white/10 transition"
           >
             <LogOut className="h-3.5 w-3.5" aria-hidden />

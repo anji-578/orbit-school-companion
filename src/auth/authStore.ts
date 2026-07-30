@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware'
 import type { Role } from '../types'
 import { isSupabaseConfigured } from '../lib/supabaseConfig'
 import { findDemoUser } from './demoUsers'
+import { restoreSupabaseSession, supabaseLogin, supabaseLogout } from './supabaseAuth'
 
 export interface AuthSession {
   userId: string
@@ -17,40 +18,74 @@ interface AuthState {
   session: AuthSession | null
   authError: string | null
   pendingRole: Role | null
+  bootstrapped: boolean
   setPendingRole: (role: Role | null) => void
   login: (role: Role, email: string, password: string) => Promise<boolean>
-  logout: () => void
+  logout: () => Promise<void>
   clearAuthError: () => void
+  bootstrap: () => Promise<void>
 }
 
-/**
- * Auth store. Today: local demo users.
- * When VITE_SUPABASE_* is set, login switches to Supabase Auth (Phase 0 handoff).
- */
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       session: null,
       authError: null,
       pendingRole: null,
+      bootstrapped: false,
 
       setPendingRole: (pendingRole) => set({ pendingRole, authError: null }),
 
       clearAuthError: () => set({ authError: null }),
 
-      login: async (role, email, password) => {
-        await new Promise((r) => setTimeout(r, 450))
-
+      bootstrap: async () => {
+        if (get().bootstrapped) return
         if (isSupabaseConfigured()) {
-          // Wire @supabase/supabase-js here once credentials land in .env / Vercel.
+          const profile = await restoreSupabaseSession()
+          if (profile) {
+            set({
+              session: {
+                userId: profile.id,
+                role: profile.role,
+                email: profile.email,
+                displayName: profile.displayName,
+                subtitle: profile.subtitle,
+                provider: 'supabase',
+              },
+              pendingRole: null,
+              authError: null,
+            })
+          } else if (get().session?.provider === 'supabase') {
+            // Stale persisted supabase session
+            set({ session: null })
+          }
+        }
+        set({ bootstrapped: true })
+      },
+
+      login: async (role, email, password) => {
+        if (isSupabaseConfigured()) {
+          const result = await supabaseLogin(role, email, password)
+          if (!result.ok) {
+            set({ authError: result.error, session: null })
+            return false
+          }
           set({
-            authError:
-              'Supabase keys detected but client not wired yet. Remove keys to use demo login, or finish Phase 0 client.',
-            session: null,
+            authError: null,
+            pendingRole: null,
+            session: {
+              userId: result.profile.id,
+              role: result.profile.role,
+              email: result.profile.email,
+              displayName: result.profile.displayName,
+              subtitle: result.profile.subtitle,
+              provider: 'supabase',
+            },
           })
-          return false
+          return true
         }
 
+        await new Promise((r) => setTimeout(r, 350))
         const user = findDemoUser(role, email, password)
         if (!user) {
           set({ authError: 'Invalid email or password for this profile.', session: null })
@@ -72,7 +107,12 @@ export const useAuthStore = create<AuthState>()(
         return true
       },
 
-      logout: () => set({ session: null, pendingRole: null, authError: null }),
+      logout: async () => {
+        if (get().session?.provider === 'supabase' || isSupabaseConfigured()) {
+          await supabaseLogout()
+        }
+        set({ session: null, pendingRole: null, authError: null })
+      },
     }),
     {
       name: 'orbit-auth-v1',

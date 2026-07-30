@@ -136,7 +136,7 @@ export function LoginPage({ role }: { role: Role }) {
 
         <div className="flex items-center justify-center gap-2 text-slate-500 text-[10px]">
           <Compass className="h-3.5 w-3.5" aria-hidden />
-          <span>Orbit · local demo auth · Supabase-ready</span>
+          <span>Orbit · Supabase auth</span>
         </div>
       </div>
     </div>

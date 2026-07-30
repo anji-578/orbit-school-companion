@@ -19,7 +19,7 @@ export const messages = {
     dashboard: 'Dashboard',
     demoMode: 'Demo Mode',
     demoModeHint: 'You are exploring Orbit with a signed-in demo profile.',
-    authDemoHint: 'Signed in with demo credentials. Real Supabase auth will replace this when connected.',
+    authDemoHint: 'Connected with Supabase when keys are set; demo credentials auto-create on first login.',
     chooseProfile: 'Choose your profile',
     landingHeadline: 'One school. Four ways in.',
     landingSub: 'Pick a profile to sign in. Each portal is tailored for students, parents, teachers, and school admins.',
@@ -35,7 +35,8 @@ export const messages = {
     hidePassword: 'Hide password',
     backToProfiles: 'Back to profiles',
     demoCredentials: 'Demo credentials',
-    demoCredentialsHint: 'Use these until Supabase is connected. Do not use in production.',
+    demoCredentialsHint:
+      'First login auto-creates this demo user in Supabase. If signup stalls, disable Confirm email in Supabase Auth settings.',
     welcomeBack: 'Welcome back',
     logOut: 'Log out',
     signedInAs: 'Signed in as',

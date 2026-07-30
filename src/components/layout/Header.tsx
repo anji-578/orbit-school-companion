@@ -128,7 +128,9 @@ export function Header() {
 
         <button
           type="button"
-          onClick={() => logout()}
+          onClick={() => {
+            void logout()
+          }}
           className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs font-bold text-slate-300 hover:text-white transition"
           aria-label={t('logOut')}
         >
