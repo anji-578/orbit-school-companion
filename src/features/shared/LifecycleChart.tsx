@@ -7,19 +7,20 @@ import type { LifecycleMetric } from '../../types'
 
 const SUBJECT_KEYS = ['mathSubject', 'scienceSubject', 'chemLabSubject'] as const
 const CLASS_SIZE = 42
-const CHART_W = 560
-const CHART_H = 220
-const PAD_L = 36
-const PAD_R = 16
-const PAD_T = 16
-const PAD_B = 36
+const CHART_W = 420
+const CHART_H = 128
+const PAD_L = 26
+const PAD_R = 10
+const PAD_T = 14
+const PAD_B = 22
 
 function shortExamLabel(exam: string) {
   if (exam.startsWith('Unit')) return 'Unit'
-  if (exam.startsWith('Half')) return 'Half-Yearly'
-  if (exam.startsWith('Pre')) return 'Pre-Board'
+  if (exam.startsWith('Quarter')) return 'Qtr'
+  if (exam.startsWith('Half')) return 'Half'
+  if (exam.startsWith('Pre')) return 'Pre'
   if (exam.startsWith('Final')) return 'Final'
-  return exam.split(' ')[0]
+  return exam.slice(0, 4)
 }
 
 export function LifecycleChart() {
@@ -50,10 +51,21 @@ export function LifecycleChart() {
     }
     const toX = (idx: number) => PAD_L + step * idx
 
-    const ownPoints = own.map((v, idx) => ({ x: toX(idx), y: toY(v), v, label: shortExamLabel(exams[idx] ?? '') }))
+    const ownPoints = own.map((v, idx) => ({
+      x: toX(idx),
+      y: toY(v),
+      v,
+      label: shortExamLabel(exams[idx] ?? ''),
+    }))
     const comparePoints = compare.map((v, idx) => ({ x: toX(idx), y: toY(v), v }))
     const toPath = (pts: { x: number; y: number }[]) =>
       pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
+
+    const ownPath = toPath(ownPoints)
+    const areaPath =
+      ownPoints.length > 0
+        ? `${ownPath} L${ownPoints[ownPoints.length - 1]!.x.toFixed(1)},${(PAD_T + innerH).toFixed(1)} L${ownPoints[0]!.x.toFixed(1)},${(PAD_T + innerH).toFixed(1)} Z`
+        : ''
 
     const yTicks = isMarks
       ? [
@@ -67,134 +79,153 @@ export function LifecycleChart() {
           { v: 1, y: toY(1) },
         ]
 
-    return {
-      exams,
-      ownPoints,
-      comparePoints,
-      ownPath: toPath(ownPoints),
-      comparePath: toPath(comparePoints),
-      yTicks,
-      plotBottom: PAD_T + innerH,
-    }
+    return { ownPoints, comparePoints, ownPath, comparePath: toPath(comparePoints), areaPath, yTicks }
   }, [history, isMarks])
 
   const latestOwn = isMarks ? history.marks[history.marks.length - 1] : history.ranks[history.ranks.length - 1]
   const delta = isMarks
     ? history.marks[history.marks.length - 1] - history.marks[0]
     : history.ranks[0] - history.ranks[history.ranks.length - 1]
+  const lastPoint = chart.ownPoints[chart.ownPoints.length - 1]
 
   return (
-    <Card className="p-5 space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
+    <Card className="p-3.5 sm:p-4 space-y-2.5">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
           <Eyebrow>{t('ananyaProgress')}</Eyebrow>
-          <p className="text-lg font-black text-white mt-1">
-            {t(selectedLifecycleSubject)} · {isMarks ? `${latestOwn}/50` : `#${latestOwn}`}
+          <p className="text-sm font-bold text-white mt-0.5 truncate">
+            {t(selectedLifecycleSubject)}
+            <span className="text-slate-400 font-semibold"> · </span>
+            <span className="text-[var(--accent2)]">{isMarks ? `${latestOwn}/50` : `#${latestOwn}`}</span>
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex bg-white/5 border border-white/10 rounded-lg p-0.5" role="tablist" aria-label="Subject">
-            {SUBJECT_KEYS.map((key) => (
-              <button
-                key={key}
-                type="button"
-                role="tab"
-                aria-selected={selectedLifecycleSubject === key}
-                onClick={() => setLifecycleSubject(key)}
-                className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition ${
-                  selectedLifecycleSubject === key ? 'bg-[var(--accent)] text-black' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                {t(key)}
-              </button>
-            ))}
-          </div>
-          <div className="flex bg-white/5 border border-white/10 rounded-lg p-0.5" role="tablist" aria-label="Metric">
-            {(['marks', 'ranks'] as LifecycleMetric[]).map((m) => (
-              <button
-                key={m}
-                type="button"
-                role="tab"
-                aria-selected={selectedLifecycleMetric === m}
-                onClick={() => setLifecycleMetric(m)}
-                className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition ${
-                  selectedLifecycleMetric === m ? 'bg-[var(--accent)] text-black' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                {m === 'marks' ? t('marks') : t('rank')}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="w-full overflow-hidden rounded-xl border border-white/5 bg-black/20 px-1 pt-2">
-        <svg
-          viewBox={`0 0 ${CHART_W} ${CHART_H}`}
-          preserveAspectRatio="xMidYMid meet"
-          className="block w-full h-auto"
-          role="img"
-          aria-label="Marks and rank lifecycle chart"
+        <span
+          className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+            delta >= 0
+              ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/25'
+              : 'bg-rose-500/15 text-rose-300 border border-rose-500/25'
+          }`}
         >
-          {chart.yTicks.map((tick) => (
-            <g key={`y-${tick.v}`}>
-              <line
-                x1={PAD_L}
-                x2={CHART_W - PAD_R}
-                y1={tick.y}
-                y2={tick.y}
-                stroke="rgba(255,255,255,0.07)"
-                strokeWidth={1}
-              />
-              <text x={PAD_L - 8} y={tick.y + 3} fontSize={9} textAnchor="end" fill="#64748b">
-                {tick.v}
-              </text>
-            </g>
-          ))}
-
-          <path d={chart.comparePath} fill="none" stroke="#94a3b8" strokeWidth={1.75} strokeDasharray="5 4" />
-          <path d={chart.ownPath} fill="none" stroke="var(--accent)" strokeWidth={2.75} strokeLinejoin="round" strokeLinecap="round" />
-
-          {chart.comparePoints.map((p, idx) => (
-            <circle key={`c-${idx}`} cx={p.x} cy={p.y} r={2.5} fill="#94a3b8" />
-          ))}
-
-          {chart.ownPoints.map((p, idx) => (
-            <g key={`o-${idx}`}>
-              <circle cx={p.x} cy={p.y} r={4.5} fill="var(--accent2)" stroke="#05070f" strokeWidth={1.75} />
-              <text x={p.x} y={p.y - 10} fontSize={9} textAnchor="middle" fill="#cbd5e1" fontWeight={700}>
-                {isMarks ? p.v : `#${p.v}`}
-              </text>
-              <line
-                x1={p.x}
-                x2={p.x}
-                y1={chart.plotBottom}
-                y2={chart.plotBottom + 4}
-                stroke="rgba(148,163,184,0.45)"
-                strokeWidth={1}
-              />
-              <text x={p.x} y={CHART_H - 10} fontSize={10} textAnchor="middle" fill="#94a3b8" fontWeight={600}>
-                {p.label}
-              </text>
-            </g>
-          ))}
-        </svg>
+          {delta >= 0 ? '+' : ''}
+          {delta} {isMarks ? 'marks' : 'ranks'}
+        </span>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 text-[10px] text-slate-400 pt-1 border-t border-white/10">
-        <div className="flex items-center gap-4">
-          <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-[var(--accent)]" /> Ananya
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="inline-block w-4 border-t border-dashed border-slate-400" />
-            {isMarks ? t('tableHeadAverage') : t('classMidpoint')}
-          </span>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex bg-white/5 border border-white/10 rounded-md p-0.5" role="tablist" aria-label="Subject">
+          {SUBJECT_KEYS.map((key) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={selectedLifecycleSubject === key}
+              onClick={() => setLifecycleSubject(key)}
+              className={`px-2 py-0.5 rounded text-[9px] font-bold transition ${
+                selectedLifecycleSubject === key ? 'bg-[var(--accent)] text-black' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              {t(key)}
+            </button>
+          ))}
         </div>
-        <span className={`font-bold ${delta >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-          {delta >= 0 ? '+' : ''}
-          {delta} {isMarks ? t('marks').toLowerCase() : t('rank').toLowerCase()} · {t('trendText')}
+        <div className="flex bg-white/5 border border-white/10 rounded-md p-0.5" role="tablist" aria-label="Metric">
+          {(['marks', 'ranks'] as LifecycleMetric[]).map((m) => (
+            <button
+              key={m}
+              type="button"
+              role="tab"
+              aria-selected={selectedLifecycleMetric === m}
+              onClick={() => setLifecycleMetric(m)}
+              className={`px-2 py-0.5 rounded text-[9px] font-bold transition ${
+                selectedLifecycleMetric === m ? 'bg-[var(--accent)] text-black' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              {m === 'marks' ? t('marks') : t('rank')}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <svg
+        viewBox={`0 0 ${CHART_W} ${CHART_H}`}
+        preserveAspectRatio="xMidYMid meet"
+        className="block w-full h-auto max-h-[140px]"
+        role="img"
+        aria-label="Lifecycle progress chart"
+      >
+        <defs>
+          <linearGradient id="orbitLifecycleFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.28" />
+            <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+
+        {chart.yTicks.map((tick) => (
+          <g key={`y-${tick.v}`}>
+            <line
+              x1={PAD_L}
+              x2={CHART_W - PAD_R}
+              y1={tick.y}
+              y2={tick.y}
+              stroke="rgba(255,255,255,0.06)"
+              strokeWidth={1}
+            />
+            <text x={PAD_L - 6} y={tick.y + 2.5} fontSize={8} textAnchor="end" fill="#64748b">
+              {tick.v}
+            </text>
+          </g>
+        ))}
+
+        {chart.areaPath ? <path d={chart.areaPath} fill="url(#orbitLifecycleFill)" /> : null}
+        <path
+          d={chart.comparePath}
+          fill="none"
+          stroke="#64748b"
+          strokeWidth={1.25}
+          strokeDasharray="3.5 3"
+          strokeLinecap="round"
+        />
+        <path
+          d={chart.ownPath}
+          fill="none"
+          stroke="var(--accent)"
+          strokeWidth={2}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+
+        {chart.ownPoints.map((p, idx) => (
+          <g key={`o-${idx}`}>
+            <circle cx={p.x} cy={p.y} r={3} fill="var(--accent2)" stroke="#0b1020" strokeWidth={1.25} />
+            <text x={p.x} y={CHART_H - 6} fontSize={8} textAnchor="middle" fill="#94a3b8">
+              {p.label}
+            </text>
+          </g>
+        ))}
+
+        {lastPoint ? (
+          <text
+            x={lastPoint.x}
+            y={Math.max(10, lastPoint.y - 7)}
+            fontSize={9}
+            textAnchor={chart.ownPoints.length > 1 && lastPoint.x > CHART_W * 0.75 ? 'end' : 'middle'}
+            fill="#e2e8f0"
+            fontWeight={700}
+          >
+            {isMarks ? lastPoint.v : `#${lastPoint.v}`}
+          </text>
+        ) : null}
+      </svg>
+
+      <div className="flex items-center gap-3 text-[9px] text-slate-500">
+        <span className="flex items-center gap-1">
+          <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" /> Ananya
         </span>
+        <span className="flex items-center gap-1">
+          <span className="w-3 border-t border-dashed border-slate-500" />
+          {isMarks ? t('tableHeadAverage') : t('classMidpoint')}
+        </span>
+        <span className="ml-auto font-semibold text-slate-400">{t('trendText')}</span>
       </div>
     </Card>
   )
