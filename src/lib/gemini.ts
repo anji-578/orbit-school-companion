@@ -1,9 +1,20 @@
 import { FALLBACK_QUIZ, offlineAiAnswers } from '../data/demo'
 import type { QuizPayload } from '../types'
 
-/** Prefer current Flash model; auth keys (AQ.) work with Generative Language API. */
-const GEMINI_MODEL = 'gemini-2.5-flash'
-const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`
+/**
+ * Model fallbacks for new AI Studio accounts (AQ. auth keys).
+ * gemini-2.5-flash returns 404 for many new users; 2.0-flash often hits free-tier quota.
+ */
+const GEMINI_MODELS = [
+  'gemini-flash-latest',
+  'gemini-3.6-flash',
+  'gemini-3.5-flash-lite',
+  'gemini-flash-lite-latest',
+] as const
+
+function endpointFor(model: string) {
+  return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
+}
 
 export interface AiTextResult {
   text: string
@@ -72,36 +83,47 @@ async function callGemini(
     },
   }
 
-  try {
-    const response = await fetchWithRetry(
-      GEMINI_ENDPOINT,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // Auth keys (AQ.) and standard keys: prefer header over ?key=
-          'x-goog-api-key': key,
+  const errors: string[] = []
+
+  for (const model of GEMINI_MODELS) {
+    try {
+      const response = await fetchWithRetry(
+        endpointFor(model),
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': key,
+          },
+          body: JSON.stringify(body),
         },
-        body: JSON.stringify(body),
-      },
-      2,
-    )
+        1,
+      )
 
-    const payload: unknown = await response.json().catch(() => null)
-    if (!response.ok) {
-      const msg =
-        payload && typeof payload === 'object' && 'error' in payload
-          ? String((payload as { error?: { message?: string } }).error?.message ?? response.status)
-          : `HTTP ${response.status}`
-      return { ok: false, error: msg }
+      const payload: unknown = await response.json().catch(() => null)
+      if (!response.ok) {
+        const msg =
+          payload && typeof payload === 'object' && 'error' in payload
+            ? String((payload as { error?: { message?: string } }).error?.message ?? response.status)
+            : `HTTP ${response.status}`
+        errors.push(`${model}: ${msg}`)
+        // Try next model on not-found / quota / overloaded
+        if (response.status === 404 || response.status === 429 || response.status === 503) continue
+        return { ok: false, error: msg }
+      }
+
+      const text = extractTextFromCandidates(payload)
+      if (!text) {
+        errors.push(`${model}: empty response`)
+        continue
+      }
+      return { ok: true, text }
+    } catch (err) {
+      errors.push(`${model}: ${err instanceof Error ? err.message : 'Network error'}`)
     }
-
-    const text = extractTextFromCandidates(payload)
-    if (!text) return { ok: false, error: 'Empty model response' }
-    return { ok: true, text }
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'Network error' }
   }
+
+  return { ok: false, error: errors[0] ?? 'All Gemini models failed' }
 }
 
 function pickOfflineAnswer(prompt: string): string {
