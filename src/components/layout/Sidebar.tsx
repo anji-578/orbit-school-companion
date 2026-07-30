@@ -12,6 +12,7 @@ import {
   CreditCard,
   FileText,
   GraduationCap,
+  LogOut,
   Menu,
   School,
   Sliders,
@@ -25,6 +26,7 @@ import {
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { translate } from '../../i18n'
+import { useAuthStore } from '../../auth/authStore'
 import { useOrbitStore } from '../../store/orbitStore'
 import type { Role } from '../../types'
 
@@ -124,12 +126,15 @@ export function Sidebar() {
   const lang = useOrbitStore((s) => s.lang)
   const activeTab = useOrbitStore((s) => s.activeTab)
   const mobileMenuOpen = useOrbitStore((s) => s.mobileMenuOpen)
-  const setRole = useOrbitStore((s) => s.setRole)
   const setActiveTab = useOrbitStore((s) => s.setActiveTab)
   const setMobileMenuOpen = useOrbitStore((s) => s.setMobileMenuOpen)
+  const session = useAuthStore((s) => s.session)
+  const logout = useAuthStore((s) => s.logout)
   const t = (key: string) => translate(lang, key)
   const tabs = getTabsForRole(role, lang)
   const meta = getRoleMeta(role)
+  const profileName = session?.displayName ?? (role === 'teacher' ? 'Mrs. Sarah Davis' : role === 'school' ? 'Admin Desk' : 'Ananya Rao')
+  const profileSub = session?.subtitle ?? t(meta.subKey)
 
   return (
     <>
@@ -178,11 +183,9 @@ export function Sidebar() {
               className="w-10 h-10 rounded-full border border-white/20 object-cover shrink-0"
             />
             <div className="min-w-0">
-              <h4 className="text-xs font-bold text-white truncate">
-                {role === 'teacher' ? 'Mrs. Sarah Davis' : role === 'school' ? 'Admin Desk' : 'Ananya Rao'}
-              </h4>
+              <h4 className="text-xs font-bold text-white truncate">{profileName}</h4>
               <span className="text-[9px] font-extrabold mt-1 block truncate" style={{ color: meta.accent }}>
-                {t(meta.subKey)}
+                {profileSub}
               </span>
             </div>
           </div>
@@ -215,22 +218,20 @@ export function Sidebar() {
 
         <div className="bg-white/5 p-3 rounded-2xl border border-white/10 space-y-2 mt-4">
           <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block px-1">
-            {t('roleController')}
+            {t('signedInAs')}
           </span>
-          <div className="grid grid-cols-4 gap-1" role="group" aria-label="Switch persona">
-            {(['student', 'parent', 'teacher', 'school'] as Role[]).map((r) => (
-              <button
-                key={r}
-                type="button"
-                onClick={() => setRole(r)}
-                className={`py-1.5 rounded-lg text-[8px] font-black capitalize transition-all ${
-                  role === r ? 'bg-[var(--accent)] text-black' : 'bg-[#0D1120] text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                {r}
-              </button>
-            ))}
-          </div>
+          <p className="text-[10px] text-slate-300 px-1 truncate">{session?.email}</p>
+          <button
+            type="button"
+            onClick={() => {
+              logout()
+              setMobileMenuOpen(false)
+            }}
+            className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-[11px] font-bold bg-[#0D1120] text-slate-200 hover:text-white border border-white/10 transition"
+          >
+            <LogOut className="h-3.5 w-3.5" aria-hidden />
+            {t('logOut')}
+          </button>
         </div>
       </aside>
 

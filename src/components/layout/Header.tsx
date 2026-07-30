@@ -1,7 +1,8 @@
-import { Bell, Languages, Smartphone } from 'lucide-react'
+import { Bell, Languages, LogOut, Smartphone } from 'lucide-react'
+import { useAuthStore } from '../../auth/authStore'
 import { languagesList, translate } from '../../i18n'
 import { useOrbitStore } from '../../store/orbitStore'
-import type { Lang, Role } from '../../types'
+import type { Lang } from '../../types'
 import { getRoleMeta } from './Sidebar'
 
 export function Header() {
@@ -10,38 +11,33 @@ export function Header() {
   const notifOpen = useOrbitStore((s) => s.notifOpen)
   const notifications = useOrbitStore((s) => s.notifications)
   const mobileSimulator = useOrbitStore((s) => s.mobileSimulator)
-  const setRole = useOrbitStore((s) => s.setRole)
   const setLang = useOrbitStore((s) => s.setLang)
   const setNotifOpen = useOrbitStore((s) => s.setNotifOpen)
   const setMobileSimulator = useOrbitStore((s) => s.setMobileSimulator)
   const markAllNotificationsRead = useOrbitStore((s) => s.markAllNotificationsRead)
   const markNotificationRead = useOrbitStore((s) => s.markNotificationRead)
   const triggerToast = useOrbitStore((s) => s.triggerToast)
+  const session = useAuthStore((s) => s.session)
+  const logout = useAuthStore((s) => s.logout)
   const t = (key: string) => translate(lang, key)
+  const meta = getRoleMeta(role)
 
   const visible = notifications.filter((n) => n.role === 'all' || n.role === role)
   const unread = visible.filter((n) => n.unread).length
 
   return (
     <header className="px-4 sm:px-6 py-3 flex items-center justify-between border-b border-white/10 bg-[#060913]/85 backdrop-blur sticky top-0 z-20">
-      <div className="flex items-center gap-3 pl-12 md:pl-0">
-        <div className="hidden md:flex bg-white/5 p-1 rounded-xl border border-white/10" role="tablist" aria-label="Persona">
-          {(['student', 'parent', 'teacher', 'school'] as Role[]).map((r) => (
-            <button
-              key={r}
-              type="button"
-              role="tab"
-              aria-selected={role === r}
-              onClick={() => setRole(r)}
-              className={`px-3 py-1.5 rounded-lg text-[10px] font-extrabold tracking-wide uppercase transition ${
-                role === r ? 'bg-[var(--accent)] text-black shadow-sm' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              {t(getRoleMeta(r).labelKey)}
-            </button>
-          ))}
+      <div className="flex items-center gap-3 pl-12 md:pl-0 min-w-0">
+        <div className="hidden sm:flex items-center gap-2 min-w-0">
+          <span
+            className="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-extrabold tracking-wide uppercase shrink-0"
+            style={{ backgroundColor: `${meta.accent}22`, color: meta.accent }}
+          >
+            {t(meta.labelKey)}
+          </span>
+          <span className="text-xs font-bold text-white truncate">{session?.displayName}</span>
         </div>
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wide bg-amber-500/15 text-amber-300 border border-amber-500/25">
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wide bg-amber-500/15 text-amber-300 border border-amber-500/25 shrink-0">
           {t('demoMode')}
         </span>
       </div>
@@ -49,7 +45,7 @@ export function Header() {
       <div className="flex items-center gap-2 sm:gap-3">
         <label className="flex items-center gap-1.5 bg-white/5 px-2.5 py-1.5 rounded-xl border border-white/10">
           <Languages className="h-3.5 w-3.5 text-[#4DA6FF]" aria-hidden />
-          <span className="sr-only">Language</span>
+          <span className="sr-only">{t('language')}</span>
           <select
             value={lang}
             onChange={(e) => {
@@ -128,6 +124,16 @@ export function Header() {
         >
           <Smartphone className="h-3.5 w-3.5" aria-hidden />
           <span>{mobileSimulator ? t('hidePhone') : t('simulateMobile')}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => logout()}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs font-bold text-slate-300 hover:text-white transition"
+          aria-label={t('logOut')}
+        >
+          <LogOut className="h-3.5 w-3.5" aria-hidden />
+          <span className="hidden sm:inline">{t('logOut')}</span>
         </button>
       </div>
     </header>
