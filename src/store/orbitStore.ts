@@ -130,6 +130,13 @@ interface OrbitState {
   toggleRosterPresent: (id: string) => void
   broadcastAbsentees: () => void
   toggleTask: (id: number) => void
+  assignHomework: (input: {
+    subject: string
+    task: string
+    due: string
+    xp: number
+    difficulty: HomeworkTask['difficulty']
+  }) => void
   updateGrade: (id: string, patch: Partial<StudentGrade>) => void
   saveGrades: () => void
 
@@ -145,6 +152,7 @@ interface OrbitState {
   scheduleInterview: (id: number) => void
 
   tickBus: () => void
+  resetDemoData: () => void
 
   setAiPrompt: (v: string) => void
   setAiLoading: (v: boolean) => void
@@ -342,6 +350,34 @@ export const useOrbitStore = create<OrbitState>()(
         get().triggerToast(`Absentee alerts sent for: ${absentees.map((a) => a.name).join(', ')}`)
       },
 
+      assignHomework: ({ subject, task, due, xp, difficulty }) => {
+        const entry: HomeworkTask = {
+          id: Date.now(),
+          subject,
+          task,
+          due,
+          xp,
+          difficulty,
+          completed: false,
+        }
+        set((s) => {
+          const tasks = [entry, ...s.tasks]
+          const studyScore = computeStudyScore(attendancePercent(s.attendanceRecords), homeworkPercent(tasks))
+          return { tasks, studyScore }
+        })
+        get().pushNotification({
+          role: 'student',
+          title: 'New homework',
+          body: `${subject}: ${task} · due ${due}`,
+        })
+        get().pushNotification({
+          role: 'parent',
+          title: 'Homework assigned',
+          body: `Ananya received: ${task} (${subject})`,
+        })
+        get().triggerToast('Homework assigned to Class 11-A · student & parent notified.')
+      },
+
       toggleTask: (id) => {
         set((s) => {
           const tasks = s.tasks.map((task) => {
@@ -446,19 +482,27 @@ export const useOrbitStore = create<OrbitState>()(
         get().pushNotification({
           role: 'school',
           title: 'Leave request',
-          body: `Teacher leave for ${date}: ${reason}`,
+          body: `Mrs. Sarah Davis · ${date}: ${reason}`,
         })
-        get().triggerToast('Leave submitted — status: Reviewing. Proxy planning queued.')
-        setTimeout(() => {
-          set((s) => ({
-            leaves: s.leaves.map((l) => (l.id === entry.id ? { ...l, status: 'Approved' as const } : l)),
-          }))
-          get().triggerToast('Leave approved. Substitute teacher assigned (demo).')
-        }, 2500)
+        get().triggerToast('Leave submitted — awaiting school approval.')
       },
 
-      setLeaveStatus: (id, status) =>
-        set((s) => ({ leaves: s.leaves.map((l) => (l.id === id ? { ...l, status } : l)) })),
+      setLeaveStatus: (id, status) => {
+        const leave = get().leaves.find((l) => l.id === id)
+        set((s) => ({ leaves: s.leaves.map((l) => (l.id === id ? { ...l, status } : l)) }))
+        if (!leave) return
+        get().pushNotification({
+          role: 'teacher',
+          title: status === 'Approved' ? 'Leave approved' : 'Leave declined',
+          body:
+            status === 'Approved'
+              ? `Your leave for ${leave.date} was approved. Substitute planning queued.`
+              : `Your leave for ${leave.date} was declined. Contact admin if needed.`,
+        })
+        get().triggerToast(
+          status === 'Approved' ? 'Leave approved · teacher notified.' : 'Leave declined · teacher notified.',
+        )
+      },
 
       submitBroadcast: (title, target, content) => {
         const msg: BroadcastMessage = { id: Date.now(), title, target, content, date: 'Just Now' }
@@ -496,7 +540,8 @@ export const useOrbitStore = create<OrbitState>()(
         get().triggerToast(`Interview scheduled with ${c?.name ?? 'candidate'}.`)
       },
 
-      tickBus: () =>
+      tickBus: () => {
+        const wasAtSchool = get().busReachedSchool
         set((s) => {
           const next = s.busPosition + 1.2
           const wrapped = next >= 96 ? 12 : next
@@ -505,7 +550,51 @@ export const useOrbitStore = create<OrbitState>()(
             b.active ? { ...b, position: b.id === 'bus_14' ? wrapped : (b.position + 0.8) % 95 } : b,
           )
           return { busPosition: wrapped, busReachedSchool, fleet }
-        }),
+        })
+        if (!wasAtSchool && get().busReachedSchool) {
+          get().pushNotification({
+            role: 'parent',
+            title: 'Bus arrived at school',
+            body: 'Bus 14 reached campus. Ananya is safe at school.',
+          })
+        }
+      },
+
+      resetDemoData: () => {
+        set({
+          attendanceRecords: initialAttendance,
+          tasks: initialTasks,
+          studentGrades: initialGrades,
+          roster: initialRoster,
+          unlockedBadges: ['Streak Keeper', 'Early Bird', 'Curious Mind'],
+          totalXp: 430,
+          fees: initialFees,
+          paymentHistory: initialPaymentHistory,
+          outstandingFees: 42500,
+          paymentReceipt: null,
+          paymentProcessing: false,
+          paymentMethod: 'upi',
+          upiId: '',
+          broadcasts: initialBroadcasts,
+          calendarEvents: initialCalendar,
+          leaves: initialLeaves,
+          candidates: initialCandidates,
+          fleet: initialFleet,
+          notifications: initialNotifications,
+          busPosition: 40,
+          busReachedSchool: false,
+          studyScore: computeStudyScore(attendancePercent(initialAttendance), homeworkPercent(initialTasks)),
+          aiResponse: '',
+          quizMode: false,
+          activeQuiz: null,
+          quizScore: null,
+          scanStep: 'select',
+          remediationMarkdown: '',
+          validationSubmitted: false,
+          selectedValidationAnswer: null,
+        })
+        get().triggerToast('Demo data reset to starting state.')
+      },
 
       setAiPrompt: (aiPrompt) => set({ aiPrompt }),
       setAiLoading: (aiLoading) => set({ aiLoading }),

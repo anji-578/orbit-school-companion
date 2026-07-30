@@ -35,7 +35,12 @@ export function SchoolDashboard() {
           onClick={() => setActiveTab('school-fees')}
         />
         <StatTile label={t('schoolHiringTitle')} value={String(candidates.length)} hint="Active applicants" onClick={() => setActiveTab('school-hiring')} />
-        <StatTile label={t('teacherLeavesTitle')} value={String(pendingLeaves)} hint="Pending review" />
+        <StatTile
+          label={t('teacherLeavesTitle')}
+          value={String(pendingLeaves)}
+          hint="Pending review"
+          onClick={() => setActiveTab('school-leaves')}
+        />
         <StatTile
           label={t('schoolFleetTitle')}
           value={`${activeBuses}/${fleet.length}`}
@@ -80,9 +85,10 @@ export function SchoolDashboard() {
         </Panel>
       </div>
 
-      <div className="grid sm:grid-cols-4 gap-4">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {[
           { icon: CreditCard, key: 'schoolFeeAuditorTitle', tab: 'school-fees' },
+          { icon: CalendarDays, key: 'schoolLeavesTitle', tab: 'school-leaves' },
           { icon: Briefcase, key: 'schoolHiringTitle', tab: 'school-hiring' },
           { icon: Bell, key: 'schoolBroadcastingTitle', tab: 'school-broadcast' },
           { icon: Truck, key: 'schoolFleetTitle', tab: 'school-fleet' },

@@ -88,6 +88,7 @@ export function getTabsForRole(role: Role, lang: 'en' | 'te') {
       { id: 'assignments', label: t('studentAssignments'), icon: CheckSquare },
       { id: 'schedule', label: t('studentSchedule'), icon: Calendar },
       { id: 'attendance', label: t('studentAttendance'), icon: CheckCircle },
+      { id: 'calendar', label: t('sharedCalendarTitle'), icon: CalendarDays },
       { id: 'achievements', label: t('studentAchievements'), icon: Trophy },
       { id: 'extracurriculars', label: t('studentExtracurriculars'), icon: Target },
     ],
@@ -95,6 +96,9 @@ export function getTabsForRole(role: Role, lang: 'en' | 'te') {
       { id: 'dashboard', label: t('parentDashboard'), icon: Sliders },
       { id: 'scanner', label: t('parentScanner'), icon: Clipboard },
       { id: 'academics', label: t('parentReportCard'), icon: FileText },
+      { id: 'homework', label: t('parentHomeworkTitle'), icon: CheckSquare },
+      { id: 'attendance', label: t('parentAttendanceTitle'), icon: CheckCircle },
+      { id: 'calendar', label: t('sharedCalendarTitle'), icon: CalendarDays },
       { id: 'teachers', label: t('parentTeachers'), icon: Users },
       { id: 'payments', label: t('parentPayments'), icon: CreditCard },
       { id: 'transport', label: t('parentTransport'), icon: Truck },
@@ -105,6 +109,7 @@ export function getTabsForRole(role: Role, lang: 'en' | 'te') {
       { id: 'scanner', label: t('teacherScanner'), icon: Clipboard },
       { id: 'teacher-attendance', label: t('teacherAttendanceTitle'), icon: UserCheck },
       { id: 'teacher-marks', label: t('teacherMarksTitle'), icon: Clipboard },
+      { id: 'teacher-homework', label: t('teacherHomeworkTitle'), icon: CheckSquare },
       { id: 'teacher-syllabus', label: t('teacherSyllabusTitle'), icon: BookOpen },
       { id: 'teacher-leaves', label: t('teacherLeavesTitle'), icon: CalendarDays },
       { id: 'teacher-jobs', label: t('teacherJobsTitle'), icon: Briefcase },
@@ -112,6 +117,7 @@ export function getTabsForRole(role: Role, lang: 'en' | 'te') {
     school: [
       { id: 'dashboard', label: t('schoolDashboard'), icon: Sliders },
       { id: 'school-fees', label: t('schoolFeeAuditorTitle'), icon: CreditCard },
+      { id: 'school-leaves', label: t('schoolLeavesTitle'), icon: CalendarDays },
       { id: 'school-hiring', label: t('schoolHiringTitle'), icon: Briefcase },
       { id: 'school-calendar', label: t('schoolCalendarTitle'), icon: Calendar },
       { id: 'school-broadcast', label: t('schoolBroadcastingTitle'), icon: Bell },
@@ -130,6 +136,7 @@ export function Sidebar() {
   const setMobileMenuOpen = useOrbitStore((s) => s.setMobileMenuOpen)
   const session = useAuthStore((s) => s.session)
   const logout = useAuthStore((s) => s.logout)
+  const resetDemoData = useOrbitStore((s) => s.resetDemoData)
   const t = (key: string) => translate(lang, key)
   const tabs = getTabsForRole(role, lang)
   const meta = getRoleMeta(role)
@@ -221,6 +228,16 @@ export function Sidebar() {
             {t('signedInAs')}
           </span>
           <p className="text-[10px] text-slate-300 px-1 truncate">{session?.email}</p>
+          <button
+            type="button"
+            onClick={() => {
+              resetDemoData()
+              setMobileMenuOpen(false)
+            }}
+            className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-[11px] font-bold bg-[#0D1120] text-amber-200/90 hover:text-amber-100 border border-amber-500/20 transition"
+          >
+            {t('resetDemo')}
+          </button>
           <button
             type="button"
             onClick={() => {

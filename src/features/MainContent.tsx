@@ -4,6 +4,7 @@ import type { Role } from '../types'
 
 import { ScannerPanel } from './shared/ScannerPanel'
 import { ExtracurricularPanel } from './shared/ExtracurricularPanel'
+import { CalendarView } from './shared/CalendarView'
 
 import { StudentDashboard } from './student/StudentDashboard'
 import { StudyAssistant } from './student/StudyAssistant'
@@ -18,6 +19,8 @@ import { ParentDashboard } from './parent/ParentDashboard'
 import { TeachersPanel } from './parent/TeachersPanel'
 import { PaymentsPanel } from './parent/PaymentsPanel'
 import { TransportPanel } from './parent/TransportPanel'
+import { ParentAttendance } from './parent/ParentAttendance'
+import { ParentHomework } from './parent/ParentHomework'
 
 import { TeacherDashboard } from './teacher/TeacherDashboard'
 import { TeacherAttendance } from './teacher/TeacherAttendance'
@@ -25,6 +28,7 @@ import { TeacherMarks } from './teacher/TeacherMarks'
 import { TeacherSyllabus } from './teacher/TeacherSyllabus'
 import { TeacherLeaves } from './teacher/TeacherLeaves'
 import { TeacherJobs } from './teacher/TeacherJobs'
+import { TeacherHomework } from './teacher/TeacherHomework'
 
 import { SchoolDashboard } from './school/SchoolDashboard'
 import { SchoolFees } from './school/SchoolFees'
@@ -32,6 +36,7 @@ import { SchoolHiring } from './school/SchoolHiring'
 import { SchoolCalendar } from './school/SchoolCalendar'
 import { SchoolBroadcast } from './school/SchoolBroadcast'
 import { SchoolFleet } from './school/SchoolFleet'
+import { SchoolLeaves } from './school/SchoolLeaves'
 
 const ROLE_ROUTES: Record<Role, Record<string, ComponentType>> = {
   student: {
@@ -43,6 +48,7 @@ const ROLE_ROUTES: Record<Role, Record<string, ComponentType>> = {
     assignments: AssignmentsPanel,
     schedule: SchedulePanel,
     attendance: AttendancePanel,
+    calendar: CalendarView,
     achievements: AchievementsPanel,
     extracurriculars: ExtracurricularPanel,
   },
@@ -50,6 +56,9 @@ const ROLE_ROUTES: Record<Role, Record<string, ComponentType>> = {
     dashboard: ParentDashboard,
     scanner: ScannerPanel,
     academics: AcademicsPanel,
+    homework: ParentHomework,
+    attendance: ParentAttendance,
+    calendar: CalendarView,
     teachers: TeachersPanel,
     payments: PaymentsPanel,
     transport: TransportPanel,
@@ -60,6 +69,7 @@ const ROLE_ROUTES: Record<Role, Record<string, ComponentType>> = {
     scanner: ScannerPanel,
     'teacher-attendance': TeacherAttendance,
     'teacher-marks': TeacherMarks,
+    'teacher-homework': TeacherHomework,
     'teacher-syllabus': TeacherSyllabus,
     'teacher-leaves': TeacherLeaves,
     'teacher-jobs': TeacherJobs,
@@ -67,6 +77,7 @@ const ROLE_ROUTES: Record<Role, Record<string, ComponentType>> = {
   school: {
     dashboard: SchoolDashboard,
     'school-fees': SchoolFees,
+    'school-leaves': SchoolLeaves,
     'school-hiring': SchoolHiring,
     'school-calendar': SchoolCalendar,
     'school-broadcast': SchoolBroadcast,
@@ -89,8 +100,8 @@ export function MainContent() {
   const ActiveComponent = routes[activeTab] ?? DASHBOARD_BY_ROLE[role]
 
   return (
-    <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 space-y-6 overflow-y-auto orbit-scroll">
+    <div className="flex-1 min-w-0 space-y-6">
       <ActiveComponent />
-    </main>
+    </div>
   )
 }

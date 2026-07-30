@@ -61,7 +61,12 @@ export function ParentDashboard() {
           accent={outstandingFees > 0 ? '#FF6B8B' : '#22C55E'}
           onClick={() => setActiveTab('payments')}
         />
-        <StatTile label={t('homeworkTracker')} value={homeworkRatio} hint={t('homeworkCompletion')} />
+        <StatTile
+          label={t('homeworkTracker')}
+          value={homeworkRatio}
+          hint={t('homeworkCompletion')}
+          onClick={() => setActiveTab('homework')}
+        />
         {weakest ? (
           <StatTile
             label={t('weakestTopic')}
