@@ -3,6 +3,7 @@ export type Lang = 'en' | 'te'
 export type AttendanceStatus = 'Present' | 'Absent'
 export type LeaveStatus = 'Reviewing' | 'Approved' | 'Declined'
 export type FeeStatus = 'Unpaid' | 'Pending' | 'Overdue' | 'Paid'
+export type PaymentSubmissionStatus = 'Pending' | 'Verified' | 'Rejected'
 export type ScanStep = 'select' | 'scanning' | 'evaluated' | 'analogy' | 'validated'
 export type ScanTarget = 'chemistry' | 'mathematics'
 export type LifecycleMetric = 'marks' | 'ranks'
@@ -178,4 +179,23 @@ export interface PaymentReceipt {
   date: string
   amount: number
   ref: string
+}
+
+export interface SchoolPaymentSettings {
+  upiId: string
+  accountName: string
+  bankName: string
+  ifsc: string
+  instructions: string
+}
+
+export interface PaymentSubmission {
+  id: string
+  amount: number
+  utr: string
+  paidOn: string
+  note: string
+  payerName: string
+  status: PaymentSubmissionStatus
+  createdAt: string
 }

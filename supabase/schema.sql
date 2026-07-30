@@ -194,3 +194,29 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
+
+-- Phase 0b — UPI + UTR payments (₹0 gateway path)
+create table if not exists public.school_payment_settings (
+  school_id uuid primary key references public.schools (id) on delete cascade,
+  upi_id text not null,
+  account_name text not null,
+  bank_name text,
+  ifsc text,
+  instructions text,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.payment_submissions (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools (id) on delete cascade,
+  submitted_by uuid references public.profiles (id) on delete set null,
+  payer_name text,
+  amount_paise integer not null check (amount_paise > 0),
+  utr text not null,
+  paid_on date,
+  note text,
+  status text not null default 'Pending' check (status in ('Pending', 'Verified', 'Rejected')),
+  reviewed_by uuid references public.profiles (id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);

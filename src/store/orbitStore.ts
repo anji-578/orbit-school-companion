@@ -17,6 +17,13 @@ import {
   remediationTemplates,
 } from '../data/demo'
 import { computeStudyScore } from '../lib/studyScore'
+import {
+  createPaymentSubmission,
+  fetchPaymentSubmissions,
+  fetchSchoolPaymentSettings,
+  reviewPaymentSubmission,
+  saveSchoolPaymentSettings,
+} from '../lib/paymentsApi'
 import type {
   AttendanceRecord,
   BroadcastMessage,
@@ -32,11 +39,13 @@ import type {
   PaymentMethod,
   PaymentReceipt,
   PaymentRecord,
+  PaymentSubmission,
   QuizPayload,
   Role,
   RosterStudent,
   ScanStep,
   ScanTarget,
+  SchoolPaymentSettings,
   StudentGrade,
 } from '../types'
 
@@ -74,6 +83,8 @@ interface OrbitState {
   paymentProcessing: boolean
   paymentReceipt: PaymentReceipt | null
   upiId: string
+  schoolPaymentSettings: SchoolPaymentSettings
+  paymentSubmissions: PaymentSubmission[]
 
   broadcasts: BroadcastMessage[]
   calendarEvents: CalendarEvent[]
@@ -144,6 +155,18 @@ interface OrbitState {
   setUpiId: (v: string) => void
   executePayment: () => void
   nudgeFeeParents: () => void
+  setSchoolPaymentSettings: (patch: Partial<SchoolPaymentSettings>) => void
+  loadPaymentWorkspace: () => Promise<void>
+  submitUtrPayment: (input: {
+    amount: number
+    utr: string
+    paidOn: string
+    note: string
+    payerName: string
+    userId?: string
+  }) => Promise<boolean>
+  reviewUtrPayment: (id: string, status: 'Verified' | 'Rejected', reviewerId?: string) => Promise<void>
+  persistSchoolPaymentSettings: () => Promise<void>
 
   submitLeave: (date: string, reason: string) => void
   setLeaveStatus: (id: number, status: LeaveStatus) => void
@@ -207,6 +230,14 @@ export const useOrbitStore = create<OrbitState>()(
       paymentProcessing: false,
       paymentReceipt: null,
       upiId: '',
+      schoolPaymentSettings: {
+        upiId: 'sunrise.school@oksbi',
+        accountName: 'Sunrise Public School',
+        bankName: 'Demo Bank',
+        ifsc: '',
+        instructions: 'Pay the exact outstanding amount via UPI, then submit the UTR here. ₹0 gateway fee.',
+      },
+      paymentSubmissions: [],
 
       broadcasts: initialBroadcasts,
       calendarEvents: initialCalendar,
@@ -476,6 +507,108 @@ export const useOrbitStore = create<OrbitState>()(
         get().triggerToast('Fee reminder notifications queued for pending accounts.')
       },
 
+      setSchoolPaymentSettings: (patch) =>
+        set((s) => ({ schoolPaymentSettings: { ...s.schoolPaymentSettings, ...patch } })),
+
+      loadPaymentWorkspace: async () => {
+        const [settings, submissions] = await Promise.all([
+          fetchSchoolPaymentSettings(),
+          fetchPaymentSubmissions(),
+        ])
+        set((s) => ({
+          schoolPaymentSettings: settings,
+          paymentSubmissions: submissions.length ? submissions : s.paymentSubmissions,
+        }))
+      },
+
+      submitUtrPayment: async (input) => {
+        if (!input.utr.trim() || input.amount <= 0) {
+          get().triggerToast('Enter a valid UTR and amount.')
+          return false
+        }
+        const result = await createPaymentSubmission(input)
+        if (!result.ok) {
+          get().triggerToast(result.error)
+          return false
+        }
+        set((s) => ({
+          paymentSubmissions: [result.submission, ...s.paymentSubmissions],
+          fees: s.fees.map((f) => (f.status !== 'Paid' ? { ...f, status: 'Pending' as const } : f)),
+        }))
+        get().pushNotification({
+          role: 'school',
+          title: 'UTR payment submitted',
+          body: `${input.payerName || 'Parent'} submitted UTR ${input.utr} for ₹${input.amount.toLocaleString()}.`,
+        })
+        get().pushNotification({
+          role: 'parent',
+          title: 'Payment under review',
+          body: `UTR ${input.utr} submitted. School will verify shortly.`,
+        })
+        get().triggerToast('UTR submitted for school verification.')
+        return true
+      },
+
+      reviewUtrPayment: async (id, status, reviewerId) => {
+        const target = get().paymentSubmissions.find((p) => p.id === id)
+        await reviewPaymentSubmission(id, status, reviewerId)
+
+        if (status !== 'Verified') {
+          set((s) => ({
+            paymentSubmissions: s.paymentSubmissions.map((p) => (p.id === id ? { ...p, status } : p)),
+          }))
+          get().pushNotification({
+            role: 'parent',
+            title: 'Payment rejected',
+            body: 'School could not verify the UTR. Please check and resubmit.',
+          })
+          get().triggerToast('Payment marked rejected.')
+          return
+        }
+
+        const amount = target?.amount ?? get().outstandingFees
+        const receiptId = `UTR-${Math.floor(10000 + Math.random() * 90000)}`
+        const date = new Date().toLocaleDateString('en-IN', {
+          year: 'numeric',
+          month: 'long',
+          day: '2-digit',
+        })
+
+        set((s) => ({
+          paymentSubmissions: s.paymentSubmissions.map((p) => (p.id === id ? { ...p, status } : p)),
+          outstandingFees: 0,
+          fees: s.fees.map((f) => ({ ...f, status: 'Paid' as const })),
+          paymentHistory: [
+            {
+              id: Date.now(),
+              name: 'UPI / UTR settlement',
+              amount,
+              status: 'Paid' as const,
+              date,
+              receiptId,
+            },
+            ...s.paymentHistory,
+          ],
+          paymentReceipt: { id: receiptId, date, amount, ref: id },
+        }))
+        get().pushNotification({
+          role: 'parent',
+          title: 'Fee payment verified',
+          body: `UTR payment of ₹${amount.toLocaleString()} verified by school.`,
+        })
+        get().triggerToast('Payment verified · fees cleared.')
+      },
+
+      persistSchoolPaymentSettings: async () => {
+        const settings = get().schoolPaymentSettings
+        const result = await saveSchoolPaymentSettings(settings)
+        if (!result.ok) {
+          get().triggerToast(result.error ?? 'Could not save payment settings.')
+          return
+        }
+        get().triggerToast('School UPI / bank details saved.')
+      },
+
       submitLeave: (date, reason) => {
         const entry: LeaveRequest = { id: Date.now(), date, reason, status: 'Reviewing' }
         set((s) => ({ leaves: [entry, ...s.leaves] }))
@@ -575,6 +708,14 @@ export const useOrbitStore = create<OrbitState>()(
           paymentProcessing: false,
           paymentMethod: 'upi',
           upiId: '',
+          paymentSubmissions: [],
+          schoolPaymentSettings: {
+            upiId: 'sunrise.school@oksbi',
+            accountName: 'Sunrise Public School',
+            bankName: 'Demo Bank',
+            ifsc: '',
+            instructions: 'Pay the exact outstanding amount via UPI, then submit the UTR here. ₹0 gateway fee.',
+          },
           broadcasts: initialBroadcasts,
           calendarEvents: initialCalendar,
           leaves: initialLeaves,
@@ -732,6 +873,8 @@ export const useOrbitStore = create<OrbitState>()(
         paymentHistory: s.paymentHistory,
         outstandingFees: s.outstandingFees,
         paymentReceipt: s.paymentReceipt,
+        schoolPaymentSettings: s.schoolPaymentSettings,
+        paymentSubmissions: s.paymentSubmissions,
         broadcasts: s.broadcasts,
         calendarEvents: s.calendarEvents,
         leaves: s.leaves,
