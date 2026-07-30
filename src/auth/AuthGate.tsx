@@ -26,8 +26,9 @@ export function AuthGate() {
 
   if (!ready) {
     return (
-      <div className="orbit-root min-h-dvh w-full flex items-center justify-center">
-        <p className="text-sm text-slate-400">
+      <div className="orbit-root min-h-dvh w-full flex flex-col items-center justify-center gap-4">
+        <img src="/brand/orbit-mark.png" alt="" className="h-16 w-16 object-contain opacity-90" />
+        <p className="text-sm text-slate-400 font-brand text-lg tracking-wide">
           {isSupabaseConfigured() ? 'Connecting to Orbit…' : 'Loading Orbit…'}
         </p>
       </div>

@@ -2,8 +2,10 @@
 
 :root {
   color-scheme: dark;
-  --accent: #7c6cff;
-  --accent2: #4da6ff;
+  --accent: #3b82f6;
+  --accent2: #5b8cff;
+  --brand-navy: #0b1f44;
+  --brand-royal: #3b82f6;
 }
 
 html,
@@ -32,6 +34,11 @@ body {
 
 .font-display {
   font-family: 'Space Grotesk', 'Noto Sans Telugu', sans-serif;
+}
+
+.font-brand {
+  font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  font-weight: 600;
 }
 
 .glass {

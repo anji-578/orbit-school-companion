@@ -1,11 +1,11 @@
 {
-  "name": "Orbit · My School Companion",
+  "name": "Orbit",
   "short_name": "Orbit",
-  "description": "Multi-persona K-12 school companion",
+  "description": "Your learning. Our orbit.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#05070f",
-  "theme_color": "#7C6CFF",
+  "theme_color": "#0B1F44",
   "orientation": "portrait-primary",
   "icons": [
     {

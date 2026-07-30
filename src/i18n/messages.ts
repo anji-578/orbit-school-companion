@@ -11,7 +11,8 @@ export const languagesList: LanguageOption[] = [
 export const messages = {
   en: {
     orbit: 'Orbit',
-    tagline: 'The Operating System for Schools',
+    tagline: 'Your learning. Our orbit.',
+
     studentOS: 'Student OS',
     parentPortal: 'Parent Portal',
     teacherSuite: 'Teacher Suite',
@@ -264,7 +265,8 @@ export const messages = {
   },
   te: {
     orbit: 'ఆర్బిట్',
-    tagline: 'పాఠశాలల కోసం ఆపరేటింగ్ సిస్టమ్',
+    tagline: 'మీ నేర్చుకోవడం. మా ఆర్బిట్.',
+
     studentOS: 'విద్యార్థి OS',
     parentPortal: 'పేరెంట్ పోర్టల్',
     teacherSuite: 'టీచర్ సూట్',

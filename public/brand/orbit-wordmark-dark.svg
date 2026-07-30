@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 72" fill="none" role="img" aria-label="Orbit">
+  <defs>
+    <linearGradient id="oRing" x1="8" y1="56" x2="56" y2="12" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1E4FD6"/>
+      <stop offset="1" stop-color="#5B8CFF"/>
+    </linearGradient>
+  </defs>
+  <!-- Mark -->
+  <g transform="translate(0,4) scale(0.55)">
+    <path d="M28 78c-6-14-4-32 10-44 12-10 28-13 42-8" stroke="#E8EEF9" stroke-width="7.5" stroke-linecap="round"/>
+    <path d="M22 86c18 16 42 20 66 8 10-5 18-13 22-22" stroke="url(#oRing)" stroke-width="5.5" stroke-linecap="round"/>
+    <path d="M30 94c16 10 38 12 58 2" stroke="#5B8CFF" stroke-width="3" stroke-linecap="round" opacity="0.9"/>
+    <circle cx="92" cy="34" r="5.5" fill="#E8EEF9"/>
+    <g fill="#F4F7FC">
+      <ellipse cx="58" cy="42" rx="9" ry="10"/>
+      <path d="M44 88c2-18 8-28 14-32 4-2 10-2 14 1 6 4 12 14 14 31-8 4-18 6-28 5-5 0-10-2-14-5z"/>
+      <path d="M46 62c-4 2-8 8-9 16 4 2 8 3 12 3 1-7 2-13 4-17-3-1-5-1-7-2z"/>
+    </g>
+    <rect x="54" y="62" width="16" height="11" rx="1.5" fill="#0B1F44" stroke="#F4F7FC" stroke-width="1.2"/>
+    <path d="M78 48l1.2 2.8 2.8 1.2-2.8 1.2L78 56l-1.2-2.8L74 52l2.8-1.2L78 48z" fill="#5B8CFF"/>
+  </g>
+  <!-- Wordmark -->
+  <text x="78" y="44" fill="#F7F9FC" font-family="Cormorant Garamond, Georgia, serif" font-size="42" font-weight="600" letter-spacing="0.5">Orbit</text>
+  <!-- Orbiting O accent -->
+  <ellipse cx="93" cy="32" rx="13" ry="6.5" transform="rotate(-28 93 32)" stroke="#5B8CFF" stroke-width="1.6" fill="none"/>
+  <circle cx="104" cy="27" r="2.4" fill="#5B8CFF"/>
+</svg>

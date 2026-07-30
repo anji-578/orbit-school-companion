@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { ArrowLeft, Compass, Eye, EyeOff, Lock, Mail, UserRound } from 'lucide-react'
+import { ArrowLeft, Eye, EyeOff, Lock, Mail, UserRound } from 'lucide-react'
 import { getRoleMeta } from '../../components/layout/Sidebar'
+import { OrbitLogo } from '../../components/brand/OrbitLogo'
 import { translate } from '../../i18n'
 import { useOrbitStore } from '../../store/orbitStore'
 import type { Role } from '../../types'
@@ -89,18 +90,21 @@ export function LoginPage({ role }: { role: Role }) {
       style={{ ['--accent' as string]: meta.accent, ['--accent2' as string]: meta.accent2 }}
     >
       <div className="w-full max-w-md space-y-5 fade-up">
-        <button
-          type="button"
-          onClick={() => {
-            setPendingRole(null)
-            clearAuthError()
-            clearAuthNotice()
-          }}
-          className="inline-flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-white transition"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
-          {t('backToProfiles')}
-        </button>
+        <div className="flex items-center justify-between gap-3">
+          <OrbitLogo variant="lockup" showTagline={false} />
+          <button
+            type="button"
+            onClick={() => {
+              setPendingRole(null)
+              clearAuthError()
+              clearAuthNotice()
+            }}
+            className="inline-flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-white transition"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
+            {t('backToProfiles')}
+          </button>
+        </div>
 
         <div className="glass rounded-3xl p-6 sm:p-8 border border-white/10 space-y-6">
           <div className="flex items-center gap-3">
@@ -257,7 +261,7 @@ export function LoginPage({ role }: { role: Role }) {
         </div>
 
         <div className="flex items-center justify-center gap-2 text-slate-500 text-[10px]">
-          <Compass className="h-3.5 w-3.5" aria-hidden />
+          <img src="/brand/orbit-mark.png" alt="" className="h-4 w-4 object-contain opacity-80" />
           <span>{usingSupabase ? 'Orbit · Supabase Auth' : 'Orbit · local accounts'}</span>
         </div>
       </div>

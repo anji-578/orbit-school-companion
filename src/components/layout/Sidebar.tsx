@@ -8,7 +8,6 @@ import {
   CheckCircle,
   CheckSquare,
   Clipboard,
-  Compass,
   CreditCard,
   FileText,
   GraduationCap,
@@ -29,14 +28,15 @@ import { translate } from '../../i18n'
 import { useAuthStore } from '../../auth/authStore'
 import { useOrbitStore } from '../../store/orbitStore'
 import type { Role } from '../../types'
+import { OrbitLogo } from '../brand/OrbitLogo'
 
 const ROLE_META: Record<
   Role,
   { accent: string; accent2: string; icon: LucideIcon; greetKey: string; subKey: string; labelKey: string; emoji: string }
 > = {
   student: {
-    accent: '#7C6CFF',
-    accent2: '#4DA6FF',
+    accent: '#5B8CFF',
+    accent2: '#93C5FD',
     icon: GraduationCap,
     greetKey: 'goodMorning',
     subKey: 'studentSub',
@@ -62,8 +62,8 @@ const ROLE_META: Record<
     emoji: '🍎',
   },
   school: {
-    accent: '#FF6B8B',
-    accent2: '#C084FC',
+    accent: '#7C9CFF',
+    accent2: '#C4B5FD',
     icon: School,
     greetKey: 'goodDayAdmin',
     subKey: 'adminSub',
@@ -166,17 +166,7 @@ export function Sidebar() {
       >
         <div className="space-y-6 overflow-y-auto orbit-scroll pr-1">
           <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-2.5">
-              <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-[#7C6CFF] to-[#4DA6FF] flex items-center justify-center shadow-lg">
-                <Compass className="h-5 w-5 text-white animate-spin-slow" aria-hidden />
-              </div>
-              <div>
-                <span className="text-lg font-black tracking-widest text-white leading-none">{t('orbit')}</span>
-                <span className="text-[9px] text-[#4DA6FF] font-bold block mt-0.5 uppercase tracking-wider">
-                  {t('tagline')}
-                </span>
-              </div>
-            </div>
+            <OrbitLogo variant="lockup" />
             <button
               type="button"
               className="md:hidden p-2 rounded-lg text-slate-300 hover:bg-white/5"

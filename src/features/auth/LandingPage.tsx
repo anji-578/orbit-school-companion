@@ -1,9 +1,9 @@
-import { Compass } from 'lucide-react'
-import { getRoleMeta } from '../../components/layout/Sidebar'
 import { languagesList, translate } from '../../i18n'
 import { useOrbitStore } from '../../store/orbitStore'
 import type { Lang, Role } from '../../types'
 import { useAuthStore } from '../../auth/authStore'
+import { getRoleMeta } from '../../components/layout/Sidebar'
+import { OrbitLogo } from '../../components/brand/OrbitLogo'
 
 const PROFILES: Role[] = ['student', 'parent', 'teacher', 'school']
 
@@ -15,18 +15,9 @@ export function LandingPage() {
 
   return (
     <div className="orbit-root min-h-dvh w-full overflow-y-auto orbit-scroll">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-14 space-y-10">
-        <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="h-11 w-11 rounded-2xl bg-gradient-to-tr from-[#7C6CFF] to-[#4DA6FF] flex items-center justify-center shadow-lg">
-              <Compass className="h-5 w-5 text-white animate-spin-slow" aria-hidden />
-            </div>
-            <div>
-              <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-white">{t('orbit')}</h1>
-              <p className="text-xs text-[#4DA6FF] font-bold uppercase tracking-wider">{t('tagline')}</p>
-            </div>
-          </div>
-
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-10">
+        <header className="flex items-center justify-between gap-4">
+          <OrbitLogo variant="lockup" className="scale-[0.92] origin-left" />
           <label className="self-start sm:self-auto flex items-center gap-2 bg-white/5 px-3 py-2 rounded-xl border border-white/10">
             <span className="text-[10px] font-bold text-slate-400 uppercase">{t('language')}</span>
             <select
@@ -43,10 +34,16 @@ export function LandingPage() {
           </label>
         </header>
 
-        <section className="space-y-3 fade-up">
+        <section className="fade-up pt-2 pb-4">
+          <OrbitLogo variant="hero" />
+        </section>
+
+        <section className="space-y-3 fade-up text-center sm:text-left">
           <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">{t('chooseProfile')}</p>
-          <h2 className="font-display text-xl sm:text-2xl font-bold text-white max-w-xl">{t('landingHeadline')}</h2>
-          <p className="text-sm text-slate-400 max-w-2xl leading-relaxed">{t('landingSub')}</p>
+          <h2 className="font-display text-xl sm:text-2xl font-bold text-white max-w-xl mx-auto sm:mx-0">
+            {t('landingHeadline')}
+          </h2>
+          <p className="text-sm text-slate-400 max-w-2xl leading-relaxed mx-auto sm:mx-0">{t('landingSub')}</p>
         </section>
 
         <section className="grid sm:grid-cols-2 gap-4" aria-label={t('chooseProfile')}>
