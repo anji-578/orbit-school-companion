@@ -49,6 +49,9 @@ export function StudyAssistant() {
     setAiLoading(true)
     const result = await askOrbitAi(aiPrompt, SYSTEM_PROMPT)
     setAiResult(result.text, result.source)
+    if (result.source === 'offline' && result.error) {
+      triggerToast(`AI offline: ${result.error.slice(0, 80)}`)
+    }
     unlockBadge('Curious Mind')
     addXp(10)
   }
@@ -60,6 +63,9 @@ export function StudyAssistant() {
     const topic = aiPrompt.trim().length > 0 ? aiPrompt : 'Recap Quiz'
     const result = await generateOrbitQuiz(topic)
     setQuiz(result.quiz, result.source)
+    if (result.source === 'offline' && result.error) {
+      triggerToast(`Quiz offline: ${result.error.slice(0, 80)}`)
+    }
     setQuizLoading(false)
   }
 

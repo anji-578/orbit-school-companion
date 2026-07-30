@@ -1,26 +1,29 @@
 import { FALLBACK_QUIZ, offlineAiAnswers } from '../data/demo'
 import type { QuizPayload } from '../types'
 
-const GEMINI_MODEL = 'gemini-2.0-flash'
+/** Prefer current Flash model; auth keys (AQ.) work with Generative Language API. */
+const GEMINI_MODEL = 'gemini-2.5-flash'
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`
 
 export interface AiTextResult {
   text: string
   source: 'live' | 'offline'
+  error?: string
 }
 
 export interface AiQuizResult {
   quiz: QuizPayload
   source: 'live' | 'offline'
+  error?: string
 }
 
 function getApiKey(): string {
   const env = import.meta.env as Record<string, string | undefined>
-  return env.VITE_GEMINI_API_KEY ?? ''
+  return (env.VITE_GEMINI_API_KEY ?? '').trim()
 }
 
 export function isAiConfigured(): boolean {
-  return getApiKey().trim().length > 0
+  return getApiKey().length > 0
 }
 
 function delay(ms: number): Promise<void> {
@@ -51,6 +54,56 @@ export async function fetchWithRetry(
   throw lastError instanceof Error ? lastError : new Error('Gemini request failed')
 }
 
+async function callGemini(
+  prompt: string,
+  system: string,
+  jsonMode = false,
+): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
+  const key = getApiKey()
+  if (!key) return { ok: false, error: 'Missing VITE_GEMINI_API_KEY' }
+
+  const body: Record<string, unknown> = {
+    systemInstruction: { parts: [{ text: system }] },
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    generationConfig: {
+      temperature: jsonMode ? 0.4 : 0.6,
+      maxOutputTokens: 2048,
+      ...(jsonMode ? { responseMimeType: 'application/json' } : {}),
+    },
+  }
+
+  try {
+    const response = await fetchWithRetry(
+      GEMINI_ENDPOINT,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // Auth keys (AQ.) and standard keys: prefer header over ?key=
+          'x-goog-api-key': key,
+        },
+        body: JSON.stringify(body),
+      },
+      2,
+    )
+
+    const payload: unknown = await response.json().catch(() => null)
+    if (!response.ok) {
+      const msg =
+        payload && typeof payload === 'object' && 'error' in payload
+          ? String((payload as { error?: { message?: string } }).error?.message ?? response.status)
+          : `HTTP ${response.status}`
+      return { ok: false, error: msg }
+    }
+
+    const text = extractTextFromCandidates(payload)
+    if (!text) return { ok: false, error: 'Empty model response' }
+    return { ok: true, text }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Network error' }
+  }
+}
+
 function pickOfflineAnswer(prompt: string): string {
   const normalized = prompt.toLowerCase()
   if (normalized.includes('chemistry') || normalized.includes('stoichiometry') || normalized.includes('balanc')) {
@@ -58,6 +111,22 @@ function pickOfflineAnswer(prompt: string): string {
   }
   if (normalized.includes('algebra') || normalized.includes('equation') || normalized.includes('variable')) {
     return offlineAiAnswers.algebra ?? offlineAiAnswers.default
+  }
+  if (
+    normalized.includes('kirchhoff') ||
+    normalized.includes('kirchoff') ||
+    normalized.includes('circuit') ||
+    normalized.includes('current law') ||
+    normalized.includes('voltage law')
+  ) {
+    return [
+      '## Kirchhoff’s Laws (quick)',
+      '',
+      '- **KCL (current):** Current into a junction = current out.',
+      '- **KVL (voltage):** Sum of voltages around a closed loop = 0.',
+      '',
+      'Use KCL for nodes, KVL for loops when solving circuit problems.',
+    ].join('\n')
   }
   return offlineAiAnswers.default
 }
@@ -75,37 +144,14 @@ function extractTextFromCandidates(payload: unknown): string | null {
 
 export async function askOrbitAi(prompt: string, system: string): Promise<AiTextResult> {
   if (!isAiConfigured()) {
-    return { text: pickOfflineAnswer(prompt), source: 'offline' }
+    return { text: pickOfflineAnswer(prompt), source: 'offline', error: 'API key not configured' }
   }
 
-  try {
-    const response = await fetchWithRetry(
-      `${GEMINI_ENDPOINT}?key=${encodeURIComponent(getApiKey())}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          systemInstruction: { role: 'system', parts: [{ text: system }] },
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.6, maxOutputTokens: 1024 },
-        }),
-      },
-      2,
-    )
-
-    if (!response.ok) {
-      return { text: pickOfflineAnswer(prompt), source: 'offline' }
-    }
-
-    const payload: unknown = await response.json()
-    const text = extractTextFromCandidates(payload)
-    if (!text) {
-      return { text: pickOfflineAnswer(prompt), source: 'offline' }
-    }
-    return { text, source: 'live' }
-  } catch {
-    return { text: pickOfflineAnswer(prompt), source: 'offline' }
+  const result = await callGemini(prompt, system, false)
+  if (!result.ok) {
+    return { text: pickOfflineAnswer(prompt), source: 'offline', error: result.error }
   }
+  return { text: result.text, source: 'live' }
 }
 
 function buildOfflineQuiz(topic: string): QuizPayload {
@@ -125,9 +171,10 @@ function parseQuizPayload(raw: string, topic: string): QuizPayload | null {
         if (!q || typeof q.question !== 'string' || !Array.isArray(q.options)) return null
         const options = q.options.filter((o): o is string => typeof o === 'string')
         if (options.length < 2) return null
-        const answerIndex = typeof q.answerIndex === 'number' && q.answerIndex >= 0 && q.answerIndex < options.length
-          ? q.answerIndex
-          : 0
+        const answerIndex =
+          typeof q.answerIndex === 'number' && q.answerIndex >= 0 && q.answerIndex < options.length
+            ? q.answerIndex
+            : 0
         return { id: typeof q.id === 'number' ? q.id : idx + 1, question: q.question, options, answerIndex }
       })
       .filter((q): q is QuizPayload['questions'][number] => q !== null)
@@ -140,43 +187,24 @@ function parseQuizPayload(raw: string, topic: string): QuizPayload | null {
 
 export async function generateOrbitQuiz(topic: string): Promise<AiQuizResult> {
   if (!isAiConfigured()) {
-    return { quiz: buildOfflineQuiz(topic), source: 'offline' }
+    return { quiz: buildOfflineQuiz(topic), source: 'offline', error: 'API key not configured' }
   }
 
-  try {
-    const system =
-      'You are Orbit AI, an assistant that creates short multiple-choice quizzes for school students. ' +
-      'Always respond with ONLY strict JSON matching this TypeScript type, no markdown fences, no commentary: ' +
-      '{"topic": string, "questions": {"id": number, "question": string, "options": string[], "answerIndex": number}[]}. ' +
-      'Generate exactly 3 questions with 4 options each.'
-    const prompt = `Create a quiz about: ${topic}`
+  const system =
+    'You are Orbit AI, an assistant that creates short multiple-choice quizzes for school students. ' +
+    'Always respond with ONLY strict JSON matching this TypeScript type, no markdown fences, no commentary: ' +
+    '{"topic": string, "questions": {"id": number, "question": string, "options": string[], "answerIndex": number}[]}. ' +
+    'Generate exactly 3 questions with 4 options each.'
+  const prompt = `Create a quiz about: ${topic}`
 
-    const response = await fetchWithRetry(
-      `${GEMINI_ENDPOINT}?key=${encodeURIComponent(getApiKey())}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          systemInstruction: { role: 'system', parts: [{ text: system }] },
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.4, maxOutputTokens: 1024, responseMimeType: 'application/json' },
-        }),
-      },
-      2,
-    )
-
-    if (!response.ok) {
-      return { quiz: buildOfflineQuiz(topic), source: 'offline' }
-    }
-
-    const payload: unknown = await response.json()
-    const text = extractTextFromCandidates(payload)
-    const quiz = text ? parseQuizPayload(text, topic) : null
-    if (!quiz) {
-      return { quiz: buildOfflineQuiz(topic), source: 'offline' }
-    }
-    return { quiz, source: 'live' }
-  } catch {
-    return { quiz: buildOfflineQuiz(topic), source: 'offline' }
+  const result = await callGemini(prompt, system, true)
+  if (!result.ok) {
+    return { quiz: buildOfflineQuiz(topic), source: 'offline', error: result.error }
   }
+
+  const quiz = parseQuizPayload(result.text, topic)
+  if (!quiz) {
+    return { quiz: buildOfflineQuiz(topic), source: 'offline', error: 'Could not parse quiz JSON' }
+  }
+  return { quiz, source: 'live' }
 }

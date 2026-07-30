@@ -599,7 +599,7 @@ export const useOrbitStore = create<OrbitState>()(
       setAiPrompt: (aiPrompt) => set({ aiPrompt }),
       setAiLoading: (aiLoading) => set({ aiLoading }),
       setAiResult: (aiResponse, aiSource) => set({ aiResponse, aiSource, aiLoading: false, quizMode: false }),
-      setQuiz: (activeQuiz) =>
+      setQuiz: (activeQuiz, aiSource) =>
         set({
           activeQuiz,
           quizMode: !!activeQuiz,
@@ -607,6 +607,7 @@ export const useOrbitStore = create<OrbitState>()(
           quizScore: null,
           aiLoading: false,
           aiResponse: '',
+          aiSource: aiSource ?? null,
         }),
       setSelectedAnswer: (qIdx, optIdx) =>
         set((s) => ({ selectedAnswers: { ...s.selectedAnswers, [qIdx]: optIdx } })),
