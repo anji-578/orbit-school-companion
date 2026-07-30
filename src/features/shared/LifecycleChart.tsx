@@ -7,10 +7,20 @@ import type { LifecycleMetric } from '../../types'
 
 const SUBJECT_KEYS = ['mathSubject', 'scienceSubject', 'chemLabSubject'] as const
 const CLASS_SIZE = 42
-const CHART_W = 460
-const CHART_H = 190
-const PAD_X = 30
-const PAD_Y = 18
+const CHART_W = 560
+const CHART_H = 220
+const PAD_L = 36
+const PAD_R = 16
+const PAD_T = 16
+const PAD_B = 36
+
+function shortExamLabel(exam: string) {
+  if (exam.startsWith('Unit')) return 'Unit'
+  if (exam.startsWith('Half')) return 'Half-Yearly'
+  if (exam.startsWith('Pre')) return 'Pre-Board'
+  if (exam.startsWith('Final')) return 'Final'
+  return exam.split(' ')[0]
+}
 
 export function LifecycleChart() {
   const lang = useOrbitStore((s) => s.lang)
@@ -24,24 +34,48 @@ export function LifecycleChart() {
   const isMarks = selectedLifecycleMetric === 'marks'
 
   const chart = useMemo(() => {
-    const innerW = CHART_W - PAD_X * 2
-    const innerH = CHART_H - PAD_Y * 2
-    const own = isMarks ? history.marks : history.ranks
-    const compare = isMarks ? history.classAvg : history.exams.map(() => CLASS_SIZE / 2)
+    const count = Math.min(history.exams.length, history.marks.length, history.ranks.length, history.classAvg.length)
+    const exams = history.exams.slice(0, count)
+    const own = (isMarks ? history.marks : history.ranks).slice(0, count)
+    const compare = (isMarks ? history.classAvg : exams.map(() => CLASS_SIZE / 2)).slice(0, count)
     const maxVal = isMarks ? 50 : CLASS_SIZE
+    const innerW = CHART_W - PAD_L - PAD_R
+    const innerH = CHART_H - PAD_T - PAD_B
+    const step = count <= 1 ? 0 : innerW / (count - 1)
 
     const toY = (val: number) => {
-      const ratio = isMarks ? val / maxVal : 1 - val / maxVal
-      return PAD_Y + innerH - ratio * innerH
+      const clamped = Math.max(0, Math.min(maxVal, val))
+      const ratio = isMarks ? clamped / maxVal : 1 - clamped / maxVal
+      return PAD_T + innerH - ratio * innerH
     }
-    const toX = (idx: number) => PAD_X + (innerW / Math.max(1, own.length - 1)) * idx
+    const toX = (idx: number) => PAD_L + step * idx
 
-    const ownPoints = own.map((v, idx) => ({ x: toX(idx), y: toY(v), v }))
+    const ownPoints = own.map((v, idx) => ({ x: toX(idx), y: toY(v), v, label: shortExamLabel(exams[idx] ?? '') }))
     const comparePoints = compare.map((v, idx) => ({ x: toX(idx), y: toY(v), v }))
     const toPath = (pts: { x: number; y: number }[]) =>
       pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
 
-    return { ownPoints, comparePoints, ownPath: toPath(ownPoints), comparePath: toPath(comparePoints) }
+    const yTicks = isMarks
+      ? [
+          { v: 0, y: toY(0) },
+          { v: 25, y: toY(25) },
+          { v: 50, y: toY(50) },
+        ]
+      : [
+          { v: CLASS_SIZE, y: toY(CLASS_SIZE) },
+          { v: Math.round(CLASS_SIZE / 2), y: toY(CLASS_SIZE / 2) },
+          { v: 1, y: toY(1) },
+        ]
+
+    return {
+      exams,
+      ownPoints,
+      comparePoints,
+      ownPath: toPath(ownPoints),
+      comparePath: toPath(comparePoints),
+      yTicks,
+      plotBottom: PAD_T + innerH,
+    }
   }, [history, isMarks])
 
   const latestOwn = isMarks ? history.marks[history.marks.length - 1] : history.ranks[history.ranks.length - 1]
@@ -94,36 +128,58 @@ export function LifecycleChart() {
         </div>
       </div>
 
-      <svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} className="w-full h-44" role="img" aria-label="Marks and rank lifecycle chart">
-        {[0.2, 0.4, 0.6, 0.8, 1].map((f) => (
-          <line
-            key={f}
-            x1={PAD_X}
-            x2={CHART_W - PAD_X}
-            y1={PAD_Y + (CHART_H - PAD_Y * 2) * f}
-            y2={PAD_Y + (CHART_H - PAD_Y * 2) * f}
-            stroke="rgba(255,255,255,0.06)"
-            strokeWidth={1}
-          />
-        ))}
-        <path d={chart.comparePath} fill="none" stroke="#94a3b8" strokeWidth={1.5} strokeDasharray="5 5" />
-        <path d={chart.ownPath} fill="none" stroke="var(--accent)" strokeWidth={2.5} />
-        {chart.ownPoints.map((p, idx) => (
-          <circle key={idx} cx={p.x} cy={p.y} r={3.5} fill="var(--accent2)" stroke="#05070f" strokeWidth={1.5} />
-        ))}
-        {history.exams.map((exam, idx) => (
-          <text
-            key={exam}
-            x={chart.ownPoints[idx]?.x ?? 0}
-            y={CHART_H - 3}
-            fontSize={8}
-            textAnchor="middle"
-            fill="#94a3b8"
-          >
-            {exam.split(' ')[0]}
-          </text>
-        ))}
-      </svg>
+      <div className="w-full overflow-hidden rounded-xl border border-white/5 bg-black/20 px-1 pt-2">
+        <svg
+          viewBox={`0 0 ${CHART_W} ${CHART_H}`}
+          preserveAspectRatio="xMidYMid meet"
+          className="block w-full h-auto"
+          role="img"
+          aria-label="Marks and rank lifecycle chart"
+        >
+          {chart.yTicks.map((tick) => (
+            <g key={`y-${tick.v}`}>
+              <line
+                x1={PAD_L}
+                x2={CHART_W - PAD_R}
+                y1={tick.y}
+                y2={tick.y}
+                stroke="rgba(255,255,255,0.07)"
+                strokeWidth={1}
+              />
+              <text x={PAD_L - 8} y={tick.y + 3} fontSize={9} textAnchor="end" fill="#64748b">
+                {tick.v}
+              </text>
+            </g>
+          ))}
+
+          <path d={chart.comparePath} fill="none" stroke="#94a3b8" strokeWidth={1.75} strokeDasharray="5 4" />
+          <path d={chart.ownPath} fill="none" stroke="var(--accent)" strokeWidth={2.75} strokeLinejoin="round" strokeLinecap="round" />
+
+          {chart.comparePoints.map((p, idx) => (
+            <circle key={`c-${idx}`} cx={p.x} cy={p.y} r={2.5} fill="#94a3b8" />
+          ))}
+
+          {chart.ownPoints.map((p, idx) => (
+            <g key={`o-${idx}`}>
+              <circle cx={p.x} cy={p.y} r={4.5} fill="var(--accent2)" stroke="#05070f" strokeWidth={1.75} />
+              <text x={p.x} y={p.y - 10} fontSize={9} textAnchor="middle" fill="#cbd5e1" fontWeight={700}>
+                {isMarks ? p.v : `#${p.v}`}
+              </text>
+              <line
+                x1={p.x}
+                x2={p.x}
+                y1={chart.plotBottom}
+                y2={chart.plotBottom + 4}
+                stroke="rgba(148,163,184,0.45)"
+                strokeWidth={1}
+              />
+              <text x={p.x} y={CHART_H - 10} fontSize={10} textAnchor="middle" fill="#94a3b8" fontWeight={600}>
+                {p.label}
+              </text>
+            </g>
+          ))}
+        </svg>
+      </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 text-[10px] text-slate-400 pt-1 border-t border-white/10">
         <div className="flex items-center gap-4">
@@ -131,7 +187,7 @@ export function LifecycleChart() {
             <span className="h-2 w-2 rounded-full bg-[var(--accent)]" /> Ananya
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full border border-dashed border-slate-400" />
+            <span className="inline-block w-4 border-t border-dashed border-slate-400" />
             {isMarks ? t('tableHeadAverage') : t('classMidpoint')}
           </span>
         </div>
