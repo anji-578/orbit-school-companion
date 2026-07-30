@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Role } from '../types'
+import { isSupabaseConfigured } from '../lib/supabaseConfig'
 import { findDemoUser } from './demoUsers'
 
 export interface AuthSession {
@@ -24,7 +25,7 @@ interface AuthState {
 
 /**
  * Auth store. Today: local demo users.
- * Later: swap `login` body to Supabase Auth when VITE_SUPABASE_* is set.
+ * When VITE_SUPABASE_* is set, login switches to Supabase Auth (Phase 0 handoff).
  */
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -38,8 +39,17 @@ export const useAuthStore = create<AuthState>()(
       clearAuthError: () => set({ authError: null }),
 
       login: async (role, email, password) => {
-        // Simulate network latency so UX matches future Supabase
         await new Promise((r) => setTimeout(r, 450))
+
+        if (isSupabaseConfigured()) {
+          // Wire @supabase/supabase-js here once credentials land in .env / Vercel.
+          set({
+            authError:
+              'Supabase keys detected but client not wired yet. Remove keys to use demo login, or finish Phase 0 client.',
+            session: null,
+          })
+          return false
+        }
 
         const user = findDemoUser(role, email, password)
         if (!user) {

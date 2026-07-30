@@ -78,16 +78,34 @@ Native Store apps (React Native / Capacitor) come later and cost more time — s
 
 ---
 
+## Demo login (until Supabase)
+
+Open the live site → pick a profile → sign in:
+
+| Profile | Email | Password |
+|--|--|--|
+| Student | `student@orbit.demo` | `student123` |
+| Parent | `parent@orbit.demo` | `parent123` |
+| Teacher | `teacher@orbit.demo` | `teacher123` |
+| School | `admin@orbit.demo` | `admin123` |
+
+When you create a Supabase project: paste URL + anon key into `.env` / Vercel env, run `supabase/schema.sql`, then we switch auth off demo.
+
+---
+
 ## Architecture (current)
 
 ```
 src/
+  auth/                 # landing → login → session gate
+  AppShell.tsx
   store/orbitStore.ts
   i18n/
   lib/
   data/demo.ts
-  components/
   features/
+supabase/
+  schema.sql            # Phase 0 Postgres + RLS (run when ready)
 ```
 
 Demo Mode: payments/SMS/GPS simulated. AI uses Gemini if `VITE_GEMINI_API_KEY` is set; otherwise offline demos.
