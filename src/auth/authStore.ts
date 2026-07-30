@@ -3,7 +3,8 @@ import { persist } from 'zustand/middleware'
 import type { Role } from '../types'
 import { isSupabaseConfigured } from '../lib/supabaseConfig'
 import { findDemoUser } from './demoUsers'
-import { restoreSupabaseSession, supabaseLogin, supabaseLogout } from './supabaseAuth'
+import { createLocalAccount, findLocalAccount } from './localAccounts'
+import { restoreSupabaseSession, supabaseLogin, supabaseLogout, supabaseSignUp } from './supabaseAuth'
 
 export interface AuthSession {
   userId: string
@@ -17,13 +18,29 @@ export interface AuthSession {
 interface AuthState {
   session: AuthSession | null
   authError: string | null
+  authNotice: string | null
   pendingRole: Role | null
   bootstrapped: boolean
   setPendingRole: (role: Role | null) => void
   login: (role: Role, email: string, password: string) => Promise<boolean>
+  signup: (
+    role: Role,
+    input: { email: string; password: string; displayName: string },
+  ) => Promise<'signed_in' | 'needs_confirmation' | false>
   logout: () => Promise<void>
   clearAuthError: () => void
+  clearAuthNotice: () => void
   bootstrap: () => Promise<void>
+}
+
+function subtitleFor(role: Role) {
+  const map: Record<Role, string> = {
+    student: 'Student profile',
+    parent: 'Parent / guardian',
+    teacher: 'Teacher profile',
+    school: 'School admin',
+  }
+  return map[role]
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -31,12 +48,14 @@ export const useAuthStore = create<AuthState>()(
     (set, get) => ({
       session: null,
       authError: null,
+      authNotice: null,
       pendingRole: null,
       bootstrapped: false,
 
-      setPendingRole: (pendingRole) => set({ pendingRole, authError: null }),
+      setPendingRole: (pendingRole) => set({ pendingRole, authError: null, authNotice: null }),
 
       clearAuthError: () => set({ authError: null }),
+      clearAuthNotice: () => set({ authNotice: null }),
 
       bootstrap: async () => {
         if (get().bootstrapped) return
@@ -56,7 +75,6 @@ export const useAuthStore = create<AuthState>()(
               authError: null,
             })
           } else if (get().session?.provider === 'supabase') {
-            // Stale persisted supabase session
             set({ session: null })
           }
         }
@@ -72,6 +90,7 @@ export const useAuthStore = create<AuthState>()(
           }
           set({
             authError: null,
+            authNotice: null,
             pendingRole: null,
             session: {
               userId: result.profile.id,
@@ -85,8 +104,10 @@ export const useAuthStore = create<AuthState>()(
           return true
         }
 
-        await new Promise((r) => setTimeout(r, 350))
-        const user = findDemoUser(role, email, password)
+        await new Promise((r) => setTimeout(r, 250))
+        const local = findLocalAccount(role, email, password)
+        const demo = findDemoUser(role, email, password)
+        const user = local ?? demo
         if (!user) {
           set({ authError: 'Invalid email or password for this profile.', session: null })
           return false
@@ -94,6 +115,7 @@ export const useAuthStore = create<AuthState>()(
 
         set({
           authError: null,
+          authNotice: null,
           pendingRole: null,
           session: {
             userId: user.id,
@@ -107,11 +129,70 @@ export const useAuthStore = create<AuthState>()(
         return true
       },
 
+      signup: async (role, input) => {
+        if (isSupabaseConfigured()) {
+          const result = await supabaseSignUp(role, {
+            email: input.email,
+            password: input.password,
+            displayName: input.displayName,
+            subtitle: subtitleFor(role),
+          })
+          if (!result.ok) {
+            set({
+              authError: result.error,
+              authNotice: result.needsConfirmation ? result.error : null,
+              session: null,
+            })
+            return result.needsConfirmation ? 'needs_confirmation' : false
+          }
+          set({
+            authError: null,
+            authNotice: null,
+            pendingRole: null,
+            session: {
+              userId: result.profile.id,
+              role: result.profile.role,
+              email: result.profile.email,
+              displayName: result.profile.displayName,
+              subtitle: result.profile.subtitle,
+              provider: 'supabase',
+            },
+          })
+          return 'signed_in'
+        }
+
+        const created = createLocalAccount({
+          role,
+          email: input.email,
+          password: input.password,
+          displayName: input.displayName,
+          subtitle: subtitleFor(role),
+        })
+        if (!created.ok) {
+          set({ authError: created.error, session: null })
+          return false
+        }
+        set({
+          authError: null,
+          authNotice: null,
+          pendingRole: null,
+          session: {
+            userId: created.account.id,
+            role: created.account.role,
+            email: created.account.email,
+            displayName: created.account.displayName,
+            subtitle: created.account.subtitle,
+            provider: 'local-demo',
+          },
+        })
+        return 'signed_in'
+      },
+
       logout: async () => {
         if (get().session?.provider === 'supabase' || isSupabaseConfigured()) {
           await supabaseLogout()
         }
-        set({ session: null, pendingRole: null, authError: null })
+        set({ session: null, pendingRole: null, authError: null, authNotice: null })
       },
     }),
     {

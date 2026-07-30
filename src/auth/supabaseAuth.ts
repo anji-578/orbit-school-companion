@@ -10,17 +10,34 @@ export interface OrbitProfile {
   subtitle: string
 }
 
+export interface SignUpInput {
+  email: string
+  password: string
+  displayName: string
+  subtitle?: string
+}
+
 const ROLES: Role[] = ['student', 'parent', 'teacher', 'school']
 
 function isRole(value: unknown): value is Role {
   return typeof value === 'string' && (ROLES as string[]).includes(value)
 }
 
+function defaultSubtitle(role: Role) {
+  const map: Record<Role, string> = {
+    student: 'Student profile',
+    parent: 'Parent / guardian',
+    teacher: 'Teacher profile',
+    school: 'School admin',
+  }
+  return map[role]
+}
+
 function demoMetaFor(role: Role, email: string) {
   const demo = DEMO_USERS.find((u) => u.role === role && u.email === email.trim().toLowerCase())
   return {
     displayName: demo?.displayName ?? email.split('@')[0] ?? 'Orbit User',
-    subtitle: demo?.subtitle ?? `${role} profile`,
+    subtitle: demo?.subtitle ?? defaultSubtitle(role),
   }
 }
 
@@ -62,10 +79,91 @@ function sessionFromAuthUser(
   }
 }
 
-/**
- * Sign in with email/password. If the user does not exist yet, auto-registers
- * (useful for first-run demo accounts). Ensures selected persona role matches.
- */
+async function upsertProfile(profile: OrbitProfile) {
+  const supabase = getSupabase()
+  if (!supabase) return
+  await supabase.from('profiles').upsert(
+    {
+      id: profile.id,
+      role: profile.role,
+      display_name: profile.displayName,
+      subtitle: profile.subtitle,
+      email: profile.email,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'id' },
+  )
+}
+
+function authErrorMessage(message: string): string {
+  const msg = message.toLowerCase()
+  if (msg.includes('confirm') || msg.includes('not confirmed')) {
+    return 'Email not confirmed. In Supabase → Authentication → Users, Confirm this user (or turn OFF Confirm email under Providers → Email).'
+  }
+  if (msg.includes('rate limit')) {
+    return 'Auth email rate limit hit. Wait about an hour, confirm/delete pending users in Supabase, and avoid repeated sign-up clicks.'
+  }
+  return message
+}
+
+/** Create account in Supabase Auth (+ profiles row when schema exists). */
+export async function supabaseSignUp(
+  selectedRole: Role,
+  input: SignUpInput,
+): Promise<{ ok: true; profile: OrbitProfile } | { ok: false; error: string; needsConfirmation?: boolean }> {
+  const supabase = getSupabase()
+  if (!supabase) return { ok: false, error: 'Supabase is not configured.' }
+
+  const email = input.email.trim().toLowerCase()
+  const displayName = input.displayName.trim() || email.split('@')[0] || 'Orbit User'
+  const subtitle = (input.subtitle ?? defaultSubtitle(selectedRole)).trim()
+
+  if (input.password.length < 6) {
+    return { ok: false, error: 'Password must be at least 6 characters.' }
+  }
+
+  const signedUp = await supabase.auth.signUp({
+    email,
+    password: input.password,
+    options: {
+      data: {
+        role: selectedRole,
+        display_name: displayName,
+        subtitle,
+      },
+    },
+  })
+
+  if (signedUp.error) {
+    return { ok: false, error: authErrorMessage(signedUp.error.message) }
+  }
+
+  const user = signedUp.data.user
+  if (!user) {
+    return { ok: false, error: 'Sign-up did not return a user.' }
+  }
+
+  // No session ⇒ email confirmation required
+  if (!signedUp.data.session) {
+    return {
+      ok: false,
+      needsConfirmation: true,
+      error:
+        'Account saved in Supabase, but email confirmation is ON. Confirm the user in Authentication → Users, or disable Confirm email, then Sign in.',
+    }
+  }
+
+  const profile = sessionFromAuthUser(user, selectedRole, {
+    displayName,
+    subtitle,
+    email,
+    role: selectedRole,
+  })
+  await upsertProfile(profile)
+  return { ok: true, profile }
+}
+
+/** Sign in only — does not auto-create accounts (use Sign up). */
 export async function supabaseLogin(
   selectedRole: Role,
   email: string,
@@ -75,78 +173,19 @@ export async function supabaseLogin(
   if (!supabase) return { ok: false, error: 'Supabase is not configured.' }
 
   const normalized = email.trim().toLowerCase()
-  const meta = demoMetaFor(selectedRole, normalized)
-
   const signedIn = await supabase.auth.signInWithPassword({
     email: normalized,
     password,
   })
 
-  let user = signedIn.data.user
-
-  if (signedIn.error || !user) {
-    const msg = (signedIn.error?.message ?? '').toLowerCase()
-
-    if (msg.includes('confirm') || msg.includes('not confirmed')) {
-      return {
-        ok: false,
-        error:
-          'Email not confirmed. In Supabase → Authentication → Users, open this user → Confirm user (or turn OFF “Confirm email” under Providers → Email). Then wait ~1 min if you hit rate limits and try again.',
-      }
-    }
-
-    if (msg.includes('rate limit')) {
-      return {
-        ok: false,
-        error: 'Auth rate limit hit. Wait about 1 hour (or confirm the user in Supabase dashboard), then retry — do not keep clicking Sign in.',
-      }
-    }
-
-    const canAutoCreate =
-      msg.includes('invalid login') ||
-      msg.includes('invalid credentials') ||
-      msg.includes('user not found')
-
-    if (!canAutoCreate) {
-      return { ok: false, error: signedIn.error?.message ?? 'Sign-in failed.' }
-    }
-
-    const signedUp = await supabase.auth.signUp({
-      email: normalized,
-      password,
-      options: {
-        data: {
-          role: selectedRole,
-          display_name: meta.displayName,
-          subtitle: meta.subtitle,
-        },
-      },
-    })
-
-    if (signedUp.error) {
-      const up = signedUp.error.message.toLowerCase()
-      if (up.includes('rate limit')) {
-        return {
-          ok: false,
-          error:
-            'Email rate limit exceeded (too many signup emails). Wait ~1 hour, or in Supabase → Authentication → Users confirm/delete the pending user, and turn OFF Confirm email.',
-        }
-      }
-      return { ok: false, error: signedUp.error.message }
-    }
-
-    user = signedUp.data.user
-    if (!signedUp.data.session || !user) {
-      return {
-        ok: false,
-        error:
-          'User created but needs confirmation. Supabase → Authentication → Providers → Email → disable Confirm email, then Authentication → Users → Confirm user for this email.',
-      }
+  if (signedIn.error || !signedIn.data.user) {
+    return {
+      ok: false,
+      error: authErrorMessage(signedIn.error?.message ?? 'Invalid email or password.'),
     }
   }
 
-  if (!user) return { ok: false, error: 'Sign-in succeeded but no user returned.' }
-
+  const user = signedIn.data.user
   const profileRow = await fetchProfile(user.id)
   const profile = sessionFromAuthUser(user, selectedRole, profileRow)
 
@@ -158,19 +197,7 @@ export async function supabaseLogin(
     }
   }
 
-  // Best-effort profile upsert when table exists
-  await supabase.from('profiles').upsert(
-    {
-      id: user.id,
-      role: selectedRole,
-      display_name: profile.displayName,
-      subtitle: profile.subtitle,
-      email: normalized,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: 'id' },
-  )
-
+  await upsertProfile(profile)
   return { ok: true, profile }
 }
 
