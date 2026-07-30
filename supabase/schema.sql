@@ -114,6 +114,10 @@ create policy profiles_update_self
   on public.profiles for update
   using (id = auth.uid());
 
+create policy profiles_insert_self
+  on public.profiles for insert
+  with check (id = auth.uid());
+
 create policy schools_select_member
   on public.schools for select
   using (id = public.current_school_id());
