@@ -34,7 +34,8 @@ function getApiKey(): string {
 }
 
 export function isAiConfigured(): boolean {
-  return getApiKey().length > 0
+  // Production uses /api/gemini proxy; local can use VITE_GEMINI_API_KEY.
+  return getApiKey().length > 0 || Boolean(import.meta.env.PROD)
 }
 
 function delay(ms: number): Promise<void> {
@@ -65,13 +66,39 @@ export async function fetchWithRetry(
   throw lastError instanceof Error ? lastError : new Error('Gemini request failed')
 }
 
+async function callViaProxy(
+  prompt: string,
+  system: string,
+  jsonMode: boolean,
+): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
+  try {
+    const response = await fetch('/api/gemini', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, system, jsonMode }),
+    })
+    const payload = (await response.json().catch(() => null)) as { text?: string; error?: string } | null
+    if (!response.ok) {
+      return { ok: false, error: payload?.error || `Proxy HTTP ${response.status}` }
+    }
+    if (!payload?.text) return { ok: false, error: 'Empty proxy response' }
+    return { ok: true, text: payload.text }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Proxy unavailable' }
+  }
+}
+
 async function callGemini(
   prompt: string,
   system: string,
   jsonMode = false,
 ): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
+  // Prefer server proxy so the API key is not required in the browser bundle.
+  const proxied = await callViaProxy(prompt, system, jsonMode)
+  if (proxied.ok) return proxied
+
   const key = getApiKey()
-  if (!key) return { ok: false, error: 'Missing VITE_GEMINI_API_KEY' }
+  if (!key) return { ok: false, error: proxied.error || 'Missing VITE_GEMINI_API_KEY' }
 
   const body: Record<string, unknown> = {
     systemInstruction: { parts: [{ text: system }] },
@@ -83,7 +110,7 @@ async function callGemini(
     },
   }
 
-  const errors: string[] = []
+  const errors: string[] = [proxied.error]
 
   for (const model of GEMINI_MODELS) {
     try {
@@ -107,7 +134,6 @@ async function callGemini(
             ? String((payload as { error?: { message?: string } }).error?.message ?? response.status)
             : `HTTP ${response.status}`
         errors.push(`${model}: ${msg}`)
-        // Try next model on not-found / quota / overloaded
         if (response.status === 404 || response.status === 429 || response.status === 503) continue
         return { ok: false, error: msg }
       }
@@ -123,7 +149,7 @@ async function callGemini(
     }
   }
 
-  return { ok: false, error: errors[0] ?? 'All Gemini models failed' }
+  return { ok: false, error: errors.filter(Boolean)[0] ?? 'All Gemini models failed' }
 }
 
 function pickOfflineAnswer(prompt: string): string {

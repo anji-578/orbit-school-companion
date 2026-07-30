@@ -220,3 +220,87 @@ create table if not exists public.payment_submissions (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Phase 0c — school ops sync (homework, leave, broadcasts, calendar)
+create table if not exists public.homework_tasks (
+  id bigserial primary key,
+  school_id uuid references public.schools (id) on delete cascade,
+  subject text not null,
+  task text not null,
+  due_label text,
+  xp integer not null default 40,
+  difficulty text not null default 'Medium',
+  completed boolean not null default false,
+  created_by uuid references public.profiles (id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.leave_requests (
+  id bigserial primary key,
+  school_id uuid references public.schools (id) on delete cascade,
+  teacher_profile_id uuid references public.profiles (id) on delete set null,
+  leave_date text not null,
+  reason text not null,
+  status text not null default 'Reviewing' check (status in ('Reviewing', 'Approved', 'Declined')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.broadcasts (
+  id bigserial primary key,
+  school_id uuid references public.schools (id) on delete cascade,
+  target text not null,
+  title text not null,
+  content text not null,
+  created_by uuid references public.profiles (id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.calendar_events (
+  id bigserial primary key,
+  school_id uuid references public.schools (id) on delete cascade,
+  title text not null,
+  category text not null,
+  event_date text not null,
+  created_by uuid references public.profiles (id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.homework_tasks enable row level security;
+alter table public.leave_requests enable row level security;
+alter table public.broadcasts enable row level security;
+alter table public.calendar_events enable row level security;
+
+drop policy if exists "homework_select_auth" on public.homework_tasks;
+create policy "homework_select_auth" on public.homework_tasks for select to authenticated using (true);
+drop policy if exists "homework_write_staff" on public.homework_tasks;
+create policy "homework_write_staff" on public.homework_tasks for all
+  using (public.current_profile_role() in ('teacher', 'school'))
+  with check (public.current_profile_role() in ('teacher', 'school'));
+drop policy if exists "homework_update_student" on public.homework_tasks;
+create policy "homework_update_student" on public.homework_tasks for update
+  using (public.current_profile_role() in ('student', 'parent', 'teacher', 'school'));
+
+drop policy if exists "leaves_select_auth" on public.leave_requests;
+create policy "leaves_select_auth" on public.leave_requests for select to authenticated using (true);
+drop policy if exists "leaves_insert_teacher" on public.leave_requests;
+create policy "leaves_insert_teacher" on public.leave_requests for insert
+  with check (public.current_profile_role() in ('teacher', 'school'));
+drop policy if exists "leaves_update_school" on public.leave_requests;
+create policy "leaves_update_school" on public.leave_requests for update
+  using (public.current_profile_role() in ('school', 'teacher'));
+
+drop policy if exists "broadcasts_select_auth" on public.broadcasts;
+create policy "broadcasts_select_auth" on public.broadcasts for select to authenticated using (true);
+drop policy if exists "broadcasts_write_school" on public.broadcasts;
+create policy "broadcasts_write_school" on public.broadcasts for all
+  using (public.current_profile_role() = 'school')
+  with check (public.current_profile_role() = 'school');
+
+drop policy if exists "calendar_select_auth" on public.calendar_events;
+create policy "calendar_select_auth" on public.calendar_events for select to authenticated using (true);
+drop policy if exists "calendar_write_school" on public.calendar_events;
+create policy "calendar_write_school" on public.calendar_events for all
+  using (public.current_profile_role() = 'school')
+  with check (public.current_profile_role() = 'school');

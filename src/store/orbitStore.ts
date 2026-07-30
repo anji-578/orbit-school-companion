@@ -24,6 +24,15 @@ import {
   reviewPaymentSubmission,
   saveSchoolPaymentSettings,
 } from '../lib/paymentsApi'
+import {
+  loadSchoolOpsSnapshot,
+  syncAssignHomework,
+  syncBroadcast,
+  syncCalendarEvent,
+  syncSetLeaveStatus,
+  syncSubmitLeave,
+  syncToggleHomework,
+} from '../lib/schoolOpsApi'
 import type {
   AttendanceRecord,
   BroadcastMessage,
@@ -157,6 +166,7 @@ interface OrbitState {
   nudgeFeeParents: () => void
   setSchoolPaymentSettings: (patch: Partial<SchoolPaymentSettings>) => void
   loadPaymentWorkspace: () => Promise<void>
+  hydrateFromSupabase: () => Promise<void>
   submitUtrPayment: (input: {
     amount: number
     utr: string
@@ -396,6 +406,13 @@ export const useOrbitStore = create<OrbitState>()(
           const studyScore = computeStudyScore(attendancePercent(s.attendanceRecords), homeworkPercent(tasks))
           return { tasks, studyScore }
         })
+        void syncAssignHomework(entry).then((remoteId) => {
+          if (remoteId) {
+            set((s) => ({
+              tasks: s.tasks.map((t) => (t.id === entry.id ? { ...t, id: remoteId } : t)),
+            }))
+          }
+        })
         get().pushNotification({
           role: 'student',
           title: 'New homework',
@@ -410,6 +427,7 @@ export const useOrbitStore = create<OrbitState>()(
       },
 
       toggleTask: (id) => {
+        const before = get().tasks.find((t) => t.id === id)
         set((s) => {
           const tasks = s.tasks.map((task) => {
             if (task.id !== id) return task
@@ -428,6 +446,9 @@ export const useOrbitStore = create<OrbitState>()(
           const studyScore = computeStudyScore(attendancePercent(s.attendanceRecords), homeworkPercent(tasks))
           return { tasks, totalXp, unlockedBadges, studyScore }
         })
+        if (before) {
+          void syncToggleHomework(id, !before.completed)
+        }
       },
 
       updateGrade: (id, patch) =>
@@ -518,6 +539,20 @@ export const useOrbitStore = create<OrbitState>()(
         set((s) => ({
           schoolPaymentSettings: settings,
           paymentSubmissions: submissions.length ? submissions : s.paymentSubmissions,
+        }))
+      },
+
+      hydrateFromSupabase: async () => {
+        const [ops] = await Promise.all([loadSchoolOpsSnapshot(), get().loadPaymentWorkspace()])
+        set((s) => ({
+          tasks: ops.tasks ?? s.tasks,
+          leaves: ops.leaves ?? s.leaves,
+          broadcasts: ops.broadcasts ?? s.broadcasts,
+          calendarEvents: ops.calendarEvents ?? s.calendarEvents,
+          studyScore: computeStudyScore(
+            attendancePercent(s.attendanceRecords),
+            homeworkPercent(ops.tasks ?? s.tasks),
+          ),
         }))
       },
 
@@ -612,6 +647,13 @@ export const useOrbitStore = create<OrbitState>()(
       submitLeave: (date, reason) => {
         const entry: LeaveRequest = { id: Date.now(), date, reason, status: 'Reviewing' }
         set((s) => ({ leaves: [entry, ...s.leaves] }))
+        void syncSubmitLeave({ date, reason }).then((remoteId) => {
+          if (remoteId) {
+            set((s) => ({
+              leaves: s.leaves.map((l) => (l.id === entry.id ? { ...l, id: remoteId } : l)),
+            }))
+          }
+        })
         get().pushNotification({
           role: 'school',
           title: 'Leave request',
@@ -623,6 +665,7 @@ export const useOrbitStore = create<OrbitState>()(
       setLeaveStatus: (id, status) => {
         const leave = get().leaves.find((l) => l.id === id)
         set((s) => ({ leaves: s.leaves.map((l) => (l.id === id ? { ...l, status } : l)) }))
+        void syncSetLeaveStatus(id, status)
         if (!leave) return
         get().pushNotification({
           role: 'teacher',
@@ -640,6 +683,7 @@ export const useOrbitStore = create<OrbitState>()(
       submitBroadcast: (title, target, content) => {
         const msg: BroadcastMessage = { id: Date.now(), title, target, content, date: 'Just Now' }
         set((s) => ({ broadcasts: [msg, ...s.broadcasts] }))
+        void syncBroadcast(msg)
         const roleMap: Record<string, NotificationItem['role']> = {
           All: 'all',
           Parents: 'parent',
@@ -655,9 +699,11 @@ export const useOrbitStore = create<OrbitState>()(
       },
 
       addCalendarEvent: (title, category, date) => {
+        const entry = { id: Date.now(), title, category, date }
         set((s) => ({
-          calendarEvents: [{ id: Date.now(), title, category, date }, ...s.calendarEvents],
+          calendarEvents: [entry, ...s.calendarEvents],
         }))
+        void syncCalendarEvent(entry)
         if (category === 'PTA Meetings' || category === 'Holidays') {
           get().submitBroadcast(title, 'All', `${category} scheduled for ${date}.`)
         } else {

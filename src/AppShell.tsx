@@ -17,6 +17,7 @@ export function AppShell() {
   const setNotifOpen = useOrbitStore((s) => s.setNotifOpen)
   const notifOpen = useOrbitStore((s) => s.notifOpen)
   const setRole = useOrbitStore((s) => s.setRole)
+  const hydrateFromSupabase = useOrbitStore((s) => s.hydrateFromSupabase)
   const meta = getRoleMeta(role)
   const t = (key: string) => translate(lang, key)
 
@@ -26,6 +27,11 @@ export function AppShell() {
       setRole(session.role)
     }
   }, [session, role, setRole])
+
+  useEffect(() => {
+    if (!session) return
+    void hydrateFromSupabase()
+  }, [session, hydrateFromSupabase])
 
   useEffect(() => {
     const id = window.setInterval(() => tickBus(), 900)
