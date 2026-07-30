@@ -14,7 +14,6 @@ import {
   initialPaymentHistory,
   initialRoster,
   initialTasks,
-  remediationTemplates,
 } from '../data/demo'
 import { computeStudyScore } from '../lib/studyScore'
 import {
@@ -41,6 +40,7 @@ import {
 } from '../lib/attendanceApi'
 import { fetchStudentGrades, saveStudentGrades } from '../lib/gradesApi'
 import { fetchFeeItems, markAllFeesPaid, markFeeItemsStatus } from '../lib/feesApi'
+import { evaluatePaperCoach, fileToVisionPayload, getDemoInsight } from '../lib/paperCoach'
 import type {
   AttendanceRecord,
   BroadcastMessage,
@@ -53,6 +53,7 @@ import type {
   LeaveRequest,
   LeaveStatus,
   NotificationItem,
+  PaperCoachInsight,
   PaymentMethod,
   PaymentReceipt,
   PaymentRecord,
@@ -128,6 +129,9 @@ interface OrbitState {
   scanTarget: ScanTarget
   scanModel: string
   scanConfidence: number
+  scanInsight: PaperCoachInsight | null
+  scanPreviewUrl: string | null
+  scanError: string | null
   remediationMarkdown: string
   remediationLoading: boolean
   remediationSource: 'live' | 'offline' | null
@@ -206,6 +210,7 @@ interface OrbitState {
   clearAiPanel: () => void
 
   startScan: (target: ScanTarget) => void
+  evaluatePaperScan: (target: ScanTarget, file: File) => Promise<void>
   finishScanEvaluation: () => void
   setRemediation: (md: string, source: 'live' | 'offline') => void
   setRemediationLoading: (v: boolean) => void
@@ -280,8 +285,11 @@ export const useOrbitStore = create<OrbitState>()(
 
       scanStep: 'select',
       scanTarget: 'chemistry',
-      scanModel: 'Gemini Flash (demo)',
+      scanModel: 'Gemini Flash (coach)',
       scanConfidence: 82,
+      scanInsight: null,
+      scanPreviewUrl: null,
+      scanError: null,
       remediationMarkdown: '',
       remediationLoading: false,
       remediationSource: null,
@@ -819,6 +827,9 @@ export const useOrbitStore = create<OrbitState>()(
           activeQuiz: null,
           quizScore: null,
           scanStep: 'select',
+          scanInsight: null,
+          scanPreviewUrl: null,
+          scanError: null,
           remediationMarkdown: '',
           validationSubmitted: false,
           selectedValidationAnswer: null,
@@ -860,22 +871,79 @@ export const useOrbitStore = create<OrbitState>()(
       clearAiPanel: () => set({ aiResponse: '', quizMode: false, activeQuiz: null, quizScore: null, aiSource: null }),
 
       startScan: (target) => {
+        const insight = getDemoInsight(target)
         set({
           scanTarget: target,
           scanStep: 'scanning',
           selectedValidationAnswer: null,
           validationSubmitted: false,
           remediationMarkdown: '',
+          scanInsight: null,
+          scanPreviewUrl: null,
+          scanError: null,
         })
-        setTimeout(() => get().finishScanEvaluation(), 2200)
+        window.setTimeout(() => {
+          set({
+            scanStep: 'evaluated',
+            scanInsight: insight,
+            scanConfidence: insight.confidence,
+            scanModel: insight.model || 'Offline coach',
+          })
+        }, 900)
+      },
+
+      evaluatePaperScan: async (target, file) => {
+        const previousPreview = get().scanPreviewUrl
+        if (previousPreview) URL.revokeObjectURL(previousPreview)
+
+        set({
+          scanTarget: target,
+          scanStep: 'scanning',
+          selectedValidationAnswer: null,
+          validationSubmitted: false,
+          remediationMarkdown: '',
+          remediationSource: null,
+          scanInsight: null,
+          scanError: null,
+          scanPreviewUrl: null,
+        })
+
+        try {
+          const payload = await fileToVisionPayload(file)
+          set({ scanPreviewUrl: payload.previewUrl })
+          const insight = await evaluatePaperCoach(target, payload.base64, payload.mimeType)
+          set({
+            scanStep: 'evaluated',
+            scanInsight: insight,
+            scanConfidence: insight.confidence,
+            scanModel: insight.model || (insight.source === 'live' ? 'Gemini vision' : 'Offline coach'),
+            scanError: insight.source === 'offline' ? 'Live vision unavailable — showing coach fallback.' : null,
+          })
+          get().triggerToast(
+            insight.source === 'live'
+              ? 'Paper evaluated with AI vision coach.'
+              : 'Vision offline — demo coach insights shown.',
+          )
+        } catch (err) {
+          const insight = getDemoInsight(target)
+          set({
+            scanStep: 'evaluated',
+            scanInsight: insight,
+            scanConfidence: insight.confidence,
+            scanModel: insight.model || 'Offline coach',
+            scanError: err instanceof Error ? err.message : 'Could not read that photo.',
+          })
+          get().triggerToast('Could not process photo — showing fallback coach tips.')
+        }
       },
 
       finishScanEvaluation: () => {
-        const tpl = remediationTemplates[get().scanTarget]
+        const insight = get().scanInsight ?? getDemoInsight(get().scanTarget)
         set({
           scanStep: 'evaluated',
-          scanConfidence: tpl.confidence,
-          scanModel: tpl.modelEscalation,
+          scanInsight: insight,
+          scanConfidence: insight.confidence,
+          scanModel: insight.model || 'Coach',
         })
       },
 
@@ -886,11 +954,11 @@ export const useOrbitStore = create<OrbitState>()(
       setValidationAnswer: (selectedValidationAnswer) => set({ selectedValidationAnswer }),
 
       submitValidation: () => {
-        const { scanTarget, selectedValidationAnswer } = get()
-        const tpl = remediationTemplates[scanTarget]
+        const { scanTarget, selectedValidationAnswer, scanInsight } = get()
+        const insight = scanInsight ?? getDemoInsight(scanTarget)
         if (selectedValidationAnswer === null) return
         set({ validationSubmitted: true })
-        if (selectedValidationAnswer !== tpl.correctIndex) {
+        if (selectedValidationAnswer !== insight.checkAnswerIndex) {
           get().triggerToast('Not quite — review the analogy and try again.')
           set({ validationSubmitted: false })
           return
@@ -905,8 +973,8 @@ export const useOrbitStore = create<OrbitState>()(
                   [chemOrMath]: '48/50',
                   comment:
                     scanTarget === 'chemistry'
-                      ? 'Outstanding growth! Chemical coefficients gap resolved via remediation.'
-                      : 'Sign-shift errors corrected after seesaw analogy practice.',
+                      ? `Growth after paper coach: ${insight.flaggedWeakness}`
+                      : `Growth after paper coach: ${insight.flaggedWeakness}`,
                 }
               : g,
           ),
@@ -916,25 +984,31 @@ export const useOrbitStore = create<OrbitState>()(
         get().unlockBadge('Rising Scholar')
         get().pushNotification({
           role: 'student',
-          title: 'Concept mastered',
-          body: tpl.successToast,
+          title: 'Concept practiced',
+          body: insight.flaggedWeakness,
         })
         get().pushNotification({
           role: 'parent',
-          title: 'Score improved',
-          body: `Ananya improved ${scanTarget} after AI remediation (48/50).`,
+          title: 'Paper coach update',
+          body: `Ananya practiced ${insight.subject}: ${insight.flaggedWeakness}`,
         })
-        get().triggerToast(tpl.successToast)
+        get().triggerToast('Check passed · Concept Master unlocked.')
       },
 
-      resetScanner: () =>
+      resetScanner: () => {
+        const preview = get().scanPreviewUrl
+        if (preview) URL.revokeObjectURL(preview)
         set({
           scanStep: 'select',
           validationSubmitted: false,
           selectedValidationAnswer: null,
           remediationMarkdown: '',
           remediationSource: null,
-        }),
+          scanInsight: null,
+          scanPreviewUrl: null,
+          scanError: null,
+        })
+      },
 
       setGanttDay: (selectedGanttDay) => set({ selectedGanttDay }),
       setLifecycleSubject: (selectedLifecycleSubject) => set({ selectedLifecycleSubject }),

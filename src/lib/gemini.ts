@@ -70,19 +70,34 @@ async function callViaProxy(
   prompt: string,
   system: string,
   jsonMode: boolean,
-): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
+  image?: { base64: string; mimeType: string },
+): Promise<{ ok: true; text: string; model?: string } | { ok: false; error: string }> {
   try {
     const response = await fetch('/api/gemini', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, system, jsonMode }),
+      body: JSON.stringify({
+        prompt,
+        system,
+        jsonMode,
+        ...(image
+          ? {
+              imageBase64: image.base64,
+              mimeType: image.mimeType,
+            }
+          : {}),
+      }),
     })
-    const payload = (await response.json().catch(() => null)) as { text?: string; error?: string } | null
+    const payload = (await response.json().catch(() => null)) as {
+      text?: string
+      error?: string
+      model?: string
+    } | null
     if (!response.ok) {
       return { ok: false, error: payload?.error || `Proxy HTTP ${response.status}` }
     }
     if (!payload?.text) return { ok: false, error: 'Empty proxy response' }
-    return { ok: true, text: payload.text }
+    return { ok: true, text: payload.text, model: payload.model }
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Proxy unavailable' }
   }
@@ -92,19 +107,32 @@ async function callGemini(
   prompt: string,
   system: string,
   jsonMode = false,
-): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
+  image?: { base64: string; mimeType: string },
+): Promise<{ ok: true; text: string; model?: string } | { ok: false; error: string }> {
   // Prefer server proxy so the API key is not required in the browser bundle.
-  const proxied = await callViaProxy(prompt, system, jsonMode)
+  const proxied = await callViaProxy(prompt, system, jsonMode, image)
   if (proxied.ok) return proxied
 
   const key = getApiKey()
   if (!key) return { ok: false, error: proxied.error || 'Missing VITE_GEMINI_API_KEY' }
 
+  const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [
+    { text: prompt },
+  ]
+  if (image?.base64) {
+    parts.unshift({
+      inlineData: {
+        mimeType: image.mimeType || 'image/jpeg',
+        data: image.base64,
+      },
+    })
+  }
+
   const body: Record<string, unknown> = {
     systemInstruction: { parts: [{ text: system }] },
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    contents: [{ role: 'user', parts }],
     generationConfig: {
-      temperature: jsonMode ? 0.4 : 0.6,
+      temperature: jsonMode ? 0.3 : 0.6,
       maxOutputTokens: 2048,
       ...(jsonMode ? { responseMimeType: 'application/json' } : {}),
     },
@@ -143,7 +171,7 @@ async function callGemini(
         errors.push(`${model}: empty response`)
         continue
       }
-      return { ok: true, text }
+      return { ok: true, text, model }
     } catch (err) {
       errors.push(`${model}: ${err instanceof Error ? err.message : 'Network error'}`)
     }
@@ -200,6 +228,27 @@ export async function askOrbitAi(prompt: string, system: string): Promise<AiText
     return { text: pickOfflineAnswer(prompt), source: 'offline', error: result.error }
   }
   return { text: result.text, source: 'live' }
+}
+
+export async function askOrbitAiVision(
+  prompt: string,
+  system: string,
+  imageBase64: string,
+  mimeType: string,
+  jsonMode = false,
+): Promise<AiTextResult & { model?: string }> {
+  if (!isAiConfigured()) {
+    return { text: '', source: 'offline', error: 'API key not configured' }
+  }
+
+  const result = await callGemini(prompt, system, jsonMode, {
+    base64: imageBase64.replace(/^data:[^;]+;base64,/, ''),
+    mimeType: mimeType || 'image/jpeg',
+  })
+  if (!result.ok) {
+    return { text: '', source: 'offline', error: result.error }
+  }
+  return { text: result.text, source: 'live', model: result.model }
 }
 
 function buildOfflineQuiz(topic: string): QuizPayload {

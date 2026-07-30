@@ -11,8 +11,29 @@ function getKey() {
   return (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '').trim()
 }
 
-async function generate(model: string, key: string, prompt: string, system: string, jsonMode: boolean) {
+type ImagePart = { mimeType: string; data: string }
+
+async function generate(
+  model: string,
+  key: string,
+  prompt: string,
+  system: string,
+  jsonMode: boolean,
+  image?: ImagePart,
+) {
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
+  const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [
+    { text: prompt },
+  ]
+  if (image?.data) {
+    parts.unshift({
+      inlineData: {
+        mimeType: image.mimeType || 'image/jpeg',
+        data: image.data,
+      },
+    })
+  }
+
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
@@ -21,9 +42,9 @@ async function generate(model: string, key: string, prompt: string, system: stri
     },
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: system }] },
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      contents: [{ role: 'user', parts }],
       generationConfig: {
-        temperature: jsonMode ? 0.4 : 0.6,
+        temperature: jsonMode ? 0.3 : 0.6,
         maxOutputTokens: 2048,
         ...(jsonMode ? { responseMimeType: 'application/json' } : {}),
       },
@@ -69,9 +90,15 @@ export default async function handler(req: Request): Promise<Response> {
     return Response.json({ error: 'GEMINI_API_KEY not configured on server' }, { status: 500, headers: cors })
   }
 
-  let body: { prompt?: string; system?: string; jsonMode?: boolean }
+  let body: {
+    prompt?: string
+    system?: string
+    jsonMode?: boolean
+    imageBase64?: string
+    mimeType?: string
+  }
   try {
-    body = (await req.json()) as { prompt?: string; system?: string; jsonMode?: boolean }
+    body = (await req.json()) as typeof body
   } catch {
     return Response.json({ error: 'Invalid JSON body' }, { status: 400, headers: cors })
   }
@@ -79,13 +106,20 @@ export default async function handler(req: Request): Promise<Response> {
   const prompt = (body.prompt || '').trim()
   const system = (body.system || 'You are Orbit AI, a helpful school tutor.').trim()
   const jsonMode = Boolean(body.jsonMode)
+  const imageBase64 = (body.imageBase64 || '').replace(/^data:[^;]+;base64,/, '').trim()
+  const mimeType = (body.mimeType || 'image/jpeg').trim()
+
   if (!prompt) {
     return Response.json({ error: 'prompt is required' }, { status: 400, headers: cors })
   }
+  if (imageBase64 && imageBase64.length > 5_500_000) {
+    return Response.json({ error: 'Image too large. Use a clearer, smaller photo.' }, { status: 413, headers: cors })
+  }
 
+  const image = imageBase64 ? { mimeType, data: imageBase64 } : undefined
   const errors: string[] = []
   for (const model of MODELS) {
-    const result = await generate(model, key, prompt, system, jsonMode)
+    const result = await generate(model, key, prompt, system, jsonMode, image)
     if (result.ok) {
       return Response.json({ text: result.text, model: result.model, source: 'live' }, { headers: cors })
     }

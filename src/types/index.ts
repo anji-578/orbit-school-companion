@@ -6,6 +6,24 @@ export type FeeStatus = 'Unpaid' | 'Pending' | 'Overdue' | 'Paid'
 export type PaymentSubmissionStatus = 'Pending' | 'Verified' | 'Rejected'
 export type ScanStep = 'select' | 'scanning' | 'evaluated' | 'analogy' | 'validated'
 export type ScanTarget = 'chemistry' | 'mathematics'
+
+export interface PaperCoachInsight {
+  title: string
+  subject: string
+  overallQuality: 'strong' | 'mixed' | 'needs_work'
+  confidence: number
+  summary: string
+  workingWell: string[]
+  needsImprovement: string[]
+  flaggedWeakness: string
+  nextSteps: string[]
+  checkQuestion: string
+  checkOptions: string[]
+  checkAnswerIndex: number
+  model?: string
+  source: 'live' | 'offline'
+}
+
 export type LifecycleMetric = 'marks' | 'ranks'
 export type PaymentMethod = 'upi' | 'card'
 
