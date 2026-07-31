@@ -106,8 +106,22 @@ src/
   lib/
   data/demo.ts
   features/
+api/
+  gemini.ts             # Gemini proxy (Edge)
+  notify.ts             # Web Push + MSG91 fan-out (Node)
 supabase/
-  schema.sql            # Phase 0 Postgres + RLS (run when ready)
+  schema.sql            # Phase 0 Postgres + RLS
+  alerts.sql            # notifications, push, prefs, sms_log
 ```
 
-Demo Mode: payments/SMS/GPS simulated. AI uses Gemini if `VITE_GEMINI_API_KEY` is set; otherwise offline demos.
+### Alerts (Push + SMS)
+
+1. Run `supabase/alerts.sql` in the Supabase SQL editor.
+2. Generate VAPID keys: `npx web-push generate-vapid-keys`
+3. Set `VITE_VAPID_PUBLIC_KEY` (client) + `VAPID_PRIVATE_KEY` + `SUPABASE_SERVICE_ROLE_KEY` on Vercel.
+4. Optional SMS: `MSG91_AUTH_KEY`, `MSG91_SENDER_ID`, `MSG91_TEMPLATE_ID` after India DLT approval.
+5. In the app: open **Alerts** → Enable push / opt into SMS.
+
+In-app bell always works. Push/SMS fan-out runs via `POST /api/notify` when keys are set.
+
+Demo Mode: GPS call actions still simulated. AI uses Gemini if configured; otherwise offline demos. SMS is live only when MSG91 is configured — otherwise requests are logged as `skipped`.

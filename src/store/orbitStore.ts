@@ -17,6 +17,7 @@ import {
   initialTasks,
 } from '../data/demo'
 import { computeStudyScore } from '../lib/studyScore'
+import { dispatchRemoteAlert, eventTypeFromNotification } from '../lib/alerts'
 import {
   createPaymentSubmission,
   fetchPaymentSubmissions,
@@ -344,13 +345,20 @@ export const useOrbitStore = create<OrbitState>()(
       },
       clearToast: () => set({ toast: null }),
 
-      pushNotification: (n) =>
+      pushNotification: (n) => {
         set((s) => ({
           notifications: [
             { id: Date.now(), time: 'Just now', unread: n.unread ?? true, role: n.role, title: n.title, body: n.body },
             ...s.notifications,
           ],
-        })),
+        }))
+        dispatchRemoteAlert({
+          eventType: eventTypeFromNotification(n.title, n.body),
+          title: n.title,
+          body: n.body,
+          role: n.role,
+        })
+      },
 
       markNotificationRead: (id) =>
         set((s) => ({
@@ -439,7 +447,9 @@ export const useOrbitStore = create<OrbitState>()(
             body: `${s.name} was marked absent today. Please confirm.`,
           })
         })
-        get().triggerToast(`Absentee alerts sent for: ${absentees.map((a) => a.name).join(', ')}`)
+        get().triggerToast(
+          `Alerts queued for: ${absentees.map((a) => a.name).join(', ')} (in-app + push/SMS if enabled)`,
+        )
       },
 
       assignHomework: ({ subject, task, due, xp, difficulty }) => {

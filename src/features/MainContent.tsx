@@ -2,6 +2,7 @@ import type { ComponentType } from 'react'
 import { useOrbitStore } from '../store/orbitStore'
 import type { Role } from '../types'
 
+import { AlertsPanel } from './shared/AlertsPanel'
 import { ScannerPanel } from './shared/ScannerPanel'
 import { ExtracurricularPanel } from './shared/ExtracurricularPanel'
 import { CalendarView } from './shared/CalendarView'
@@ -43,6 +44,7 @@ const ROLE_ROUTES: Record<Role, Record<string, ComponentType>> = {
     dashboard: StudentDashboard,
     'study-assistant': StudyAssistant,
     scanner: ScannerPanel,
+    alerts: AlertsPanel,
     'syllabus-explorer': SyllabusExplorer,
     academics: AcademicsPanel,
     assignments: AssignmentsPanel,
@@ -55,6 +57,7 @@ const ROLE_ROUTES: Record<Role, Record<string, ComponentType>> = {
   parent: {
     dashboard: ParentDashboard,
     scanner: ScannerPanel,
+    alerts: AlertsPanel,
     academics: AcademicsPanel,
     homework: ParentHomework,
     attendance: ParentAttendance,
@@ -67,6 +70,7 @@ const ROLE_ROUTES: Record<Role, Record<string, ComponentType>> = {
   teacher: {
     dashboard: TeacherDashboard,
     scanner: ScannerPanel,
+    alerts: AlertsPanel,
     'teacher-attendance': TeacherAttendance,
     'teacher-marks': TeacherMarks,
     'teacher-homework': TeacherHomework,
@@ -76,6 +80,7 @@ const ROLE_ROUTES: Record<Role, Record<string, ComponentType>> = {
   },
   school: {
     dashboard: SchoolDashboard,
+    alerts: AlertsPanel,
     'school-fees': SchoolFees,
     'school-leaves': SchoolLeaves,
     'school-hiring': SchoolHiring,

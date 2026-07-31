@@ -1,5 +1,6 @@
 import {
   Bell,
+  BellRing,
   BookMarked,
   BookOpen,
   Briefcase,
@@ -81,6 +82,7 @@ export function getTabsForRole(role: Role, lang: 'en' | 'te') {
   const map: Record<Role, { id: string; label: string; icon: LucideIcon }[]> = {
     student: [
       { id: 'dashboard', label: t('studentDashboard'), icon: Sliders },
+      { id: 'alerts', label: t('alertsTitle'), icon: BellRing },
       { id: 'study-assistant', label: t('studentStudyCopilot'), icon: BrainCircuit },
       { id: 'scanner', label: t('studentScanner'), icon: Clipboard },
       { id: 'syllabus-explorer', label: t('studentSyllabus'), icon: BookMarked },
@@ -94,6 +96,7 @@ export function getTabsForRole(role: Role, lang: 'en' | 'te') {
     ],
     parent: [
       { id: 'dashboard', label: t('parentDashboard'), icon: Sliders },
+      { id: 'alerts', label: t('alertsTitle'), icon: BellRing },
       { id: 'scanner', label: t('parentScanner'), icon: Clipboard },
       { id: 'academics', label: t('parentReportCard'), icon: FileText },
       { id: 'homework', label: t('parentHomeworkTitle'), icon: CheckSquare },
@@ -106,6 +109,7 @@ export function getTabsForRole(role: Role, lang: 'en' | 'te') {
     ],
     teacher: [
       { id: 'dashboard', label: t('teacherDashboard'), icon: Sliders },
+      { id: 'alerts', label: t('alertsTitle'), icon: BellRing },
       { id: 'scanner', label: t('teacherScanner'), icon: Clipboard },
       { id: 'teacher-attendance', label: t('teacherAttendanceTitle'), icon: UserCheck },
       { id: 'teacher-marks', label: t('teacherMarksTitle'), icon: Clipboard },
@@ -116,6 +120,7 @@ export function getTabsForRole(role: Role, lang: 'en' | 'te') {
     ],
     school: [
       { id: 'dashboard', label: t('schoolDashboard'), icon: Sliders },
+      { id: 'alerts', label: t('alertsTitle'), icon: BellRing },
       { id: 'school-fees', label: t('schoolFeeAuditorTitle'), icon: CreditCard },
       { id: 'school-leaves', label: t('schoolLeavesTitle'), icon: CalendarDays },
       { id: 'school-hiring', label: t('schoolHiringTitle'), icon: Briefcase },
