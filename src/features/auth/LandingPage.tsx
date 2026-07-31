@@ -43,7 +43,6 @@ export function LandingPage() {
           <div className="text-center space-y-1 max-w-lg">
             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t('chooseProfile')}</p>
             <h2 className="font-display text-lg sm:text-xl font-bold text-white">{t('landingHeadline')}</h2>
-            <p className="text-[11px] sm:text-xs text-slate-400 leading-snug line-clamp-2">{t('landingSub')}</p>
           </div>
         </section>
 

@@ -265,9 +265,11 @@ export function LoginPage({ role }: { role: Role }) {
           </div>
         </div>
 
-        <div className="flex items-center justify-center gap-2 text-slate-500 text-[10px]">
-          <OrbitMark className="h-4 w-4" />
-          <span>{usingSupabase ? 'Orbit · Supabase Auth' : 'Orbit · local accounts'}</span>
+        <div className="flex items-center justify-center gap-1.5 text-slate-500">
+          <OrbitMark className="h-7 w-7" />
+          <span className="text-[11px] font-semibold tracking-wide">
+            {usingSupabase ? 'Orbit · Supabase Auth' : 'Orbit · local accounts'}
+          </span>
         </div>
       </div>
     </div>
