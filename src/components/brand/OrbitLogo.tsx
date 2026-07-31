@@ -5,8 +5,9 @@ type OrbitLogoProps = {
   showTagline?: boolean
 }
 
-const LOGO = '/brand/orbit-logo.png?v=3'
-const ICON = '/brand/orbit-icon.png?v=3'
+const LOGO = '/brand/orbit-logo.png?v=5'
+const ICON = '/brand/orbit-icon.png?v=5'
+
 
 /** Official Orbit brand — transparent PNGs that sit on the app background. */
 export function OrbitLogo({
@@ -28,11 +29,16 @@ export function OrbitLogo({
 
   if (variant === 'hero') {
     return (
-      <div className={`flex justify-center bg-transparent ${className}`}>
+      <div className={`relative flex justify-center bg-transparent ${className}`}>
+        <div
+          className="pointer-events-none absolute inset-[-20%] rounded-full opacity-50 blur-3xl"
+          style={{ background: 'radial-gradient(circle, rgba(37,99,235,0.35), transparent 68%)' }}
+          aria-hidden
+        />
         <img
           src={LOGO}
           alt="Orbit — Your learning. Our orbit."
-          className="block h-auto w-[118px] sm:w-[132px] object-contain bg-transparent"
+          className="relative block h-auto w-[128px] sm:w-[148px] object-contain bg-transparent"
           draggable={false}
         />
       </div>
