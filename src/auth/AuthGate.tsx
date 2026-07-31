@@ -10,6 +10,7 @@ import { OrbitLogo } from '../components/brand/OrbitLogo'
 export function AuthGate() {
   const session = useAuthStore((s) => s.session)
   const pendingRole = useAuthStore((s) => s.pendingRole)
+  const passwordRecovery = useAuthStore((s) => s.passwordRecovery)
   const bootstrapped = useAuthStore((s) => s.bootstrapped)
   const bootstrap = useAuthStore((s) => s.bootstrap)
   const [ready, setReady] = useState(bootstrapped)
@@ -36,7 +37,7 @@ export function AuthGate() {
     )
   }
 
-  if (session) return <AppShell />
-  if (pendingRole) return <LoginPage role={pendingRole} />
+  if (session && !passwordRecovery) return <AppShell />
+  if (pendingRole || passwordRecovery) return <LoginPage role={pendingRole ?? 'student'} />
   return <LandingPage />
 }

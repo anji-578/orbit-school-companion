@@ -1,22 +1,27 @@
 import { AlertTriangle, ArrowRight, BrainCircuit, CheckCircle2, Circle, Clock, Sparkles } from 'lucide-react'
+import { useAuthStore } from '../../auth/authStore'
 import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
 import { STUDENT_NAME, subjectSyllabusDatabase, todayTimeline } from '../../data/demo'
 import { Card, Eyebrow, Panel, ProgressBar, StatTile } from '../../components/ui/primitives'
+import { EmptyState } from '../../components/ui/EmptyState'
 import { LifecycleChart } from '../shared/LifecycleChart'
 
 const FOCUS_SUBJECTS = ['chemLabSubject', 'mathSubject', 'scienceSubject'] as const
 
 export function StudentDashboard() {
   const lang = useOrbitStore((s) => s.lang)
+  const classLinked = useOrbitStore((s) => s.classLinked)
   const studyScore = useOrbitStore((s) => s.studyScore)
   const attendanceRecords = useOrbitStore((s) => s.attendanceRecords)
   const getAttendancePercent = useOrbitStore((s) => s.getAttendancePercent)
   const tasks = useOrbitStore((s) => s.tasks)
   const toggleTask = useOrbitStore((s) => s.toggleTask)
   const setActiveTab = useOrbitStore((s) => s.setActiveTab)
+  const session = useAuthStore((s) => s.session)
 
   const t = (key: string) => translate(lang, key)
+  const firstName = (session?.displayName || STUDENT_NAME).split(' ')[0]
   const attendancePercent = getAttendancePercent()
   const pendingTasks = tasks.filter((task) => !task.completed)
   const homeworkPercent = tasks.length
@@ -33,19 +38,25 @@ export function StudentDashboard() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-black text-white font-display">
-            {t('goodMorning')}, {STUDENT_NAME.split(' ')[0]} 🚀
+            {t('goodMorning')}, {firstName}
           </h1>
           <p className="text-xs text-slate-400 mt-1">{t('studentSub')}</p>
         </div>
-        <button
-          type="button"
-          onClick={() => setActiveTab('scanner')}
-          className="btn-accent flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold"
-        >
-          <Sparkles className="h-4 w-4" aria-hidden />
-          {t('scannerTitle')}
-        </button>
+        {classLinked ? (
+          <button
+            type="button"
+            onClick={() => setActiveTab('scanner')}
+            className="btn-accent flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold"
+          >
+            <Sparkles className="h-4 w-4" aria-hidden />
+            {t('scannerTitle')}
+          </button>
+        ) : null}
       </div>
+
+      {!classLinked ? (
+        <EmptyState title={t('noClassLinkedTitle')} description={t('noClassLinkedDesc')} />
+      ) : null}
 
       <div className="grid sm:grid-cols-3 gap-4">
         <StatTile label={t('academicScore')} value={String(studyScore)} hint={t('basedOn')} accent="var(--accent2)" />

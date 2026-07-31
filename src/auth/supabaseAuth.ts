@@ -207,6 +207,28 @@ export async function supabaseLogout(): Promise<void> {
   await supabase.auth.signOut()
 }
 
+export async function supabaseRequestPasswordReset(
+  email: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const supabase = getSupabase()
+  if (!supabase) return { ok: false, error: 'Supabase is not configured.' }
+  const redirectTo = `${window.location.origin}/`
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo })
+  if (error) return { ok: false, error: authErrorMessage(error.message) }
+  return { ok: true }
+}
+
+export async function supabaseUpdatePassword(
+  password: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const supabase = getSupabase()
+  if (!supabase) return { ok: false, error: 'Supabase is not configured.' }
+  if (password.length < 6) return { ok: false, error: 'Password must be at least 6 characters.' }
+  const { error } = await supabase.auth.updateUser({ password })
+  if (error) return { ok: false, error: authErrorMessage(error.message) }
+  return { ok: true }
+}
+
 export async function restoreSupabaseSession(): Promise<OrbitProfile | null> {
   const supabase = getSupabase()
   if (!supabase) return null

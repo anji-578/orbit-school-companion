@@ -1,16 +1,20 @@
 import { useMemo, useState } from 'react'
-import { BrainCircuit, CheckCircle2, ClipboardList, FileText } from 'lucide-react'
+import { BrainCircuit, CheckCircle2, ClipboardList, Eye, FileText } from 'lucide-react'
 import { chapterProgress, curriculumProgress, useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
 import { Panel, Card, Eyebrow, ProgressBar, StatTile } from '../../components/ui/primitives'
+import { EmptyState } from '../../components/ui/EmptyState'
+import { NotePreview } from '../../components/ui/NotePreview'
 
 export function SyllabusExplorer() {
   const lang = useOrbitStore((s) => s.lang)
   const curriculum = useOrbitStore((s) => s.curriculum)
+  const classLinked = useOrbitStore((s) => s.classLinked)
   const setAiPrompt = useOrbitStore((s) => s.setAiPrompt)
   const setActiveTab = useOrbitStore((s) => s.setActiveTab)
 
   const [filter, setFilter] = useState('all')
+  const [preview, setPreview] = useState<{ name?: string; dataUrl?: string; mime?: string } | null>(null)
   const t = (key: string) => translate(lang, key)
 
   const subjects = useMemo(
@@ -23,28 +27,36 @@ export function SyllabusExplorer() {
   const totalCount = curriculum.flatMap((c) => c.subtopics).length
   const notesReady = curriculum.flatMap((c) => c.subtopics).filter((s) => s.noteDataUrl).length
 
+  if (!classLinked) {
+    return (
+      <Panel title={t('studentSyllabus')} subtitle={t('syllabusStudentDesc')}>
+        <EmptyState title={t('noClassLinkedTitle')} description={t('noClassLinkedDesc')} />
+      </Panel>
+    )
+  }
+
   return (
     <div className="space-y-5">
       <Panel title={t('studentSyllabus')} subtitle={t('syllabusStudentDesc')}>
-        <div className="grid sm:grid-cols-3 gap-3 mb-5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
           <StatTile label={t('classProgress')} value={`${overall}%`} hint={t('teacherTracked')} />
           <StatTile label={t('subtopicsDone')} value={`${doneCount}/${totalCount}`} />
           <StatTile label={t('teacherNotes')} value={String(notesReady)} hint={t('readyToDownload')} />
         </div>
 
-        <div className="mb-5 rounded-2xl border border-white/10 bg-gradient-to-r from-[var(--accent)]/15 to-transparent p-4">
+        <div className="mb-5 rounded-2xl border border-white/10 bg-[var(--accent)]/10 p-4">
           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">{t('overallProgress')}</p>
           <ProgressBar value={overall} />
           <p className="text-[11px] text-slate-400 mt-2">{t('syllabusProgressHint')}</p>
         </div>
 
-        <div className="flex flex-wrap gap-2 mb-4">
+        <div className="flex gap-2 mb-4 overflow-x-auto orbit-scroll pb-1 -mx-1 px-1">
           {subjects.map((subject) => (
             <button
               key={subject}
               type="button"
               onClick={() => setFilter(subject)}
-              className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wide border transition ${
+              className={`shrink-0 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wide border transition ${
                 filter === subject
                   ? 'bg-[var(--accent)]/20 border-[var(--accent)]/40 text-white'
                   : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
@@ -85,7 +97,7 @@ export function SyllabusExplorer() {
                   {chapter.subtopics.map((sub) => (
                     <li
                       key={sub.id}
-                      className={`flex flex-wrap items-center justify-between gap-2 rounded-xl border px-3 py-2.5 ${
+                      className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-xl border px-3 py-2.5 ${
                         sub.done ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-white/10 bg-white/[0.03]'
                       }`}
                     >
@@ -108,27 +120,39 @@ export function SyllabusExplorer() {
                         </div>
                       </div>
                       {sub.noteDataUrl ? (
-                        <a
-                          href={sub.noteDataUrl}
-                          download={sub.noteName || 'teacher-notes'}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-bold text-[var(--accent2)] bg-white/5 border border-white/10 shrink-0"
-                        >
-                          <FileText className="h-3 w-3" aria-hidden />
-                          {t('teacherNotes')}
-                        </a>
+                        <div className="flex flex-wrap gap-2 pl-6 sm:pl-0">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setPreview({ name: sub.noteName, dataUrl: sub.noteDataUrl, mime: sub.noteMime })
+                            }
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-bold text-[var(--accent2)] bg-white/5 border border-white/10"
+                          >
+                            <Eye className="h-3 w-3" aria-hidden />
+                            {t('previewNotes')}
+                          </button>
+                          <a
+                            href={sub.noteDataUrl}
+                            download={sub.noteName || 'teacher-notes'}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-bold text-slate-300 bg-white/5 border border-white/10"
+                          >
+                            <FileText className="h-3 w-3" aria-hidden />
+                            {t('download')}
+                          </a>
+                        </div>
                       ) : null}
                     </li>
                   ))}
                 </ul>
 
-                <div className="flex flex-wrap gap-2 pt-1">
+                <div className="flex flex-col sm:flex-row flex-wrap gap-2 pt-1">
                   <button
                     type="button"
                     onClick={() => {
                       setAiPrompt(`Explain ${chapter.title} (${chapter.subject}) with simple examples for Class 11.`)
                       setActiveTab('study-assistant')
                     }}
-                    className="btn-ghost flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold text-white"
+                    className="btn-ghost flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-lg text-[10px] font-bold text-white"
                   >
                     <BrainCircuit className="h-3.5 w-3.5" aria-hidden />
                     {t('askAi')}
@@ -139,7 +163,7 @@ export function SyllabusExplorer() {
                       setAiPrompt(chapter.quizQuery)
                       setActiveTab('study-assistant')
                     }}
-                    className="btn-accent flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold"
+                    className="btn-accent flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-lg text-[10px] font-bold"
                   >
                     <ClipboardList className="h-3.5 w-3.5" aria-hidden />
                     {t('generateQuiz')}
@@ -150,6 +174,14 @@ export function SyllabusExplorer() {
           })}
         </div>
       </Panel>
+
+      <NotePreview
+        open={Boolean(preview)}
+        onClose={() => setPreview(null)}
+        name={preview?.name}
+        dataUrl={preview?.dataUrl}
+        mime={preview?.mime}
+      />
     </div>
   )
 }

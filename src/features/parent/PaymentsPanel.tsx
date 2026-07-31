@@ -5,6 +5,7 @@ import { useAuthStore } from '../../auth/authStore'
 import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
 import { Panel, Card, Eyebrow, StatTile } from '../../components/ui/primitives'
+import { EmptyState } from '../../components/ui/EmptyState'
 
 const FEE_STATUS_CLASS: Record<string, string> = {
   Paid: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/25',
@@ -21,6 +22,7 @@ const SUB_STATUS_CLASS: Record<string, string> = {
 
 export function PaymentsPanel() {
   const lang = useOrbitStore((s) => s.lang)
+  const classLinked = useOrbitStore((s) => s.classLinked)
   const fees = useOrbitStore((s) => s.fees)
   const outstandingFees = useOrbitStore((s) => s.outstandingFees)
   const paymentReceipt = useOrbitStore((s) => s.paymentReceipt)
@@ -94,6 +96,14 @@ export function PaymentsPanel() {
   }
 
   const pendingMine = paymentSubmissions.filter((p) => p.status === 'Pending')
+
+  if (!classLinked) {
+    return (
+      <Panel title={t('billingTitle')} subtitle={t('billingUtrSubtitle')}>
+        <EmptyState title={t('feesNeedClassTitle')} description={t('feesNeedClassDesc')} />
+      </Panel>
+    )
+  }
 
   return (
     <div className="space-y-6">

@@ -16,6 +16,28 @@ async function defaultSchoolId(): Promise<string | null> {
   return (data?.id as string | undefined) ?? null
 }
 
+function mapSubmission(row: {
+  id: string
+  amount_paise: number
+  utr: string
+  paid_on: string | null
+  note: string | null
+  payer_name: string | null
+  status: string
+  created_at: string
+}): PaymentSubmission {
+  return {
+    id: row.id,
+    amount: Math.round(Number(row.amount_paise) / 100),
+    utr: row.utr,
+    paidOn: row.paid_on ?? '',
+    note: row.note ?? '',
+    payerName: row.payer_name ?? '',
+    status: row.status as PaymentSubmission['status'],
+    createdAt: row.created_at,
+  }
+}
+
 export async function fetchSchoolPaymentSettings(): Promise<SchoolPaymentSettings> {
   if (!isSupabaseConfigured()) return DEFAULT_SETTINGS
   const supabase = getSupabase()
@@ -38,9 +60,11 @@ export async function fetchSchoolPaymentSettings(): Promise<SchoolPaymentSetting
 }
 
 export async function saveSchoolPaymentSettings(settings: SchoolPaymentSettings): Promise<{ ok: boolean; error?: string }> {
-  if (!isSupabaseConfigured()) return { ok: true }
+  if (!isSupabaseConfigured()) {
+    return { ok: false, error: 'Supabase is not configured — payment settings were not saved to the server.' }
+  }
   const supabase = getSupabase()
-  if (!supabase) return { ok: true }
+  if (!supabase) return { ok: false, error: 'Supabase client unavailable.' }
   const schoolId = await defaultSchoolId()
   if (!schoolId) return { ok: false, error: 'School not found in Supabase.' }
   const { error } = await supabase.from('school_payment_settings').upsert({
@@ -66,16 +90,18 @@ export async function fetchPaymentSubmissions(): Promise<PaymentSubmission[]> {
     .order('created_at', { ascending: false })
     .limit(50)
   if (error || !data) return []
-  return data.map((row) => ({
-    id: row.id as string,
-    amount: Math.round(Number(row.amount_paise) / 100),
-    utr: row.utr as string,
-    paidOn: (row.paid_on as string) ?? '',
-    note: (row.note as string) ?? '',
-    payerName: (row.payer_name as string) ?? '',
-    status: row.status as PaymentSubmission['status'],
-    createdAt: row.created_at as string,
-  }))
+  return data.map((row) =>
+    mapSubmission({
+      id: row.id as string,
+      amount_paise: Number(row.amount_paise),
+      utr: row.utr as string,
+      paid_on: (row.paid_on as string) ?? null,
+      note: (row.note as string) ?? null,
+      payer_name: (row.payer_name as string) ?? null,
+      status: row.status as string,
+      created_at: row.created_at as string,
+    }),
+  )
 }
 
 export async function createPaymentSubmission(input: {
@@ -86,22 +112,16 @@ export async function createPaymentSubmission(input: {
   payerName: string
   userId?: string
 }): Promise<{ ok: true; submission: PaymentSubmission } | { ok: false; error: string }> {
-  const local: PaymentSubmission = {
-    id: `local_${Date.now()}`,
-    amount: input.amount,
-    utr: input.utr.trim(),
-    paidOn: input.paidOn,
-    note: input.note,
-    payerName: input.payerName,
-    status: 'Pending',
-    createdAt: new Date().toISOString(),
+  if (!isSupabaseConfigured()) {
+    return {
+      ok: false,
+      error: 'Connect Supabase to submit UTR payments. Local fake receipts are disabled.',
+    }
   }
-
-  if (!isSupabaseConfigured()) return { ok: true, submission: local }
   const supabase = getSupabase()
-  if (!supabase) return { ok: true, submission: local }
+  if (!supabase) return { ok: false, error: 'Supabase client unavailable.' }
   const schoolId = await defaultSchoolId()
-  if (!schoolId) return { ok: true, submission: local }
+  if (!schoolId) return { ok: false, error: 'School not found. Ask admin to finish school setup.' }
 
   const { data, error } = await supabase
     .from('payment_submissions')
@@ -119,22 +139,24 @@ export async function createPaymentSubmission(input: {
     .single()
 
   if (error || !data) {
-    // Keep UX working even if RLS blocks insert
-    return { ok: true, submission: local }
+    return {
+      ok: false,
+      error: error?.message || 'Could not save UTR. Check you are signed in as parent and try again.',
+    }
   }
 
   return {
     ok: true,
-    submission: {
+    submission: mapSubmission({
       id: data.id as string,
-      amount: Math.round(Number(data.amount_paise) / 100),
+      amount_paise: Number(data.amount_paise),
       utr: data.utr as string,
-      paidOn: (data.paid_on as string) ?? '',
-      note: (data.note as string) ?? '',
-      payerName: (data.payer_name as string) ?? '',
-      status: data.status as PaymentSubmission['status'],
-      createdAt: data.created_at as string,
-    },
+      paid_on: (data.paid_on as string) ?? null,
+      note: (data.note as string) ?? null,
+      payer_name: (data.payer_name as string) ?? null,
+      status: data.status as string,
+      created_at: data.created_at as string,
+    }),
   }
 }
 
@@ -143,9 +165,14 @@ export async function reviewPaymentSubmission(
   status: 'Verified' | 'Rejected',
   reviewerId?: string,
 ): Promise<{ ok: boolean; error?: string }> {
-  if (!isSupabaseConfigured() || id.startsWith('local_')) return { ok: true }
+  if (id.startsWith('local_')) {
+    return { ok: false, error: 'This was a local draft receipt and cannot be verified on the server.' }
+  }
+  if (!isSupabaseConfigured()) {
+    return { ok: false, error: 'Supabase is not configured — verification was not saved.' }
+  }
   const supabase = getSupabase()
-  if (!supabase) return { ok: true }
+  if (!supabase) return { ok: false, error: 'Supabase client unavailable.' }
   const { error } = await supabase
     .from('payment_submissions')
     .update({

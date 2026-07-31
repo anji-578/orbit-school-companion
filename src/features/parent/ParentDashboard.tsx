@@ -3,6 +3,7 @@ import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
 import { STUDENT_NAME } from '../../data/demo'
 import { Card, Panel, StatTile } from '../../components/ui/primitives'
+import { EmptyState } from '../../components/ui/EmptyState'
 import { LifecycleChart } from '../shared/LifecycleChart'
 
 const SUBJECT_ROWS: { field: 'math' | 'science' | 'chem'; subjectKey: string }[] = [
@@ -19,6 +20,7 @@ function percentOf(raw: string): number {
 
 export function ParentDashboard() {
   const lang = useOrbitStore((s) => s.lang)
+  const classLinked = useOrbitStore((s) => s.classLinked)
   const studentGrades = useOrbitStore((s) => s.studentGrades)
   const tasks = useOrbitStore((s) => s.tasks)
   const outstandingFees = useOrbitStore((s) => s.outstandingFees)
@@ -41,11 +43,13 @@ export function ParentDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-black text-white font-display">
-          {t('goodEveningParent')} 🏡
-        </h1>
+        <h1 className="text-xl font-black text-white font-display">{t('goodEveningParent')}</h1>
         <p className="text-xs text-slate-400 mt-1">{t('parentSub')}</p>
       </div>
+
+      {!classLinked ? (
+        <EmptyState title={t('noClassLinkedTitle')} description={t('noClassLinkedDesc')} />
+      ) : null}
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatTile

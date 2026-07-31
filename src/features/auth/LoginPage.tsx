@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { ArrowLeft, Eye, EyeOff, Lock, Mail, UserRound } from 'lucide-react'
 import { getRoleMeta } from '../../components/layout/Sidebar'
@@ -12,7 +12,7 @@ import { useAuthStore } from '../../auth/authStore'
 import { demoHintForRole } from '../../auth/demoUsers'
 import { isSupabaseConfigured } from '../../lib/supabaseConfig'
 
-type Mode = 'signin' | 'signup'
+type Mode = 'signin' | 'signup' | 'forgot' | 'reset'
 
 export function LoginPage({ role }: { role: Role }) {
   const lang = useOrbitStore((s) => s.lang)
@@ -20,6 +20,10 @@ export function LoginPage({ role }: { role: Role }) {
   const setActiveTab = useOrbitStore((s) => s.setActiveTab)
   const login = useAuthStore((s) => s.login)
   const signup = useAuthStore((s) => s.signup)
+  const requestPasswordReset = useAuthStore((s) => s.requestPasswordReset)
+  const updatePassword = useAuthStore((s) => s.updatePassword)
+  const passwordRecovery = useAuthStore((s) => s.passwordRecovery)
+  const clearPasswordRecovery = useAuthStore((s) => s.clearPasswordRecovery)
   const authError = useAuthStore((s) => s.authError)
   const authNotice = useAuthStore((s) => s.authNotice)
   const setPendingRole = useAuthStore((s) => s.setPendingRole)
@@ -28,7 +32,7 @@ export function LoginPage({ role }: { role: Role }) {
   const triggerToast = useOrbitStore((s) => s.triggerToast)
 
   const hint = demoHintForRole(role)
-  const [mode, setMode] = useState<Mode>('signin')
+  const [mode, setMode] = useState<Mode>(passwordRecovery ? 'reset' : 'signin')
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -40,6 +44,10 @@ export function LoginPage({ role }: { role: Role }) {
   const Icon = meta.icon
   const t = (key: string) => translate(lang, key)
   const usingSupabase = isSupabaseConfigured()
+
+  useEffect(() => {
+    if (passwordRecovery) setMode('reset')
+  }, [passwordRecovery])
 
   const switchMode = (next: Mode) => {
     setMode(next)
@@ -60,6 +68,34 @@ export function LoginPage({ role }: { role: Role }) {
     e.preventDefault()
     clearAuthError()
     clearAuthNotice()
+
+    if (mode === 'forgot') {
+      setLoading(true)
+      const ok = await requestPasswordReset(email)
+      setLoading(false)
+      if (ok) {
+        triggerToast(t('resetEmailSentToast'))
+        setMode('signin')
+      }
+      return
+    }
+
+    if (mode === 'reset') {
+      if (password !== confirmPassword) {
+        useAuthStore.setState({ authError: t('passwordMismatch') })
+        return
+      }
+      setLoading(true)
+      const ok = await updatePassword(password)
+      setLoading(false)
+      if (ok) {
+        triggerToast(t('passwordUpdatedToast'))
+        setMode('signin')
+        setPassword('')
+        setConfirmPassword('')
+      }
+      return
+    }
 
     if (mode === 'signup') {
       if (password !== confirmPassword) {
@@ -86,6 +122,31 @@ export function LoginPage({ role }: { role: Role }) {
     if (ok) enterApp('welcomeBack')
   }
 
+  const headingKey =
+    mode === 'signup'
+      ? 'createAccountAs'
+      : mode === 'forgot'
+        ? 'forgotPasswordTitle'
+        : mode === 'reset'
+          ? 'setNewPasswordTitle'
+          : 'signInAs'
+
+  const submitLabel = loading
+    ? mode === 'signup'
+      ? t('creatingAccount')
+      : mode === 'forgot'
+        ? t('sendingReset')
+        : mode === 'reset'
+          ? t('updatingPassword')
+          : t('signingIn')
+    : mode === 'signup'
+      ? t('createAccount')
+      : mode === 'forgot'
+        ? t('sendResetLink')
+        : mode === 'reset'
+          ? t('saveNewPassword')
+          : t('signIn')
+
   return (
     <div
       className="orbit-root min-h-dvh w-full flex items-center justify-center p-4 sm:p-8"
@@ -99,6 +160,7 @@ export function LoginPage({ role }: { role: Role }) {
             <button
               type="button"
               onClick={() => {
+                if (passwordRecovery) clearPasswordRecovery()
                 setPendingRole(null)
                 clearAuthError()
                 clearAuthNotice()
@@ -120,37 +182,44 @@ export function LoginPage({ role }: { role: Role }) {
               <Icon className="h-6 w-6 text-[#05070f]" aria-hidden />
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                {mode === 'signup' ? t('createAccountAs') : t('signInAs')}
-              </p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t(headingKey)}</p>
               <h1 className="font-display text-xl font-bold text-white">{t(meta.labelKey)}</h1>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-white/5 border border-white/10" role="tablist">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mode === 'signin'}
-              onClick={() => switchMode('signin')}
-              className={`py-2 rounded-lg text-[11px] font-bold transition ${
-                mode === 'signin' ? 'bg-[var(--accent)] text-black' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              {t('signIn')}
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mode === 'signup'}
-              onClick={() => switchMode('signup')}
-              className={`py-2 rounded-lg text-[11px] font-bold transition ${
-                mode === 'signup' ? 'bg-[var(--accent)] text-black' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              {t('signUp')}
-            </button>
-          </div>
+          {mode === 'signin' || mode === 'signup' ? (
+            <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-white/5 border border-white/10" role="tablist">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={mode === 'signin'}
+                onClick={() => switchMode('signin')}
+                className={`py-2 rounded-lg text-[11px] font-bold transition ${
+                  mode === 'signin' ? 'bg-[var(--accent)] text-black' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                {t('signIn')}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={mode === 'signup'}
+                onClick={() => switchMode('signup')}
+                className={`py-2 rounded-lg text-[11px] font-bold transition ${
+                  mode === 'signup' ? 'bg-[var(--accent)] text-black' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                {t('signUp')}
+              </button>
+            </div>
+          ) : null}
+
+          {mode === 'forgot' ? (
+            <p className="text-[12px] text-slate-400 leading-relaxed">{t('forgotPasswordHint')}</p>
+          ) : null}
+          {mode === 'reset' ? (
+            <p className="text-[12px] text-slate-400 leading-relaxed">{t('setNewPasswordHint')}</p>
+          ) : null}
 
           <form onSubmit={onSubmit} className="space-y-4">
             {mode === 'signup' ? (
@@ -171,48 +240,54 @@ export function LoginPage({ role }: { role: Role }) {
               </label>
             ) : null}
 
-            <label className="block space-y-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t('email')}</span>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" aria-hidden />
-                <input
-                  type="email"
-                  autoComplete="username"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="field w-full rounded-xl pl-10 pr-3 py-2.5 text-sm"
-                  placeholder={mode === 'signin' ? hint.email : 'you@school.edu'}
-                />
-              </div>
-            </label>
+            {mode !== 'reset' ? (
+              <label className="block space-y-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t('email')}</span>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" aria-hidden />
+                  <input
+                    type="email"
+                    autoComplete="username"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="field w-full rounded-xl pl-10 pr-3 py-2.5 text-sm"
+                    placeholder={mode === 'signin' ? hint.email : 'you@school.edu'}
+                  />
+                </div>
+              </label>
+            ) : null}
 
-            <label className="block space-y-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t('password')}</span>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" aria-hidden />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
-                  required
-                  minLength={6}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="field w-full rounded-xl pl-10 pr-10 py-2.5 text-sm"
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"
-                  aria-label={showPassword ? t('hidePassword') : t('showPassword')}
-                  onClick={() => setShowPassword((v) => !v)}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </label>
+            {mode === 'signin' || mode === 'signup' || mode === 'reset' ? (
+              <label className="block space-y-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  {mode === 'reset' ? t('newPassword') : t('password')}
+                </span>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" aria-hidden />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+                    required
+                    minLength={6}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="field w-full rounded-xl pl-10 pr-10 py-2.5 text-sm"
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"
+                    aria-label={showPassword ? t('hidePassword') : t('showPassword')}
+                    onClick={() => setShowPassword((v) => !v)}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </label>
+            ) : null}
 
-            {mode === 'signup' ? (
+            {mode === 'signup' || mode === 'reset' ? (
               <label className="block space-y-1.5">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t('confirmPassword')}</span>
                 <div className="relative">
@@ -231,6 +306,18 @@ export function LoginPage({ role }: { role: Role }) {
               </label>
             ) : null}
 
+            {mode === 'signin' && usingSupabase ? (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => switchMode('forgot')}
+                  className="text-[11px] font-bold text-slate-400 hover:text-[var(--accent2)] transition"
+                >
+                  {t('forgotPassword')}
+                </button>
+              </div>
+            ) : null}
+
             {authError ? (
               <p className="text-xs text-rose-300 bg-rose-500/10 border border-rose-500/20 rounded-xl px-3 py-2" role="alert">
                 {authError}
@@ -244,25 +331,34 @@ export function LoginPage({ role }: { role: Role }) {
             ) : null}
 
             <button type="submit" disabled={loading} className="btn-accent w-full rounded-xl py-3 text-sm font-bold">
-              {loading
-                ? mode === 'signup'
-                  ? t('creatingAccount')
-                  : t('signingIn')
-                : mode === 'signup'
-                  ? t('createAccount')
-                  : t('signIn')}
+              {submitLabel}
             </button>
           </form>
 
-          <div className="rounded-2xl bg-white/5 border border-white/10 p-3 space-y-1">
-            <p className="text-[9px] font-black uppercase tracking-widest text-amber-300/90">
-              {usingSupabase ? t('credentialsStoredIn') : t('demoCredentials')}
-            </p>
-            <p className="text-[11px] text-slate-300 leading-relaxed">
-              {usingSupabase ? t('credentialsStoredHint') : `${hint.email} / ${hint.password}`}
-            </p>
-            {!usingSupabase ? <p className="text-[10px] text-slate-500">{t('demoCredentialsHint')}</p> : null}
-          </div>
+          {mode === 'forgot' || mode === 'reset' ? (
+            <button
+              type="button"
+              onClick={() => {
+                if (passwordRecovery) clearPasswordRecovery()
+                switchMode('signin')
+              }}
+              className="w-full text-center text-[11px] font-bold text-slate-400 hover:text-white transition"
+            >
+              {t('backToSignIn')}
+            </button>
+          ) : null}
+
+          {mode === 'signin' || mode === 'signup' ? (
+            <div className="rounded-2xl bg-white/5 border border-white/10 p-3 space-y-1">
+              <p className="text-[9px] font-black uppercase tracking-widest text-amber-300/90">
+                {usingSupabase ? t('credentialsStoredIn') : t('demoCredentials')}
+              </p>
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                {usingSupabase ? t('credentialsStoredHint') : `${hint.email} / ${hint.password}`}
+              </p>
+              {!usingSupabase ? <p className="text-[10px] text-slate-500">{t('demoCredentialsHint')}</p> : null}
+            </div>
+          ) : null}
         </div>
 
         <div className="flex items-center justify-center gap-1.5 text-slate-500">

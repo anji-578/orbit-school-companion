@@ -91,7 +91,19 @@ Open the live site → pick a profile → sign in:
 
 **Supabase Auth setting (required for demos):** Authentication → Providers → Email → turn **OFF** “Confirm email”, then retry login (first login auto-creates the user).
 
-When you create a Supabase project: paste URL + anon key into `.env` / Vercel env, run `supabase/schema.sql`, then we switch auth off demo.
+**Password reset + branded email**
+1. Authentication → URL Configuration → add your Vercel URL (and `http://localhost:5173`) to **Redirect URLs**.
+2. Authentication → Email Templates → **Reset password**: set subject to `Orbit · Reset your password`, and body like:
+
+```html
+<h2>Orbit · My School Companion</h2>
+<p>Reset your password:</p>
+<p><a href="{{ .ConfirmationURL }}">Set a new password</a></p>
+```
+
+3. In the app: Sign in → **Forgot password?** → open the email → set a new password on the recovery screen.
+
+When you create a Supabase project: paste URL + anon key into `.env` / Vercel env, run `supabase/schema.sql` (includes payment RLS), then we switch auth off demo.
 
 ---
 

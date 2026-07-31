@@ -18,6 +18,8 @@ import {
 } from '../data/demo'
 import { computeStudyScore } from '../lib/studyScore'
 import { dispatchRemoteAlert, eventTypeFromNotification } from '../lib/alerts'
+import { resolveClassLinked } from '../lib/classLink'
+import { getSupabase, isSupabaseConfigured } from '../lib/supabase'
 import {
   createPaymentSubmission,
   fetchPaymentSubmissions,
@@ -161,6 +163,7 @@ interface OrbitState {
   selectedLifecycleMetric: 'marks' | 'ranks'
 
   studyScore: number
+  classLinked: boolean
   getAttendancePercent: () => number
 
   setRole: (role: Role) => void
@@ -326,6 +329,7 @@ export const useOrbitStore = create<OrbitState>()(
       selectedLifecycleMetric: 'marks',
 
       studyScore: computeStudyScore(attendancePercent(initialAttendance), homeworkPercent(initialTasks)),
+      classLinked: true,
 
       getAttendancePercent: () => attendancePercent(get().attendanceRecords),
 
@@ -610,7 +614,12 @@ export const useOrbitStore = create<OrbitState>()(
           : undefined
         set((s) => ({
           schoolPaymentSettings: settings,
-          paymentSubmissions: submissions.length ? submissions : s.paymentSubmissions,
+          // Prefer server truth — never keep local_* drafts when remote responded
+          paymentSubmissions: isSupabaseConfigured()
+            ? submissions.filter((p) => !p.id.startsWith('local_'))
+            : submissions.length
+              ? submissions
+              : s.paymentSubmissions.filter((p) => !p.id.startsWith('local_')),
           fees: fees.length ? fees : s.fees,
           outstandingFees: outstandingFees ?? s.outstandingFees,
         }))
@@ -618,6 +627,9 @@ export const useOrbitStore = create<OrbitState>()(
 
       hydrateFromSupabase: async () => {
         await claimDemoLinks()
+        const sessionEmail = (await getSupabase()?.auth.getUser())?.data.user?.email ?? ''
+        const role = get().role
+        const classLinked = await resolveClassLinked(sessionEmail, role)
         const [ops, roster, attendanceRecords, studentGrades] = await Promise.all([
           loadSchoolOpsSnapshot(),
           fetchRosterWithTodayAttendance(),
@@ -629,6 +641,7 @@ export const useOrbitStore = create<OrbitState>()(
           const tasks = ops.tasks ?? s.tasks
           const nextAttendance = attendanceRecords.length ? attendanceRecords : s.attendanceRecords
           return {
+            classLinked,
             tasks,
             leaves: ops.leaves ?? s.leaves,
             broadcasts: ops.broadcasts ?? s.broadcasts,
@@ -672,7 +685,11 @@ export const useOrbitStore = create<OrbitState>()(
 
       reviewUtrPayment: async (id, status, reviewerId) => {
         const target = get().paymentSubmissions.find((p) => p.id === id)
-        await reviewPaymentSubmission(id, status, reviewerId)
+        const result = await reviewPaymentSubmission(id, status, reviewerId)
+        if (!result.ok) {
+          get().triggerToast(result.error ?? 'Could not update payment on server.')
+          return
+        }
 
         if (status !== 'Verified') {
           set((s) => ({

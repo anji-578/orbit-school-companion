@@ -221,6 +221,42 @@ create table if not exists public.payment_submissions (
   updated_at timestamptz not null default now()
 );
 
+alter table public.school_payment_settings enable row level security;
+alter table public.payment_submissions enable row level security;
+
+drop policy if exists payment_settings_select_authenticated on public.school_payment_settings;
+create policy payment_settings_select_authenticated on public.school_payment_settings
+  for select to authenticated using (true);
+
+drop policy if exists payment_settings_upsert_school on public.school_payment_settings;
+create policy payment_settings_upsert_school on public.school_payment_settings
+  for all to authenticated
+  using (public.current_profile_role() = 'school')
+  with check (public.current_profile_role() = 'school');
+
+drop policy if exists payment_submissions_insert on public.payment_submissions;
+create policy payment_submissions_insert on public.payment_submissions
+  for insert to authenticated
+  with check (
+    public.current_profile_role() in ('parent', 'student', 'school')
+    and (submitted_by is null or submitted_by = auth.uid())
+  );
+
+drop policy if exists payment_submissions_select on public.payment_submissions;
+create policy payment_submissions_select on public.payment_submissions
+  for select to authenticated
+  using (
+    public.current_profile_role() = 'school'
+    or submitted_by = auth.uid()
+    or public.current_profile_role() = 'parent'
+  );
+
+drop policy if exists payment_submissions_update_school on public.payment_submissions;
+create policy payment_submissions_update_school on public.payment_submissions
+  for update to authenticated
+  using (public.current_profile_role() = 'school')
+  with check (public.current_profile_role() = 'school');
+
 -- Phase 0c — school ops sync (homework, leave, broadcasts, calendar)
 create table if not exists public.homework_tasks (
   id bigserial primary key,

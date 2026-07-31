@@ -4,7 +4,8 @@ import type { Role } from '../types'
 import { isSupabaseConfigured } from '../lib/supabaseConfig'
 import { findDemoUser } from './demoUsers'
 import { createLocalAccount, findLocalAccount } from './localAccounts'
-import { restoreSupabaseSession, supabaseLogin, supabaseLogout, supabaseSignUp } from './supabaseAuth'
+import { restoreSupabaseSession, supabaseLogin, supabaseLogout, supabaseRequestPasswordReset, supabaseSignUp, supabaseUpdatePassword } from './supabaseAuth'
+import { getSupabase } from '../lib/supabase'
 
 export interface AuthSession {
   userId: string
@@ -21,12 +22,16 @@ interface AuthState {
   authNotice: string | null
   pendingRole: Role | null
   bootstrapped: boolean
+  passwordRecovery: boolean
   setPendingRole: (role: Role | null) => void
   login: (role: Role, email: string, password: string) => Promise<boolean>
   signup: (
     role: Role,
     input: { email: string; password: string; displayName: string },
   ) => Promise<'signed_in' | 'needs_confirmation' | false>
+  requestPasswordReset: (email: string) => Promise<boolean>
+  updatePassword: (password: string) => Promise<boolean>
+  clearPasswordRecovery: () => void
   logout: () => Promise<void>
   clearAuthError: () => void
   clearAuthNotice: () => void
@@ -51,15 +56,23 @@ export const useAuthStore = create<AuthState>()(
       authNotice: null,
       pendingRole: null,
       bootstrapped: false,
+      passwordRecovery: false,
 
       setPendingRole: (pendingRole) => set({ pendingRole, authError: null, authNotice: null }),
 
       clearAuthError: () => set({ authError: null }),
       clearAuthNotice: () => set({ authNotice: null }),
+      clearPasswordRecovery: () => set({ passwordRecovery: false }),
 
       bootstrap: async () => {
         if (get().bootstrapped) return
         if (isSupabaseConfigured()) {
+          const supabase = getSupabase()
+          supabase?.auth.onAuthStateChange((event) => {
+            if (event === 'PASSWORD_RECOVERY') {
+              set({ passwordRecovery: true, pendingRole: get().pendingRole ?? 'student' })
+            }
+          })
           const profile = await restoreSupabaseSession()
           if (profile) {
             set({
@@ -81,6 +94,36 @@ export const useAuthStore = create<AuthState>()(
         set({ bootstrapped: true })
       },
 
+      requestPasswordReset: async (email) => {
+        if (!isSupabaseConfigured()) {
+          set({ authError: 'Password reset requires Supabase. Configure keys first.' })
+          return false
+        }
+        const result = await supabaseRequestPasswordReset(email)
+        if (!result.ok) {
+          set({ authError: result.error })
+          return false
+        }
+        set({
+          authError: null,
+          authNotice: 'Password reset email sent. Open the link, then set a new password here.',
+        })
+        return true
+      },
+
+      updatePassword: async (password) => {
+        const result = await supabaseUpdatePassword(password)
+        if (!result.ok) {
+          set({ authError: result.error })
+          return false
+        }
+        set({
+          authError: null,
+          authNotice: 'Password updated. You can sign in with your new password.',
+          passwordRecovery: false,
+        })
+        return true
+      },
       login: async (role, email, password) => {
         if (isSupabaseConfigured()) {
           const result = await supabaseLogin(role, email, password)
