@@ -16,8 +16,8 @@ export function LandingPage() {
 
   return (
     <div className="orbit-root h-dvh w-full overflow-hidden">
-      <div className="h-full max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-col gap-3 sm:gap-4">
-        <header className="flex items-center justify-between gap-3 shrink-0">
+      <div className="h-full max-w-5xl mx-auto px-4 sm:px-6 pt-4 sm:pt-5 pb-3 sm:pb-4 flex flex-col gap-3 sm:gap-4">
+        <header className="flex items-center justify-between gap-3 shrink-0 overflow-visible">
           <OrbitLogo variant="lockup" showTagline={false} />
           <div className="flex items-center gap-2 sm:gap-3">
             <ThemeToggle />

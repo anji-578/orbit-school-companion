@@ -13,7 +13,7 @@ export function ThemeSync() {
     if (meta) meta.setAttribute('content', theme === 'light' ? '#F4F7FC' : '#0B1F44')
       const icon = document.querySelector('link[rel="icon"]') as HTMLLinkElement | null
     if (icon) {
-      icon.href = theme === 'light' ? '/brand/orbit-icon-light.png?v7' : '/brand/orbit-icon-dark.png?v7'
+      icon.href = theme === 'light' ? '/brand/orbit-icon-light.png?v8' : '/brand/orbit-icon-dark.png?v8'
     }
   }, [theme])
 

@@ -165,7 +165,7 @@ export function Sidebar() {
         aria-label="Primary navigation"
       >
         <div className="space-y-6 overflow-y-auto orbit-scroll pr-1">
-          <div className="flex items-center justify-between px-1">
+          <div className="flex items-center justify-between px-1 overflow-visible py-0.5">
             <OrbitLogo variant="lockup" />
             <button
               type="button"
