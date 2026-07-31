@@ -18,6 +18,7 @@ export function Header() {
   const setMobileSimulator = useOrbitStore((s) => s.setMobileSimulator)
   const markAllNotificationsRead = useOrbitStore((s) => s.markAllNotificationsRead)
   const markNotificationRead = useOrbitStore((s) => s.markNotificationRead)
+  const refreshNotifications = useOrbitStore((s) => s.refreshNotifications)
   const triggerToast = useOrbitStore((s) => s.triggerToast)
   const session = useAuthStore((s) => s.session)
   const logout = useAuthStore((s) => s.logout)
@@ -75,7 +76,11 @@ export function Header() {
             type="button"
             aria-label={t('notifications')}
             aria-expanded={notifOpen}
-            onClick={() => setNotifOpen(!notifOpen)}
+            onClick={() => {
+              const next = !notifOpen
+              setNotifOpen(next)
+              if (next) void refreshNotifications()
+            }}
             className="relative p-2 bg-white/5 border border-white/10 rounded-lg text-slate-300 hover:text-white transition"
           >
             <Bell className="h-4 w-4" />

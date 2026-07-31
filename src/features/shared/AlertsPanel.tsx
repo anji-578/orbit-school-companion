@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BellRing, MessageSquare, Smartphone } from 'lucide-react'
+import { Activity, BellRing, CheckCircle2, MessageSquare, Smartphone, XCircle } from 'lucide-react'
 import {
   disableWebPush,
   enableWebPush,
@@ -9,6 +9,7 @@ import {
   saveAlertPreferences,
   type AlertPreferences,
 } from '../../lib/alerts'
+import { healthSummary, probeSystemHealth, type HealthCheck } from '../../lib/systemHealth'
 import { isSupabaseConfigured } from '../../lib/supabaseConfig'
 import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
@@ -21,6 +22,8 @@ export function AlertsPanel() {
 
   const [prefs, setPrefs] = useState<AlertPreferences | null>(null)
   const [busy, setBusy] = useState(false)
+  const [health, setHealth] = useState<HealthCheck[] | null>(null)
+  const [healthBusy, setHealthBusy] = useState(false)
   const [permission, setPermission] = useState<NotificationPermission>(
     typeof Notification !== 'undefined' ? Notification.permission : 'default',
   )
@@ -30,11 +33,18 @@ export function AlertsPanel() {
   useEffect(() => {
     void registerOrbitServiceWorker()
     void fetchAlertPreferences().then(setPrefs)
+    void probeSystemHealth().then(setHealth)
   }, [])
 
   const refresh = async () => {
     setPrefs(await fetchAlertPreferences())
     if (typeof Notification !== 'undefined') setPermission(Notification.permission)
+  }
+
+  const runHealth = async () => {
+    setHealthBusy(true)
+    setHealth(await probeSystemHealth())
+    setHealthBusy(false)
   }
 
   const onEnablePush = async () => {
@@ -68,13 +78,54 @@ export function AlertsPanel() {
   if (!prefs) {
     return (
       <Panel title={t('alertsTitle')} subtitle={t('alertsSubtitle')}>
-                <p className="text-xs text-slate-400">{t('loadingAlerts')}</p>
+        <p className="text-xs text-slate-400">{t('loadingAlerts')}</p>
       </Panel>
     )
   }
 
+  const summary = health ? healthSummary(health) : null
+
   return (
     <div className="space-y-5">
+      <Panel title={t('systemHealthTitle')} subtitle={t('systemHealthDesc')}>
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2 text-xs font-bold text-white">
+            <Activity className="h-4 w-4 text-[var(--accent2)]" aria-hidden />
+            {summary
+              ? summary.allOk
+                ? t('systemHealthAllOk')
+                : `${summary.ok}/${summary.total} ${t('systemHealthPartial')}`
+              : t('systemHealthChecking')}
+          </div>
+          <button
+            type="button"
+            disabled={healthBusy}
+            onClick={() => void runHealth()}
+            className="btn-ghost px-3 py-1.5 rounded-lg text-[10px] font-bold text-white"
+          >
+            {t('recheckHealth')}
+          </button>
+        </div>
+        <div className="space-y-2">
+          {(health ?? []).map((check) => (
+            <div
+              key={check.id}
+              className="flex items-start gap-2.5 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5"
+            >
+              {check.ok ? (
+                <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" aria-hidden />
+              ) : (
+                <XCircle className="h-4 w-4 text-rose-400 shrink-0 mt-0.5" aria-hidden />
+              )}
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-white">{check.label}</p>
+                <p className="text-[10px] text-slate-400 leading-relaxed">{check.detail}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Panel>
+
       <Panel title={t('alertsTitle')} subtitle={t('alertsSubtitle')}>
         <div className="grid sm:grid-cols-2 gap-3 mb-4">
           <Card className="p-4 space-y-2">

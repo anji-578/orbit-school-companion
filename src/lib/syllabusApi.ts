@@ -3,6 +3,7 @@ import type { SyllabusChapter } from '../types'
 import { initialCurriculum } from '../data/demo'
 
 const CLASS_NAME = 'Grade 8-A'
+const BUCKET = 'syllabus-notes'
 
 async function sunriseSchoolId(): Promise<string | null> {
   const supabase = getSupabase()
@@ -11,18 +12,22 @@ async function sunriseSchoolId(): Promise<string | null> {
   return (data?.id as string | undefined) ?? null
 }
 
-/** Strip heavy note blobs before cloud write — keep metadata only. */
+function isRemoteNoteUrl(url?: string) {
+  return Boolean(url && (url.startsWith('http://') || url.startsWith('https://')))
+}
+
+/** Strip local data-URL blobs; keep Storage public URLs for multi-device. */
 export function curriculumForCloud(chapters: SyllabusChapter[]): SyllabusChapter[] {
   return chapters.map((ch) => ({
     ...ch,
     subtopics: ch.subtopics.map((st) => ({
       ...st,
-      noteDataUrl: undefined,
+      noteDataUrl: isRemoteNoteUrl(st.noteDataUrl) ? st.noteDataUrl : undefined,
     })),
   }))
 }
 
-/** Merge remote progress with local note blobs. */
+/** Merge remote progress + remote note URLs with any local preview blobs. */
 export function mergeCurriculum(
   remote: SyllabusChapter[] | null | undefined,
   local: SyllabusChapter[],
@@ -43,9 +48,14 @@ export function mergeCurriculum(
     ...ch,
     subtopics: ch.subtopics.map((st) => {
       const localNote = localBySub.get(`${ch.id}:${st.id}`)
+      const preferredUrl = isRemoteNoteUrl(st.noteDataUrl)
+        ? st.noteDataUrl
+        : isRemoteNoteUrl(localNote?.noteDataUrl)
+          ? localNote?.noteDataUrl
+          : localNote?.noteDataUrl ?? st.noteDataUrl
       return {
         ...st,
-        noteDataUrl: localNote?.noteDataUrl ?? st.noteDataUrl,
+        noteDataUrl: preferredUrl,
         noteMime: st.noteMime ?? localNote?.noteMime,
         noteName: st.noteName ?? localNote?.noteName,
         noteUploadedAt: st.noteUploadedAt ?? localNote?.noteUploadedAt,
@@ -89,4 +99,47 @@ export async function saveSyllabusState(chapters: SyllabusChapter[]): Promise<{ 
   })
   if (error) return { ok: false, error: error.message }
   return { ok: true }
+}
+
+function storagePath(schoolId: string, chapterId: string, subtopicId: string, fileName: string) {
+  const safe = fileName.replace(/[^\w.\-]+/g, '_').slice(0, 80)
+  return `${schoolId}/${chapterId}/${subtopicId}/${Date.now()}_${safe}`
+}
+
+export async function uploadSyllabusNoteFile(
+  chapterId: string,
+  subtopicId: string,
+  file: File,
+): Promise<{ ok: true; publicUrl: string; path: string } | { ok: false; error: string; localOnly?: true }> {
+  if (!isSupabaseConfigured()) {
+    return { ok: false, error: 'Supabase not configured', localOnly: true }
+  }
+  const supabase = getSupabase()
+  if (!supabase) return { ok: false, error: 'Supabase unavailable', localOnly: true }
+  const schoolId = await sunriseSchoolId()
+  if (!schoolId) return { ok: false, error: 'School not found — run seed.sql', localOnly: true }
+
+  const path = storagePath(schoolId, chapterId, subtopicId, file.name)
+  const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
+    cacheControl: '3600',
+    upsert: true,
+    contentType: file.type || 'application/octet-stream',
+  })
+  if (error) {
+    return { ok: false, error: error.message, localOnly: true }
+  }
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path)
+  return { ok: true, publicUrl: data.publicUrl, path }
+}
+
+export async function deleteSyllabusNoteFile(noteUrl?: string): Promise<void> {
+  if (!noteUrl || !isRemoteNoteUrl(noteUrl) || !isSupabaseConfigured()) return
+  const supabase = getSupabase()
+  if (!supabase) return
+  // public URL …/object/public/syllabus-notes/<path>
+  const marker = `/object/public/${BUCKET}/`
+  const idx = noteUrl.indexOf(marker)
+  if (idx < 0) return
+  const path = decodeURIComponent(noteUrl.slice(idx + marker.length))
+  await supabase.storage.from(BUCKET).remove([path])
 }

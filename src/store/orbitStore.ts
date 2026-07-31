@@ -44,7 +44,13 @@ import {
 } from '../lib/attendanceApi'
 import { fetchStudentGrades, saveStudentGrades } from '../lib/gradesApi'
 import { fetchFeeItems, markAllFeesPaid, markFeeItemsStatus } from '../lib/feesApi'
-import { fetchSyllabusState, mergeCurriculum, saveSyllabusState } from '../lib/syllabusApi'
+import { deleteSyllabusNoteFile, fetchSyllabusState, mergeCurriculum, saveSyllabusState, uploadSyllabusNoteFile } from '../lib/syllabusApi'
+import {
+  fetchAppNotifications,
+  insertAppNotification,
+  markAllAppNotificationsRead,
+  markAppNotificationRead,
+} from '../lib/notificationsApi'
 import { evaluatePaperCoach, fileToVisionPayload, getDemoInsight } from '../lib/paperCoach'
 import type {
   AttendanceRecord,
@@ -204,6 +210,7 @@ interface OrbitState {
   setSchoolPaymentSettings: (patch: Partial<SchoolPaymentSettings>) => void
   loadPaymentWorkspace: () => Promise<void>
   hydrateFromSupabase: () => Promise<void>
+  refreshNotifications: () => Promise<void>
   submitUtrPayment: (input: {
     amount: number
     utr: string
@@ -353,27 +360,58 @@ export const useOrbitStore = create<OrbitState>()(
       clearToast: () => set({ toast: null }),
 
       pushNotification: (n) => {
+        const localId = Date.now()
         set((s) => ({
           notifications: [
-            { id: Date.now(), time: 'Just now', unread: n.unread ?? true, role: n.role, title: n.title, body: n.body },
+            { id: localId, time: 'Just now', unread: n.unread ?? true, role: n.role, title: n.title, body: n.body },
             ...s.notifications,
           ],
         }))
+        const eventType = eventTypeFromNotification(n.title, n.body)
+        void insertAppNotification({
+          title: n.title,
+          body: n.body,
+          role: n.role,
+          eventType,
+        }).then((remoteId) => {
+          if (remoteId) {
+            set((s) => ({
+              notifications: s.notifications.map((item) =>
+                item.id === localId ? { ...item, id: remoteId } : item,
+              ),
+            }))
+          }
+        })
         dispatchRemoteAlert({
-          eventType: eventTypeFromNotification(n.title, n.body),
+          eventType,
           title: n.title,
           body: n.body,
           role: n.role,
         })
       },
 
-      markNotificationRead: (id) =>
+      markNotificationRead: (id) => {
         set((s) => ({
           notifications: s.notifications.map((n) => (n.id === id ? { ...n, unread: false } : n)),
-        })),
+        }))
+        void markAppNotificationRead(id)
+      },
 
-      markAllNotificationsRead: () =>
-        set((s) => ({ notifications: s.notifications.map((n) => ({ ...n, unread: false })) })),
+      markAllNotificationsRead: () => {
+        set((s) => ({ notifications: s.notifications.map((n) => ({ ...n, unread: false })) }))
+        void markAllAppNotificationsRead()
+      },
+
+      refreshNotifications: async () => {
+        if (!isSupabaseConfigured()) return
+        const remote = await fetchAppNotifications()
+        if (!remote.length) return
+        set((s) => {
+          const localOnly = s.notifications.filter((n) => !remote.some((r) => r.id === n.id))
+          const merged = [...remote, ...localOnly].slice(0, 50)
+          return { notifications: merged }
+        })
+      },
 
       toggleAttendanceDate: (date) => {
         set((s) => {
@@ -594,6 +632,7 @@ export const useOrbitStore = create<OrbitState>()(
           fetchSyllabusState(),
           get().loadPaymentWorkspace(),
         ])
+        await get().refreshNotifications()
         set((s) => {
           const tasks = cloud ? (ops.tasks ?? []) : (ops.tasks ?? s.tasks)
           const nextAttendance = cloud
@@ -789,12 +828,31 @@ export const useOrbitStore = create<OrbitState>()(
           get().triggerToast('Note too large — keep under 2.5 MB.')
           return
         }
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader()
-          reader.onload = () => resolve(String(reader.result ?? ''))
-          reader.onerror = () => reject(reader.error)
-          reader.readAsDataURL(file)
-        })
+
+        let noteDataUrl = ''
+        let storedRemotely = false
+        const upload = await uploadSyllabusNoteFile(chapterId, subtopicId, file)
+        if (upload.ok) {
+          noteDataUrl = upload.publicUrl
+          storedRemotely = true
+        } else {
+          noteDataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onload = () => resolve(String(reader.result ?? ''))
+            reader.onerror = () => reject(reader.error)
+            reader.readAsDataURL(file)
+          })
+          get().triggerToast(upload.error || 'Stored note on this device only')
+        }
+
+        // Remove previous remote file if replacing
+        const prev = get()
+          .curriculum.find((c) => c.id === chapterId)
+          ?.subtopics.find((st) => st.id === subtopicId)?.noteDataUrl
+        if (storedRemotely && prev && prev !== noteDataUrl) {
+          void deleteSyllabusNoteFile(prev)
+        }
+
         set((s) => ({
           curriculum: s.curriculum.map((ch) => {
             if (ch.id !== chapterId) return ch
@@ -805,7 +863,7 @@ export const useOrbitStore = create<OrbitState>()(
                   ? {
                       ...st,
                       noteName: file.name,
-                      noteDataUrl: dataUrl,
+                      noteDataUrl,
                       noteMime: file.type || 'application/octet-stream',
                       noteUploadedAt: new Date().toISOString().slice(0, 10),
                     }
@@ -815,7 +873,9 @@ export const useOrbitStore = create<OrbitState>()(
           }),
         }))
         void saveSyllabusState(get().curriculum)
-        get().triggerToast(`Notes uploaded · ${file.name}`)
+        get().triggerToast(
+          storedRemotely ? `Notes uploaded · ${file.name}` : `Notes saved locally · ${file.name}`,
+        )
         const chapter = get().curriculum.find((c) => c.id === chapterId)
         const sub = chapter?.subtopics.find((st) => st.id === subtopicId)
         get().pushNotification({
@@ -826,6 +886,10 @@ export const useOrbitStore = create<OrbitState>()(
       },
 
       clearSyllabusNote: (chapterId, subtopicId) => {
+        const prev = get()
+          .curriculum.find((c) => c.id === chapterId)
+          ?.subtopics.find((st) => st.id === subtopicId)?.noteDataUrl
+        void deleteSyllabusNoteFile(prev)
         set((s) => ({
           curriculum: s.curriculum.map((ch) => {
             if (ch.id !== chapterId) return ch

@@ -6,6 +6,7 @@ import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
 import { Panel, Card, Eyebrow, StatTile } from '../../components/ui/primitives'
 import { InviteRedeemCard } from '../../components/ui/InviteRedeemCard'
+import { buildReceiptPdfBlob, downloadBlob } from '../../lib/receiptPdf'
 
 const FEE_STATUS_CLASS: Record<string, string> = {
   Paid: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/25',
@@ -59,21 +60,29 @@ export function PaymentsPanel() {
     }
   }
 
-  const handleDownload = (receiptId: string) => {
-    triggerToast(`${t('downloadReceipt')}: ${receiptId}`)
+  const handleDownload = (receipt: {
+    id?: string
+    receiptId?: string
+    amount: number
+    date: string
+    name?: string
+    ref?: string
+  }) => {
+    const receiptId = receipt.receiptId || receipt.id || 'ORBIT-RECEIPT'
     try {
-      const blob = new Blob(
-        [`Orbit School — Payment Receipt\nReceipt ID: ${receiptId}\nVerified UPI/UTR settlement.`],
-        { type: 'text/plain' },
-      )
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `${receiptId}.txt`
-      link.click()
-      URL.revokeObjectURL(url)
+      const blob = buildReceiptPdfBlob({
+        schoolName: schoolPaymentSettings.accountName || 'Sunrise Public School',
+        receiptId,
+        amount: receipt.amount,
+        date: receipt.date,
+        payerName: session?.displayName,
+        utr: paymentSubmissions.find((p) => p.status === 'Verified')?.utr,
+        ref: receipt.ref,
+      })
+      downloadBlob(blob, `${receiptId}.pdf`)
+      triggerToast(`${t('downloadReceipt')}: ${receiptId}.pdf`)
     } catch {
-      // demo convenience only
+      triggerToast(t('receiptPdfFailed'))
     }
   }
 
@@ -242,7 +251,7 @@ export function PaymentsPanel() {
             </div>
             <button
               type="button"
-              onClick={() => handleDownload(paymentReceipt.id)}
+              onClick={() => handleDownload(paymentReceipt)}
               className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold bg-white/5 border border-white/10"
             >
               <Download className="h-3.5 w-3.5" aria-hidden />
@@ -265,7 +274,17 @@ export function PaymentsPanel() {
                     </p>
                   </div>
                 </div>
-                <span className="text-xs font-black text-emerald-300">₹{p.amount.toLocaleString()}</span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-xs font-black text-emerald-300">₹{p.amount.toLocaleString()}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleDownload({ receiptId: p.receiptId, amount: p.amount, date: p.date, name: p.name })}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-white"
+                    aria-label={t('downloadReceipt')}
+                  >
+                    <Download className="h-3.5 w-3.5" aria-hidden />
+                  </button>
+                </div>
               </div>
             ))}
           </div>

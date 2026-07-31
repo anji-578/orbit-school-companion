@@ -106,9 +106,13 @@ Open the live site → pick a profile → sign in:
 When you create a Supabase project: paste URL + anon key into `.env` / Vercel env, then run SQL in order:
 
 1. `supabase/schema.sql`
-2. `supabase/trust_hardening.sql` (invites, syllabus sync, tighter RLS, notify-ready)
+2. `supabase/trust_hardening.sql` (invites, syllabus sync, tighter RLS)
 3. `supabase/seed.sql` (Sunrise + Ananya + invite codes)
-4. `supabase/alerts.sql` (optional — push/SMS tables)
+4. `supabase/alerts.sql` (push/SMS + notification bell RLS)
+5. `supabase/storage.sql` (syllabus note files bucket)
+6. Optional re-run: `supabase/notifications_rls.sql` if alerts.sql was applied earlier without bell policies
+
+**Confirm live:** open any role → **Alerts** → “Live system check” (seed, trust, alerts, storage, VAPID).
 
 **Pilot invite codes (after seed):** `SUNRISE-STU-8A`, `SUNRISE-PAR-8A`, `SUNRISE-TCH-8A`, `SUNRISE-ADM`
 
