@@ -4,6 +4,7 @@ import type { Lang, Role } from '../../types'
 import { useAuthStore } from '../../auth/authStore'
 import { getRoleMeta } from '../../components/layout/Sidebar'
 import { OrbitLogo } from '../../components/brand/OrbitLogo'
+import { ThemeToggle } from '../../components/brand/ThemeToggle'
 
 const PROFILES: Role[] = ['student', 'parent', 'teacher', 'school']
 
@@ -18,20 +19,23 @@ export function LandingPage() {
       <div className="h-full max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-col gap-3 sm:gap-4">
         <header className="flex items-center justify-between gap-3 shrink-0">
           <OrbitLogo variant="lockup" showTagline={false} />
-          <label className="flex items-center gap-2 bg-white/5 px-2.5 py-1.5 rounded-lg border border-white/10">
-            <span className="text-[9px] font-bold text-slate-400 uppercase">{t('language')}</span>
-            <select
-              value={lang}
-              onChange={(e) => setLang(e.target.value as Lang)}
-              className="bg-transparent text-[11px] font-bold text-slate-200 focus:outline-none"
-            >
-              {languagesList.map((l) => (
-                <option key={l.code} value={l.code} className="bg-[#0D1120]">
-                  {l.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <ThemeToggle />
+            <label className="flex items-center gap-2 bg-white/5 px-2.5 py-1.5 rounded-lg border border-white/10">
+              <span className="text-[9px] font-bold text-slate-400 uppercase">{t('language')}</span>
+              <select
+                value={lang}
+                onChange={(e) => setLang(e.target.value as Lang)}
+                className="bg-transparent text-[11px] font-bold text-slate-200 focus:outline-none"
+              >
+                {languagesList.map((l) => (
+                  <option key={l.code} value={l.code} className="bg-[var(--panel)]">
+                    {l.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
         </header>
 
         <section className="fade-up shrink-0 flex flex-col items-center gap-2 pt-1">

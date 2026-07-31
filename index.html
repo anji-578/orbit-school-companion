@@ -1,10 +1,23 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/brand/orbit-icon.png" />
+    <link rel="icon" type="image/png" href="/brand/orbit-icon-dark.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#0B1F44" />
+    <script>
+      try {
+        var raw = localStorage.getItem('orbit-school-v1')
+        if (raw) {
+          var parsed = JSON.parse(raw)
+          var theme = parsed && parsed.state && parsed.state.theme
+          if (theme === 'light' || theme === 'dark') {
+            document.documentElement.dataset.theme = theme
+            document.documentElement.style.colorScheme = theme
+          }
+        }
+      } catch (e) {}
+    </script>
     <meta name="description" content="Orbit — Your learning. Our orbit." />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />

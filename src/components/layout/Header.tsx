@@ -1,5 +1,6 @@
 import { Bell, Languages, LogOut, Smartphone } from 'lucide-react'
 import { useAuthStore } from '../../auth/authStore'
+import { ThemeToggle } from '../brand/ThemeToggle'
 import { languagesList, translate } from '../../i18n'
 import { useOrbitStore } from '../../store/orbitStore'
 import type { Lang } from '../../types'
@@ -26,7 +27,7 @@ export function Header() {
   const unread = visible.filter((n) => n.unread).length
 
   return (
-    <header className="px-4 sm:px-6 py-3 flex items-center justify-between border-b border-white/10 bg-[#060913]/85 backdrop-blur sticky top-0 z-20">
+    <header className="orbit-header px-4 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-20">
       <div className="flex items-center gap-3 pl-12 md:pl-0 min-w-0">
         <div className="hidden sm:flex items-center gap-2 min-w-0">
           <span
@@ -43,6 +44,7 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3">
+        <ThemeToggle />
         <label className="flex items-center gap-1.5 bg-white/5 px-2.5 py-1.5 rounded-xl border border-white/10">
           <Languages className="h-3.5 w-3.5 text-[#4DA6FF]" aria-hidden />
           <span className="sr-only">{t('language')}</span>
@@ -56,7 +58,7 @@ export function Header() {
             className="bg-transparent text-[11px] font-bold text-slate-300 focus:outline-none cursor-pointer"
           >
             {languagesList.map((l) => (
-              <option key={l.code} value={l.code} className="bg-[#0D1120] text-white">
+              <option key={l.code} value={l.code} className="bg-[var(--panel)] text-[var(--fg)]">
                 {l.label}
               </option>
             ))}
@@ -80,7 +82,7 @@ export function Header() {
           </button>
           {notifOpen ? (
             <div
-              className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] bg-[#0D1120] border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden"
+              className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] bg-[var(--panel)] border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden"
               role="dialog"
               aria-label={t('notifications')}
             >

@@ -65,6 +65,7 @@ import type {
   ScanTarget,
   SchoolPaymentSettings,
   StudentGrade,
+  ThemeMode,
 } from '../types'
 
 function attendancePercent(records: AttendanceRecord[]) {
@@ -81,6 +82,7 @@ function homeworkPercent(tasks: HomeworkTask[]) {
 interface OrbitState {
   role: Role
   lang: Lang
+  theme: ThemeMode
   activeTab: string
   mobileMenuOpen: boolean
   mobileSimulator: boolean
@@ -147,6 +149,8 @@ interface OrbitState {
 
   setRole: (role: Role) => void
   setLang: (lang: Lang) => void
+  setTheme: (theme: ThemeMode) => void
+  toggleTheme: () => void
   setActiveTab: (tab: string) => void
   setMobileMenuOpen: (open: boolean) => void
   setMobileSimulator: (open: boolean) => void
@@ -233,6 +237,7 @@ export const useOrbitStore = create<OrbitState>()(
     (set, get) => ({
       role: 'student',
       lang: 'en',
+      theme: 'dark',
       activeTab: 'dashboard',
       mobileMenuOpen: false,
       mobileSimulator: false,
@@ -306,6 +311,8 @@ export const useOrbitStore = create<OrbitState>()(
 
       setRole: (role) => set({ role, activeTab: 'dashboard', mobileMenuOpen: false, notifOpen: false }),
       setLang: (lang) => set({ lang }),
+      setTheme: (theme) => set({ theme }),
+      toggleTheme: () => set((s) => ({ theme: s.theme === 'dark' ? 'light' : 'dark' })),
       setActiveTab: (activeTab) => set({ activeTab, mobileMenuOpen: false }),
       setMobileMenuOpen: (mobileMenuOpen) => set({ mobileMenuOpen }),
       setMobileSimulator: (mobileSimulator) => set({ mobileSimulator }),
@@ -1026,6 +1033,7 @@ export const useOrbitStore = create<OrbitState>()(
       name: 'orbit-school-v1',
       partialize: (s) => ({
         lang: s.lang,
+        theme: s.theme,
         attendanceRecords: s.attendanceRecords,
         tasks: s.tasks,
         studentGrades: s.studentGrades,

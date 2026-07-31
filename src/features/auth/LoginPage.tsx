@@ -4,6 +4,7 @@ import { ArrowLeft, Eye, EyeOff, Lock, Mail, UserRound } from 'lucide-react'
 import { getRoleMeta } from '../../components/layout/Sidebar'
 import { OrbitLogo } from '../../components/brand/OrbitLogo'
 import { OrbitMark } from '../../components/brand/OrbitMark'
+import { ThemeToggle } from '../../components/brand/ThemeToggle'
 import { translate } from '../../i18n'
 import { useOrbitStore } from '../../store/orbitStore'
 import type { Role } from '../../types'
@@ -93,18 +94,21 @@ export function LoginPage({ role }: { role: Role }) {
       <div className="w-full max-w-md space-y-5 fade-up">
         <div className="flex items-center justify-between gap-3">
           <OrbitLogo variant="lockup" showTagline={false} />
-          <button
-            type="button"
-            onClick={() => {
-              setPendingRole(null)
-              clearAuthError()
-              clearAuthNotice()
-            }}
-            className="inline-flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-white transition"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
-            {t('backToProfiles')}
-          </button>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <ThemeToggle />
+            <button
+              type="button"
+              onClick={() => {
+                setPendingRole(null)
+                clearAuthError()
+                clearAuthNotice()
+              }}
+              className="inline-flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-white transition"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
+              {t('backToProfiles')}
+            </button>
+          </div>
         </div>
 
         <div className="glass rounded-3xl p-6 sm:p-8 border border-white/10 space-y-6">

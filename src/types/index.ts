@@ -1,5 +1,6 @@
 export type Role = 'student' | 'parent' | 'teacher' | 'school'
 export type Lang = 'en' | 'te'
+export type ThemeMode = 'dark' | 'light'
 export type AttendanceStatus = 'Present' | 'Absent'
 export type LeaveStatus = 'Reviewing' | 'Approved' | 'Declined'
 export type FeeStatus = 'Unpaid' | 'Pending' | 'Overdue' | 'Paid'
