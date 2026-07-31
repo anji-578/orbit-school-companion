@@ -71,6 +71,22 @@ export default async function handler(req: Request) {
   if (req.method === 'OPTIONS') return cors(new Response(null, { status: 204 }))
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
 
+  const admin = getAdmin()
+  const authHeader = req.headers.get('Authorization') || ''
+  const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : ''
+  const internalSecret = (process.env.NOTIFY_INTERNAL_SECRET || '').trim()
+  const providedSecret = (req.headers.get('x-orbit-notify-secret') || '').trim()
+
+  const secretOk = Boolean(internalSecret && providedSecret && providedSecret === internalSecret)
+  let userOk = false
+  if (bearer && admin) {
+    const { data, error } = await admin.auth.getUser(bearer)
+    userOk = Boolean(!error && data.user?.id)
+  }
+  if (!secretOk && !userOk) {
+    return json({ error: 'Unauthorized — sign in or provide notify secret.' }, 401)
+  }
+
   let payload: NotifyBody
   try {
     payload = (await req.json()) as NotifyBody
@@ -83,7 +99,6 @@ export default async function handler(req: Request) {
   const eventType = (payload.eventType || 'general').trim()
   if (!body) return json({ error: 'body required' }, 400)
 
-  const admin = getAdmin()
   const pushReady = configureWebPush()
 
   let pushSent = 0

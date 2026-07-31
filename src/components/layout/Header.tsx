@@ -5,6 +5,7 @@ import { languagesList, translate } from '../../i18n'
 import { useOrbitStore } from '../../store/orbitStore'
 import type { Lang } from '../../types'
 import { getRoleMeta } from './Sidebar'
+import { isPilotDemoEmail } from '../../lib/classLink'
 
 export function Header() {
   const role = useOrbitStore((s) => s.role)
@@ -25,6 +26,8 @@ export function Header() {
 
   const visible = notifications.filter((n) => n.role === 'all' || n.role === role)
   const unread = visible.filter((n) => n.unread).length
+  const showDemoChrome =
+    session?.provider === 'local-demo' || isPilotDemoEmail(session?.email ?? '')
 
   return (
     <header className="orbit-header px-4 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-20">
@@ -38,9 +41,11 @@ export function Header() {
           </span>
           <span className="text-xs font-bold text-white truncate">{session?.displayName}</span>
         </div>
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wide bg-amber-500/15 text-amber-300 border border-amber-500/25 shrink-0">
-          {t('demoMode')}
-        </span>
+        {showDemoChrome ? (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wide bg-amber-500/15 text-amber-300 border border-amber-500/25 shrink-0">
+            {t('demoMode')}
+          </span>
+        ) : null}
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3">

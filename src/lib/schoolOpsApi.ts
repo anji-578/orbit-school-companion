@@ -185,9 +185,9 @@ export async function loadSchoolOpsSnapshot(): Promise<{
     fetchCalendarEvents(),
   ])
   return {
-    tasks: tasks.length ? tasks : undefined,
-    leaves: leaves.length ? leaves : undefined,
-    broadcasts: broadcasts.length ? broadcasts : undefined,
-    calendarEvents: calendarEvents.length ? calendarEvents : undefined,
+    tasks,
+    leaves,
+    broadcasts,
+    calendarEvents,
   }
 }

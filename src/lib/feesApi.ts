@@ -20,13 +20,14 @@ async function currentRole(): Promise<string | null> {
   return (data?.role as string | undefined) ?? null
 }
 
-async function resolveLinkedStudentId(): Promise<string> {
+/** Linked child for parent/student; null when unlinked (no silent Ananya fallback). */
+export async function resolveLinkedStudentId(): Promise<string | null> {
   const supabase = getSupabase()
-  if (!supabase) return DEMO_STUDENT_IDS.ananya
+  if (!supabase) return null
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user?.id) return DEMO_STUDENT_IDS.ananya
+  if (!user?.id) return null
 
   const { data: mine } = await supabase.from('students').select('id').eq('profile_id', user.id).maybeSingle()
   if (mine?.id) return mine.id as string
@@ -39,7 +40,7 @@ async function resolveLinkedStudentId(): Promise<string> {
     .maybeSingle()
   if (linked?.student_id) return linked.student_id as string
 
-  return DEMO_STUDENT_IDS.ananya
+  return null
 }
 
 export async function fetchFeeItems(): Promise<FeeItem[]> {
@@ -50,8 +51,14 @@ export async function fetchFeeItems(): Promise<FeeItem[]> {
   if (!schoolId) return []
 
   const role = await currentRole()
-  const studentId =
+  let studentId: string | null =
     role === 'parent' || role === 'student' ? await resolveLinkedStudentId() : DEMO_STUDENT_IDS.ananya
+
+  // Pilot school auditor defaults to Ananya ledger when staff
+  if ((role === 'school' || role === 'teacher') && !studentId) {
+    studentId = DEMO_STUDENT_IDS.ananya
+  }
+  if (!studentId) return []
 
   const { data } = await supabase
     .from('fee_items')
@@ -72,7 +79,7 @@ export async function fetchFeeItems(): Promise<FeeItem[]> {
 
 export async function markFeeItemsStatus(
   status: FeeStatus,
-  studentId = DEMO_STUDENT_IDS.ananya,
+  studentId?: string,
 ): Promise<{ ok: boolean; error?: string }> {
   if (!isSupabaseConfigured()) return { ok: true }
   const supabase = getSupabase()
@@ -80,17 +87,24 @@ export async function markFeeItemsStatus(
   const schoolId = await sunriseSchoolId()
   if (!schoolId) return { ok: false, error: 'School not found' }
 
+  const role = await currentRole()
+  // Parents cannot write fee_items under hardened RLS — school verifies UTR then marks Paid
+  if (role !== 'school') {
+    return { ok: true }
+  }
+
+  const target = studentId || (await resolveLinkedStudentId()) || DEMO_STUDENT_IDS.ananya
   const { error } = await supabase
     .from('fee_items')
     .update({ status })
     .eq('school_id', schoolId)
-    .eq('student_id', studentId)
+    .eq('student_id', target)
     .neq('status', 'Paid')
 
   if (error) return { ok: false, error: error.message }
   return { ok: true }
 }
 
-export async function markAllFeesPaid(studentId = DEMO_STUDENT_IDS.ananya): Promise<{ ok: boolean; error?: string }> {
-  return markFeeItemsStatus('Paid', studentId)
+export async function markAllFeesPaid(studentId?: string): Promise<{ ok: boolean; error?: string }> {
+  return markFeeItemsStatus('Paid', studentId || DEMO_STUDENT_IDS.ananya)
 }

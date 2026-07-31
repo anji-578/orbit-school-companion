@@ -3,7 +3,7 @@ import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
 import { STUDENT_NAME } from '../../data/demo'
 import { Card, Panel, StatTile } from '../../components/ui/primitives'
-import { EmptyState } from '../../components/ui/EmptyState'
+import { InviteRedeemCard } from '../../components/ui/InviteRedeemCard'
 import { LifecycleChart } from '../shared/LifecycleChart'
 
 const SUBJECT_ROWS: { field: 'math' | 'science' | 'chem'; subjectKey: string }[] = [
@@ -47,9 +47,7 @@ export function ParentDashboard() {
         <p className="text-xs text-slate-400 mt-1">{t('parentSub')}</p>
       </div>
 
-      {!classLinked ? (
-        <EmptyState title={t('noClassLinkedTitle')} description={t('noClassLinkedDesc')} />
-      ) : null}
+      {!classLinked ? <InviteRedeemCard /> : null}
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatTile

@@ -3,7 +3,7 @@ import { BrainCircuit, CheckCircle2, ClipboardList, Eye, FileText } from 'lucide
 import { chapterProgress, curriculumProgress, useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
 import { Panel, Card, Eyebrow, ProgressBar, StatTile } from '../../components/ui/primitives'
-import { EmptyState } from '../../components/ui/EmptyState'
+import { InviteRedeemCard } from '../../components/ui/InviteRedeemCard'
 import { NotePreview } from '../../components/ui/NotePreview'
 
 export function SyllabusExplorer() {
@@ -30,7 +30,7 @@ export function SyllabusExplorer() {
   if (!classLinked) {
     return (
       <Panel title={t('studentSyllabus')} subtitle={t('syllabusStudentDesc')}>
-        <EmptyState title={t('noClassLinkedTitle')} description={t('noClassLinkedDesc')} />
+        <InviteRedeemCard />
       </Panel>
     )
   }

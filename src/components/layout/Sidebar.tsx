@@ -30,6 +30,7 @@ import { useAuthStore } from '../../auth/authStore'
 import { useOrbitStore } from '../../store/orbitStore'
 import type { Role } from '../../types'
 import { OrbitLogo } from '../brand/OrbitLogo'
+import { isPilotDemoEmail } from '../../lib/classLink'
 
 const ROLE_META: Record<
   Role,
@@ -147,6 +148,8 @@ export function Sidebar() {
   const meta = getRoleMeta(role)
   const profileName = session?.displayName ?? (role === 'teacher' ? 'Mrs. Sarah Davis' : role === 'school' ? 'Admin Desk' : 'Ananya Rao')
   const profileSub = session?.subtitle ?? t(meta.subKey)
+  const showDemoChrome =
+    session?.provider === 'local-demo' || isPilotDemoEmail(session?.email ?? '')
 
   const handleLogout = () => {
     void logout().then(() => setMobileMenuOpen(false))
@@ -227,16 +230,18 @@ export function Sidebar() {
             {t('signedInAs')}
           </span>
           <p className="text-[10px] text-slate-300 px-1 truncate">{session?.email}</p>
-          <button
-            type="button"
-            onClick={() => {
-              resetDemoData()
-              setMobileMenuOpen(false)
-            }}
-            className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-[11px] font-bold bg-[#0D1120] text-amber-200/90 hover:text-amber-100 border border-amber-500/20 transition"
-          >
-            {t('resetDemo')}
-          </button>
+          {showDemoChrome ? (
+            <button
+              type="button"
+              onClick={() => {
+                resetDemoData()
+                setMobileMenuOpen(false)
+              }}
+              className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-[11px] font-bold bg-[#0D1120] text-amber-200/90 hover:text-amber-100 border border-amber-500/20 transition"
+            >
+              {t('resetDemo')}
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={handleLogout}

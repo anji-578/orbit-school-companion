@@ -160,7 +160,7 @@ export async function disableWebPush(): Promise<{ ok: boolean; error?: string }>
   return { ok: true }
 }
 
-/** Fire-and-forget server fan-out (push + optional SMS). */
+/** Fire-and-forget server fan-out (push + optional SMS). Requires auth when Supabase is configured. */
 export function dispatchRemoteAlert(input: {
   eventType: AlertEventType
   title: string
@@ -168,17 +168,30 @@ export function dispatchRemoteAlert(input: {
   role?: NotificationItem['role']
   smsPhone?: string
 }) {
-  void fetch('/api/notify', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      eventType: input.eventType,
-      title: input.title,
-      body: input.body,
-      role: input.role ?? 'all',
-      smsPhone: input.smsPhone,
-    }),
-  }).catch(() => {
+  void (async () => {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+    try {
+      const supabase = getSupabase()
+      if (supabase) {
+        const { data } = await supabase.auth.getSession()
+        const token = data.session?.access_token
+        if (token) headers.Authorization = `Bearer ${token}`
+      }
+    } catch {
+      /* local demo — skip auth header */
+    }
+    await fetch('/api/notify', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        eventType: input.eventType,
+        title: input.title,
+        body: input.body,
+        role: input.role ?? 'all',
+        smsPhone: input.smsPhone,
+      }),
+    })
+  })().catch(() => {
     /* offline / local — in-app toast already shown */
   })
 }

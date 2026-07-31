@@ -103,7 +103,16 @@ Open the live site → pick a profile → sign in:
 
 3. In the app: Sign in → **Forgot password?** → open the email → set a new password on the recovery screen.
 
-When you create a Supabase project: paste URL + anon key into `.env` / Vercel env, run `supabase/schema.sql` (includes payment RLS), then we switch auth off demo.
+When you create a Supabase project: paste URL + anon key into `.env` / Vercel env, then run SQL in order:
+
+1. `supabase/schema.sql`
+2. `supabase/trust_hardening.sql` (invites, syllabus sync, tighter RLS, notify-ready)
+3. `supabase/seed.sql` (Sunrise + Ananya + invite codes)
+4. `supabase/alerts.sql` (optional — push/SMS tables)
+
+**Pilot invite codes (after seed):** `SUNRISE-STU-8A`, `SUNRISE-PAR-8A`, `SUNRISE-TCH-8A`, `SUNRISE-ADM`
+
+**Notify API:** `/api/notify` requires a signed-in user JWT (`Authorization: Bearer …`) or `x-orbit-notify-secret` matching `NOTIFY_INTERNAL_SECRET`.
 
 ---
 

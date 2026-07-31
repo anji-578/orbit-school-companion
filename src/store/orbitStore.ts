@@ -44,6 +44,7 @@ import {
 } from '../lib/attendanceApi'
 import { fetchStudentGrades, saveStudentGrades } from '../lib/gradesApi'
 import { fetchFeeItems, markAllFeesPaid, markFeeItemsStatus } from '../lib/feesApi'
+import { fetchSyllabusState, mergeCurriculum, saveSyllabusState } from '../lib/syllabusApi'
 import { evaluatePaperCoach, fileToVisionPayload, getDemoInsight } from '../lib/paperCoach'
 import type {
   AttendanceRecord,
@@ -164,6 +165,8 @@ interface OrbitState {
 
   studyScore: number
   classLinked: boolean
+  /** True when Supabase is configured — empty remote arrays must not fall back to demo seed. */
+  usingCloudData: boolean
   getAttendancePercent: () => number
 
   setRole: (role: Role) => void
@@ -197,7 +200,6 @@ interface OrbitState {
 
   setPaymentMethod: (m: PaymentMethod) => void
   setUpiId: (v: string) => void
-  executePayment: () => void
   nudgeFeeParents: () => void
   setSchoolPaymentSettings: (patch: Partial<SchoolPaymentSettings>) => void
   loadPaymentWorkspace: () => Promise<void>
@@ -330,6 +332,7 @@ export const useOrbitStore = create<OrbitState>()(
 
       studyScore: computeStudyScore(attendancePercent(initialAttendance), homeworkPercent(initialTasks)),
       classLinked: true,
+      usingCloudData: false,
 
       getAttendancePercent: () => attendancePercent(get().attendanceRecords),
 
@@ -545,52 +548,6 @@ export const useOrbitStore = create<OrbitState>()(
       setPaymentMethod: (paymentMethod) => set({ paymentMethod }),
       setUpiId: (upiId) => set({ upiId }),
 
-      executePayment: () => {
-        const { outstandingFees, upiId, paymentMethod } = get()
-        if (outstandingFees <= 0) {
-          get().triggerToast('No outstanding balance.')
-          return
-        }
-        if (paymentMethod === 'upi' && upiId.trim().length < 3) {
-          get().triggerToast('Enter a UPI ID to continue (demo).')
-          return
-        }
-        set({ paymentProcessing: true })
-        setTimeout(() => {
-          const receiptId = `REC-${Math.floor(10000 + Math.random() * 90000)}`
-          const ref = `TXN-${Math.floor(1000000 + Math.random() * 9000000)}`
-          const date = new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: '2-digit' })
-          set((s) => ({
-            paymentProcessing: false,
-            outstandingFees: 0,
-            fees: s.fees.map((f) => ({ ...f, status: 'Paid' as const })),
-            paymentHistory: [
-              {
-                id: Date.now(),
-                name: 'Comprehensive Tuition & Lab Settlement',
-                amount: outstandingFees,
-                status: 'Paid',
-                date,
-                receiptId,
-              },
-              ...s.paymentHistory,
-            ],
-            paymentReceipt: { id: receiptId, date, amount: outstandingFees, ref },
-          }))
-          get().pushNotification({
-            role: 'parent',
-            title: 'Fee payment cleared',
-            body: `Demo receipt ${receiptId} · ₹${outstandingFees.toLocaleString()} settled.`,
-          })
-          get().pushNotification({
-            role: 'school',
-            title: 'Fee collected',
-            body: `Ananya Rao account cleared · ${receiptId}`,
-          })
-          get().triggerToast('Demo payment complete. Receipt generated (simulation only).')
-        }, 1600)
-      },
-
       nudgeFeeParents: () => {
         get().pushNotification({
           role: 'parent',
@@ -604,51 +561,62 @@ export const useOrbitStore = create<OrbitState>()(
         set((s) => ({ schoolPaymentSettings: { ...s.schoolPaymentSettings, ...patch } })),
 
       loadPaymentWorkspace: async () => {
+        const cloud = isSupabaseConfigured()
         const [settings, submissions, fees] = await Promise.all([
           fetchSchoolPaymentSettings(),
           fetchPaymentSubmissions(),
           fetchFeeItems(),
         ])
-        const outstandingFees = fees.length
-          ? fees.filter((f) => f.status !== 'Paid').reduce((sum, f) => sum + f.amount, 0)
-          : undefined
+        const outstandingFees = fees.filter((f) => f.status !== 'Paid').reduce((sum, f) => sum + f.amount, 0)
         set((s) => ({
           schoolPaymentSettings: settings,
-          // Prefer server truth — never keep local_* drafts when remote responded
-          paymentSubmissions: isSupabaseConfigured()
+          paymentSubmissions: cloud
             ? submissions.filter((p) => !p.id.startsWith('local_'))
             : submissions.length
               ? submissions
               : s.paymentSubmissions.filter((p) => !p.id.startsWith('local_')),
-          fees: fees.length ? fees : s.fees,
-          outstandingFees: outstandingFees ?? s.outstandingFees,
+          fees: cloud ? fees : fees.length ? fees : s.fees,
+          outstandingFees: cloud ? outstandingFees : fees.length ? outstandingFees : s.outstandingFees,
         }))
       },
 
       hydrateFromSupabase: async () => {
+        const cloud = isSupabaseConfigured()
         await claimDemoLinks()
         const sessionEmail = (await getSupabase()?.auth.getUser())?.data.user?.email ?? ''
         const role = get().role
         const classLinked = await resolveClassLinked(sessionEmail, role)
-        const [ops, roster, attendanceRecords, studentGrades] = await Promise.all([
+        const [ops, roster, attendanceRecords, studentGrades, remoteSyllabus] = await Promise.all([
           loadSchoolOpsSnapshot(),
           fetchRosterWithTodayAttendance(),
           fetchAttendanceHistory(),
           fetchStudentGrades(),
+          fetchSyllabusState(),
           get().loadPaymentWorkspace(),
         ])
         set((s) => {
-          const tasks = ops.tasks ?? s.tasks
-          const nextAttendance = attendanceRecords.length ? attendanceRecords : s.attendanceRecords
+          const tasks = cloud ? (ops.tasks ?? []) : (ops.tasks ?? s.tasks)
+          const nextAttendance = cloud
+            ? attendanceRecords
+            : attendanceRecords.length
+              ? attendanceRecords
+              : s.attendanceRecords
+          const curriculum = cloud
+            ? mergeCurriculum(remoteSyllabus, s.curriculum)
+            : remoteSyllabus?.length
+              ? mergeCurriculum(remoteSyllabus, s.curriculum)
+              : s.curriculum
           return {
+            usingCloudData: cloud,
             classLinked,
             tasks,
-            leaves: ops.leaves ?? s.leaves,
-            broadcasts: ops.broadcasts ?? s.broadcasts,
-            calendarEvents: ops.calendarEvents ?? s.calendarEvents,
-            roster: roster.length ? roster : s.roster,
+            leaves: cloud ? (ops.leaves ?? []) : (ops.leaves ?? s.leaves),
+            broadcasts: cloud ? (ops.broadcasts ?? []) : (ops.broadcasts ?? s.broadcasts),
+            calendarEvents: cloud ? (ops.calendarEvents ?? []) : (ops.calendarEvents ?? s.calendarEvents),
+            roster: cloud ? roster : roster.length ? roster : s.roster,
             attendanceRecords: nextAttendance,
-            studentGrades: studentGrades.length ? studentGrades : s.studentGrades,
+            studentGrades: cloud ? studentGrades : studentGrades.length ? studentGrades : s.studentGrades,
+            curriculum,
             studyScore: computeStudyScore(attendancePercent(nextAttendance), homeworkPercent(tasks)),
           }
         })
@@ -803,6 +771,7 @@ export const useOrbitStore = create<OrbitState>()(
             }
           }),
         }))
+        void saveSyllabusState(get().curriculum)
         const chapter = get().curriculum.find((c) => c.id === chapterId)
         const sub = chapter?.subtopics.find((st) => st.id === subtopicId)
         if (sub?.done) {
@@ -845,6 +814,7 @@ export const useOrbitStore = create<OrbitState>()(
             }
           }),
         }))
+        void saveSyllabusState(get().curriculum)
         get().triggerToast(`Notes uploaded · ${file.name}`)
         const chapter = get().curriculum.find((c) => c.id === chapterId)
         const sub = chapter?.subtopics.find((st) => st.id === subtopicId)
@@ -875,6 +845,7 @@ export const useOrbitStore = create<OrbitState>()(
             }
           }),
         }))
+        void saveSyllabusState(get().curriculum)
         get().triggerToast('Notes removed.')
       },
 

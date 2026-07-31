@@ -4,7 +4,7 @@ import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
 import { STUDENT_NAME, subjectSyllabusDatabase, todayTimeline } from '../../data/demo'
 import { Card, Eyebrow, Panel, ProgressBar, StatTile } from '../../components/ui/primitives'
-import { EmptyState } from '../../components/ui/EmptyState'
+import { InviteRedeemCard } from '../../components/ui/InviteRedeemCard'
 import { LifecycleChart } from '../shared/LifecycleChart'
 
 const FOCUS_SUBJECTS = ['chemLabSubject', 'mathSubject', 'scienceSubject'] as const
@@ -54,9 +54,7 @@ export function StudentDashboard() {
         ) : null}
       </div>
 
-      {!classLinked ? (
-        <EmptyState title={t('noClassLinkedTitle')} description={t('noClassLinkedDesc')} />
-      ) : null}
+      {!classLinked ? <InviteRedeemCard /> : null}
 
       <div className="grid sm:grid-cols-3 gap-4">
         <StatTile label={t('academicScore')} value={String(studyScore)} hint={t('basedOn')} accent="var(--accent2)" />

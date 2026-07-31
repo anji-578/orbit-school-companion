@@ -1,10 +1,15 @@
-import { ArrowRight, Bell, Briefcase, CalendarDays, CreditCard, Truck } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { ArrowRight, Bell, Briefcase, CalendarDays, Copy, CreditCard, KeyRound, Truck } from 'lucide-react'
 import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
+import { fetchSchoolInviteCodes } from '../../lib/classLink'
+import { isSupabaseConfigured } from '../../lib/supabaseConfig'
 import { Card, Eyebrow, Panel, StatTile } from '../../components/ui/primitives'
+import { InviteRedeemCard } from '../../components/ui/InviteRedeemCard'
 
 export function SchoolDashboard() {
   const lang = useOrbitStore((s) => s.lang)
+  const classLinked = useOrbitStore((s) => s.classLinked)
   const fees = useOrbitStore((s) => s.fees)
   const outstandingFees = useOrbitStore((s) => s.outstandingFees)
   const candidates = useOrbitStore((s) => s.candidates)
@@ -13,18 +18,65 @@ export function SchoolDashboard() {
   const broadcasts = useOrbitStore((s) => s.broadcasts)
   const calendarEvents = useOrbitStore((s) => s.calendarEvents)
   const setActiveTab = useOrbitStore((s) => s.setActiveTab)
+  const triggerToast = useOrbitStore((s) => s.triggerToast)
+  const [invites, setInvites] = useState<{ code: string; role: string; className: string | null; uses: string }[]>([])
 
   const t = (key: string) => translate(lang, key)
   const activeBuses = fleet.filter((b) => b.active).length
   const pendingLeaves = leaves.filter((l) => l.status === 'Reviewing').length
   const unpaidFees = fees.filter((f) => f.status !== 'Paid').length
 
+  useEffect(() => {
+    if (!isSupabaseConfigured() || !classLinked) return
+    void fetchSchoolInviteCodes().then(setInvites)
+  }, [classLinked])
+
+  const copyCode = async (code: string) => {
+    try {
+      await navigator.clipboard.writeText(code)
+      triggerToast(t('inviteCopied'))
+    } catch {
+      triggerToast(code)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-black text-white font-display">{t('goodDayAdmin')} 🏛️</h1>
+        <h1 className="text-xl font-black text-white font-display">{t('goodDayAdmin')}</h1>
         <p className="text-xs text-slate-400 mt-1">{t('adminSub')}</p>
       </div>
+
+      {!classLinked ? <InviteRedeemCard /> : null}
+
+      {classLinked && invites.length > 0 ? (
+        <Panel title={t('classInvitesTitle')} subtitle={t('classInvitesDesc')}>
+          <div className="space-y-2.5">
+            {invites.map((inv) => (
+              <Card key={inv.code} className="p-3.5 flex items-center justify-between gap-3">
+                <div className="min-w-0 flex items-center gap-3">
+                  <KeyRound className="h-4 w-4 text-[var(--accent2)] shrink-0" aria-hidden />
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-white font-mono truncate">{inv.code}</p>
+                    <p className="text-[10px] text-slate-400">
+                      {inv.role}
+                      {inv.className ? ` · ${inv.className}` : ''} · {inv.uses} uses
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void copyCode(inv.code)}
+                  className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-white/5 border border-white/10"
+                >
+                  <Copy className="h-3.5 w-3.5" aria-hidden />
+                  {t('copy')}
+                </button>
+              </Card>
+            ))}
+          </div>
+        </Panel>
+      ) : null}
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatTile
@@ -34,7 +86,12 @@ export function SchoolDashboard() {
           accent={outstandingFees > 0 ? '#FF6B8B' : '#22C55E'}
           onClick={() => setActiveTab('school-fees')}
         />
-        <StatTile label={t('schoolHiringTitle')} value={String(candidates.length)} hint="Active applicants" onClick={() => setActiveTab('school-hiring')} />
+        <StatTile
+          label={t('schoolHiringTitle')}
+          value={String(candidates.length)}
+          hint="Active applicants"
+          onClick={() => setActiveTab('school-hiring')}
+        />
         <StatTile
           label={t('teacherLeavesTitle')}
           value={String(pendingLeaves)}
@@ -68,7 +125,10 @@ export function SchoolDashboard() {
         <Panel title={t('schoolCalendarTitle')} subtitle={t('schoolCalendarDesc')}>
           <div className="space-y-2.5">
             {calendarEvents.slice(0, 4).map((event) => (
-              <div key={event.id} className="flex items-center justify-between gap-3 p-3.5 rounded-xl bg-white/5 border border-white/10">
+              <div
+                key={event.id}
+                className="flex items-center justify-between gap-3 p-3.5 rounded-xl bg-white/5 border border-white/10"
+              >
                 <div className="flex items-center gap-3 min-w-0">
                   <CalendarDays className="h-4 w-4 text-slate-500 shrink-0" aria-hidden />
                   <div className="min-w-0">

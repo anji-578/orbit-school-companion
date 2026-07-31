@@ -420,10 +420,8 @@ create policy parent_links_select_scoped on public.parent_links for select
     )
   );
 
-drop policy if exists parent_links_insert_self on public.parent_links;
-create policy parent_links_insert_self on public.parent_links for insert
-  with check (
-    parent_profile_id = auth.uid()
-    and public.current_profile_role() = 'parent'
-    and student_id = 'a1111111-1111-4111-8111-111111111101'
-  );
+-- See also:
+--   supabase/trust_hardening.sql  — invites, syllabus_state, RLS tighten, redeem_class_invite
+--   supabase/seed.sql             — Sunrise pilot rows + invite codes
+--   supabase/alerts.sql           — push / SMS / preferences
+

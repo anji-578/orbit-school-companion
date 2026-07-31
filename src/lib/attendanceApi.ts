@@ -156,7 +156,7 @@ export async function fetchAttendanceHistory(limit = 20): Promise<AttendanceReco
       if (linked?.student_id) studentId = linked.student_id as string
     }
   }
-  if (!studentId) studentId = DEMO_STUDENT_IDS.ananya
+  if (!studentId) return []
 
   const { data } = await supabase
     .from('attendance')

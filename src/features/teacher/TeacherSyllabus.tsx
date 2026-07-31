@@ -4,6 +4,7 @@ import { chapterProgress, curriculumProgress, useOrbitStore } from '../../store/
 import { translate } from '../../i18n'
 import { Card, Eyebrow, Panel, ProgressBar, StatTile } from '../../components/ui/primitives'
 import { EmptyState } from '../../components/ui/EmptyState'
+import { InviteRedeemCard } from '../../components/ui/InviteRedeemCard'
 import { NotePreview } from '../../components/ui/NotePreview'
 
 export function TeacherSyllabus() {
@@ -32,7 +33,7 @@ export function TeacherSyllabus() {
   if (!classLinked) {
     return (
       <Panel title={t('teacherSyllabusTitle')} subtitle={t('syllabusTeacherDesc')}>
-        <EmptyState title={t('noClassLinkedTitle')} description={t('noClassLinkedDesc')} />
+        <InviteRedeemCard />
       </Panel>
     )
   }
