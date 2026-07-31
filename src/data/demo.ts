@@ -14,6 +14,7 @@ import type {
   RosterStudent,
   SoftSkill,
   StudentGrade,
+  SyllabusChapter,
   SyllabusTopic,
   TeacherProfile,
 } from '../types'
@@ -234,7 +235,8 @@ export const initialCalendar: CalendarEvent[] = [
 ]
 
 export const initialLeaves: LeaveRequest[] = [
-  { id: 1, reason: 'Personal Medical Checkup', date: 'June 25, 2026', status: 'Approved' },
+  { id: 1, date: '2026-06-25', reason: 'Medical appointment', status: 'Approved', teacherName: 'Mrs. Sarah Davis' },
+  { id: 2, date: '2026-07-02', reason: 'Family function', status: 'Reviewing', teacherName: 'Mrs. Sarah Davis' },
 ]
 
 export const initialNotifications: NotificationItem[] = [
@@ -266,6 +268,79 @@ export const syllabusTimeline = [
   { id: 'sy2', subject: 'Science', chapter: 'Plant Respiration cycles', plannedDate: 'June 25', progress: 80 },
   { id: 'sy3', subject: 'Chemistry Lab', chapter: 'Equation coefficients', plannedDate: 'June 30', progress: 40 },
 ]
+
+/** Shared Class 11 curriculum — teacher marks progress; students see the same truth. */
+export const initialCurriculum: SyllabusChapter[] = [
+  {
+    id: 'ch_math_algebra',
+    subject: 'Mathematics',
+    subjectKey: 'mathSubject',
+    title: 'Algebraic Equations',
+    plannedDate: '2026-06-15',
+    quizQuery: 'Solve equations transposition algebra',
+    subtopics: [
+      { id: 'st_m1', title: 'Negative variables shifting', done: true, completedAt: '2026-06-10' },
+      { id: 'st_m2', title: 'Cross multiplication of fractions', done: true, completedAt: '2026-06-12' },
+      { id: 'st_m3', title: 'Coefficient balancing', done: false },
+      { id: 'st_m4', title: 'Word problems → equations', done: false },
+    ],
+  },
+  {
+    id: 'ch_math_fractions',
+    subject: 'Mathematics',
+    subjectKey: 'mathSubject',
+    title: 'Multiplying Fractions',
+    plannedDate: '2026-06-22',
+    quizQuery: 'fractions calculations multiplication',
+    subtopics: [
+      { id: 'st_m5', title: 'Numerator / denominator alignment', done: true, completedAt: '2026-06-18' },
+      { id: 'st_m6', title: 'Simplifying before multiplying', done: true, completedAt: '2026-06-20' },
+      { id: 'st_m7', title: 'Mixed numbers conversion', done: true, completedAt: '2026-06-22' },
+    ],
+  },
+  {
+    id: 'ch_sci_photo',
+    subject: 'Science',
+    subjectKey: 'scienceSubject',
+    title: 'Photosynthesis & Leaf Cycles',
+    plannedDate: '2026-06-25',
+    quizQuery: 'photosynthesis cycles botany',
+    subtopics: [
+      { id: 'st_s1', title: 'Chloroplast structure', done: true, completedAt: '2026-06-20' },
+      { id: 'st_s2', title: 'Light vs dark reactions', done: true, completedAt: '2026-06-22' },
+      { id: 'st_s3', title: 'Gas exchange & stomata', done: false },
+      { id: 'st_s4', title: 'Balancing photosynthesis equation', done: false },
+    ],
+  },
+  {
+    id: 'ch_chem_bal',
+    subject: 'Chemistry Lab',
+    subjectKey: 'chemLabSubject',
+    title: 'Chemical Balancing Coefficients',
+    plannedDate: '2026-06-30',
+    quizQuery: 'balancing chemical equations coefficient chemistry',
+    subtopics: [
+      { id: 'st_c1', title: 'Law of conservation of mass', done: true, completedAt: '2026-06-24' },
+      { id: 'st_c2', title: 'Stoichiometry multipliers', done: false },
+      { id: 'st_c3', title: 'Redox skeleton equations', done: false },
+      { id: 'st_c4', title: 'Lab: balance 5 practice sheets', done: false },
+    ],
+  },
+  {
+    id: 'ch_eng_grammar',
+    subject: 'English',
+    subjectKey: 'englishSubject',
+    title: 'Tenses & Active Voice',
+    plannedDate: '2026-07-05',
+    quizQuery: 'English tenses active passive voice',
+    subtopics: [
+      { id: 'st_e1', title: 'Present perfect vs past simple', done: false },
+      { id: 'st_e2', title: 'Active → passive conversion', done: false },
+      { id: 'st_e3', title: 'Common exam traps', done: false },
+    ],
+  },
+]
+
 
 export const timetableByDay: Record<
   string,

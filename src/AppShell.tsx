@@ -74,7 +74,9 @@ export function AppShell() {
               {t(meta.greetKey)}, {greetName}
             </h1>
             <p className="text-sm text-slate-400 mt-1">{session?.subtitle ?? t(meta.subKey)}</p>
-            <p className="text-[10px] text-amber-300/90 mt-2 font-semibold">{t('authDemoHint')}</p>
+            {session?.provider === 'local-demo' ? (
+              <p className="text-[10px] text-amber-300/90 mt-2 font-semibold">{t('authDemoHint')}</p>
+            ) : null}
           </div>
           <MainContent />
         </main>

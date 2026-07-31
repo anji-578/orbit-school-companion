@@ -1,29 +1,33 @@
 import { ArrowRight, Briefcase, CalendarDays, UserCheck } from 'lucide-react'
-import { useOrbitStore } from '../../store/orbitStore'
+import { useAuthStore } from '../../auth/authStore'
+import { chapterProgress, curriculumProgress, useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
-import { syllabusTimeline, teacherVacancies, todayTimeline } from '../../data/demo'
 import { Card, Eyebrow, Panel, ProgressBar, StatTile } from '../../components/ui/primitives'
+import { teacherVacancies, todayTimeline } from '../../data/demo'
 
 export function TeacherDashboard() {
   const lang = useOrbitStore((s) => s.lang)
   const roster = useOrbitStore((s) => s.roster)
   const leaves = useOrbitStore((s) => s.leaves)
+  const curriculum = useOrbitStore((s) => s.curriculum)
   const setActiveTab = useOrbitStore((s) => s.setActiveTab)
+  const displayName = useAuthStore((s) => s.session?.displayName)
+  const firstName = (displayName ?? 'Teacher').split(' ')[0]
 
   const t = (key: string) => translate(lang, key)
   const presentCount = roster.filter((r) => r.present).length
   const pendingLeaves = leaves.filter((l) => l.status === 'Reviewing').length
-  const avgSyllabusProgress = Math.round(
-    syllabusTimeline.reduce((sum, item) => sum + item.progress, 0) / Math.max(1, syllabusTimeline.length),
-  )
+  const avgSyllabusProgress = curriculumProgress(curriculum)
   const bestMatch = [...teacherVacancies].sort((a, b) => b.matchPct - a.matchPct)[0]
+  const topChapters = [...curriculum]
+    .sort((a, b) => chapterProgress(b) - chapterProgress(a))
+    .slice(0, 3)
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-black text-white font-display">{t('goodDayTeacher')}, Mrs. Davis 🍎</h1>
-        <p className="text-xs text-slate-400 mt-1">{t('teacherSub')}</p>
-      </div>
+      <p className="text-xs text-slate-400 -mt-1">
+        {t('teacherWelcomeHint').replace('{name}', firstName)}
+      </p>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatTile
@@ -66,22 +70,32 @@ export function TeacherDashboard() {
           </div>
         </Panel>
 
-        <Panel title={t('teacherSyllabusTitle')} subtitle={t('teacherSyllabusDesc')}>
+        <Panel title={t('teacherSyllabusTitle')} subtitle={t('syllabusTeacherDesc')}>
           <div className="space-y-3">
-            {syllabusTimeline.map((item) => (
-              <Card key={item.id} className="p-3.5 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-bold text-white">{item.chapter}</p>
-                    <Eyebrow>
-                      {item.subject} · {item.plannedDate}
-                    </Eyebrow>
+            {topChapters.map((item) => {
+              const progress = chapterProgress(item)
+              return (
+                <Card key={item.id} className="p-3.5 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <p className="text-xs font-bold text-white">{item.title}</p>
+                      <Eyebrow>
+                        {item.subject} · {item.plannedDate}
+                      </Eyebrow>
+                    </div>
+                    <span className="text-xs font-black text-white">{progress}%</span>
                   </div>
-                  <span className="text-xs font-black text-white">{item.progress}%</span>
-                </div>
-                <ProgressBar value={item.progress} />
-              </Card>
-            ))}
+                  <ProgressBar value={progress} />
+                </Card>
+              )
+            })}
+            <button
+              type="button"
+              onClick={() => setActiveTab('teacher-syllabus')}
+              className="text-[11px] font-bold text-[var(--accent2)] hover:underline"
+            >
+              {t('openFullSyllabus')} →
+            </button>
           </div>
         </Panel>
       </div>

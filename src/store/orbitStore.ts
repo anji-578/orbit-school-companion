@@ -6,6 +6,7 @@ import {
   initialBroadcasts,
   initialCalendar,
   initialCandidates,
+  initialCurriculum,
   initialFees,
   initialFleet,
   initialGrades,
@@ -65,6 +66,7 @@ import type {
   ScanTarget,
   SchoolPaymentSettings,
   StudentGrade,
+  SyllabusChapter,
   ThemeMode,
 } from '../types'
 
@@ -77,6 +79,18 @@ function attendancePercent(records: AttendanceRecord[]) {
 function homeworkPercent(tasks: HomeworkTask[]) {
   if (!tasks.length) return 100
   return Math.round((tasks.filter((t) => t.completed).length / tasks.length) * 100)
+}
+
+export function chapterProgress(chapter: SyllabusChapter) {
+  if (!chapter.subtopics.length) return 0
+  const done = chapter.subtopics.filter((s) => s.done).length
+  return Math.round((done / chapter.subtopics.length) * 100)
+}
+
+export function curriculumProgress(chapters: SyllabusChapter[]) {
+  const all = chapters.flatMap((c) => c.subtopics)
+  if (!all.length) return 0
+  return Math.round((all.filter((s) => s.done).length / all.length) * 100)
 }
 
 interface OrbitState {
@@ -109,6 +123,7 @@ interface OrbitState {
   broadcasts: BroadcastMessage[]
   calendarEvents: CalendarEvent[]
   leaves: LeaveRequest[]
+  curriculum: SyllabusChapter[]
   candidates: Candidate[]
   fleet: FleetBus[]
   notifications: NotificationItem[]
@@ -194,8 +209,11 @@ interface OrbitState {
   reviewUtrPayment: (id: string, status: 'Verified' | 'Rejected', reviewerId?: string) => Promise<void>
   persistSchoolPaymentSettings: () => Promise<void>
 
-  submitLeave: (date: string, reason: string) => void
+  submitLeave: (date: string, reason: string, teacherName?: string) => void
   setLeaveStatus: (id: number, status: LeaveStatus) => void
+  toggleSyllabusSubtopic: (chapterId: string, subtopicId: string) => void
+  uploadSyllabusNote: (chapterId: string, subtopicId: string, file: File) => Promise<void>
+  clearSyllabusNote: (chapterId: string, subtopicId: string) => void
   submitBroadcast: (title: string, target: string, content: string) => void
   addCalendarEvent: (title: string, category: CalendarEvent['category'], date: string) => void
   scheduleInterview: (id: number) => void
@@ -270,6 +288,7 @@ export const useOrbitStore = create<OrbitState>()(
       broadcasts: initialBroadcasts,
       calendarEvents: initialCalendar,
       leaves: initialLeaves,
+      curriculum: initialCurriculum,
       candidates: initialCandidates,
       fleet: initialFleet,
       notifications: initialNotifications,
@@ -702,8 +721,9 @@ export const useOrbitStore = create<OrbitState>()(
         get().triggerToast('School UPI / bank details saved.')
       },
 
-      submitLeave: (date, reason) => {
-        const entry: LeaveRequest = { id: Date.now(), date, reason, status: 'Reviewing' }
+      submitLeave: (date, reason, teacherName) => {
+        const name = teacherName?.trim() || 'Teacher'
+        const entry: LeaveRequest = { id: Date.now(), date, reason, status: 'Reviewing', teacherName: name }
         set((s) => ({ leaves: [entry, ...s.leaves] }))
         void syncSubmitLeave({ date, reason }).then((remoteId) => {
           if (remoteId) {
@@ -715,7 +735,7 @@ export const useOrbitStore = create<OrbitState>()(
         get().pushNotification({
           role: 'school',
           title: 'Leave request',
-          body: `Mrs. Sarah Davis · ${date}: ${reason}`,
+          body: `${name} · ${date}: ${reason}`,
         })
         get().triggerToast('Leave submitted — awaiting school approval.')
       },
@@ -736,6 +756,99 @@ export const useOrbitStore = create<OrbitState>()(
         get().triggerToast(
           status === 'Approved' ? 'Leave approved · teacher notified.' : 'Leave declined · teacher notified.',
         )
+      },
+
+      toggleSyllabusSubtopic: (chapterId, subtopicId) => {
+        set((s) => ({
+          curriculum: s.curriculum.map((ch) => {
+            if (ch.id !== chapterId) return ch
+            return {
+              ...ch,
+              subtopics: ch.subtopics.map((st) => {
+                if (st.id !== subtopicId) return st
+                const done = !st.done
+                return {
+                  ...st,
+                  done,
+                  completedAt: done ? new Date().toISOString().slice(0, 10) : undefined,
+                }
+              }),
+            }
+          }),
+        }))
+        const chapter = get().curriculum.find((c) => c.id === chapterId)
+        const sub = chapter?.subtopics.find((st) => st.id === subtopicId)
+        if (sub?.done) {
+          get().triggerToast(`Marked done · ${sub.title}`)
+          get().pushNotification({
+            role: 'student',
+            title: 'Syllabus update',
+            body: `${chapter?.subject}: “${sub.title}” marked complete.`,
+          })
+        }
+      },
+
+      uploadSyllabusNote: async (chapterId, subtopicId, file) => {
+        if (file.size > 2_500_000) {
+          get().triggerToast('Note too large — keep under 2.5 MB.')
+          return
+        }
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve(String(reader.result ?? ''))
+          reader.onerror = () => reject(reader.error)
+          reader.readAsDataURL(file)
+        })
+        set((s) => ({
+          curriculum: s.curriculum.map((ch) => {
+            if (ch.id !== chapterId) return ch
+            return {
+              ...ch,
+              subtopics: ch.subtopics.map((st) =>
+                st.id === subtopicId
+                  ? {
+                      ...st,
+                      noteName: file.name,
+                      noteDataUrl: dataUrl,
+                      noteMime: file.type || 'application/octet-stream',
+                      noteUploadedAt: new Date().toISOString().slice(0, 10),
+                    }
+                  : st,
+              ),
+            }
+          }),
+        }))
+        get().triggerToast(`Notes uploaded · ${file.name}`)
+        const chapter = get().curriculum.find((c) => c.id === chapterId)
+        const sub = chapter?.subtopics.find((st) => st.id === subtopicId)
+        get().pushNotification({
+          role: 'student',
+          title: 'Teacher notes ready',
+          body: `${chapter?.subject} · ${sub?.title}: new notes from your teacher.`,
+        })
+      },
+
+      clearSyllabusNote: (chapterId, subtopicId) => {
+        set((s) => ({
+          curriculum: s.curriculum.map((ch) => {
+            if (ch.id !== chapterId) return ch
+            return {
+              ...ch,
+              subtopics: ch.subtopics.map((st) =>
+                st.id === subtopicId
+                  ? {
+                      ...st,
+                      noteName: undefined,
+                      noteDataUrl: undefined,
+                      noteMime: undefined,
+                      noteUploadedAt: undefined,
+                    }
+                  : st,
+              ),
+            }
+          }),
+        }))
+        get().triggerToast('Notes removed.')
       },
 
       submitBroadcast: (title, target, content) => {
@@ -823,6 +936,7 @@ export const useOrbitStore = create<OrbitState>()(
           broadcasts: initialBroadcasts,
           calendarEvents: initialCalendar,
           leaves: initialLeaves,
+          curriculum: initialCurriculum,
           candidates: initialCandidates,
           fleet: initialFleet,
           notifications: initialNotifications,
@@ -1049,6 +1163,7 @@ export const useOrbitStore = create<OrbitState>()(
         broadcasts: s.broadcasts,
         calendarEvents: s.calendarEvents,
         leaves: s.leaves,
+        curriculum: s.curriculum,
         candidates: s.candidates,
         notifications: s.notifications,
         studyScore: s.studyScore,

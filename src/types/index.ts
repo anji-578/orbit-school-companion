@@ -107,6 +107,7 @@ export interface LeaveRequest {
   reason: string
   date: string
   status: LeaveStatus
+  teacherName?: string
 }
 
 export interface QuizQuestion {
@@ -133,6 +134,28 @@ export interface SyllabusTopic {
   subtopics: string[]
   quizQuery: string
   mistakeText: string
+}
+
+/** Shared teacher ↔ student curriculum unit. */
+export interface SyllabusSubtopic {
+  id: string
+  title: string
+  done: boolean
+  completedAt?: string
+  noteName?: string
+  noteDataUrl?: string
+  noteMime?: string
+  noteUploadedAt?: string
+}
+
+export interface SyllabusChapter {
+  id: string
+  subject: string
+  subjectKey: string
+  title: string
+  plannedDate: string
+  quizQuery: string
+  subtopics: SyllabusSubtopic[]
 }
 
 export interface ClassSlot {

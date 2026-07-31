@@ -31,7 +31,9 @@ export function SchoolLeaves() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-xs font-bold text-white">{leave.reason}</p>
-                    <Eyebrow>Mrs. Sarah Davis · {leave.date}</Eyebrow>
+                    <Eyebrow>
+                      {leave.teacherName ?? 'Teacher'} · {leave.date}
+                    </Eyebrow>
                   </div>
                   <span
                     className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full border shrink-0 ${STATUS_CLASS[leave.status]}`}

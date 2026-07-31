@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { Send } from 'lucide-react'
+import { CalendarDays, Send } from 'lucide-react'
+import { useAuthStore } from '../../auth/authStore'
 import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
 import { Panel, Card, Eyebrow } from '../../components/ui/primitives'
@@ -16,16 +17,18 @@ export function TeacherLeaves() {
   const lang = useOrbitStore((s) => s.lang)
   const leaves = useOrbitStore((s) => s.leaves)
   const submitLeave = useOrbitStore((s) => s.submitLeave)
+  const displayName = useAuthStore((s) => s.session?.displayName)
 
   const [date, setDate] = useState('')
   const [reason, setReason] = useState('')
 
   const t = (key: string) => translate(lang, key)
+  const today = new Date().toISOString().slice(0, 10)
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
     if (!date.trim() || !reason.trim()) return
-    submitLeave(date, reason)
+    submitLeave(date, reason, displayName)
     setDate('')
     setReason('')
   }
@@ -35,23 +38,26 @@ export function TeacherLeaves() {
       <Panel title={t('teacherLeavesTitle')} subtitle={t('teacherLeavesDesc')}>
         <form onSubmit={handleSubmit} className="grid sm:grid-cols-[1fr_2fr_auto] gap-3 items-end">
           <label className="space-y-1 block">
-            <span className="text-[10px] font-bold text-slate-400 uppercase">Date</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1.5">
+              <CalendarDays className="h-3.5 w-3.5" aria-hidden />
+              {t('leaveDate')}
+            </span>
             <input
-              type="text"
+              type="date"
               value={date}
+              min={today}
               onChange={(e) => setDate(e.target.value)}
-              placeholder="e.g. July 20, 2026"
               className="field w-full rounded-lg px-3 py-2.5 text-sm"
               required
             />
           </label>
           <label className="space-y-1 block">
-            <span className="text-[10px] font-bold text-slate-400 uppercase">Reason</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase">{t('leaveReason')}</span>
             <input
               type="text"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Reason for leave"
+              placeholder={t('leaveReasonPlaceholder')}
               className="field w-full rounded-lg px-3 py-2.5 text-sm"
               required
             />
@@ -66,10 +72,10 @@ export function TeacherLeaves() {
         </form>
       </Panel>
 
-      <Panel title="Leave Status Queue">
+      <Panel title={t('leaveStatusQueue')}>
         <div className="space-y-2.5">
           {leaves.length === 0 ? (
-            <p className="text-xs text-slate-400 py-4 text-center">No leave requests submitted yet.</p>
+            <p className="text-xs text-slate-400 py-4 text-center">{t('noLeavesYet')}</p>
           ) : (
             leaves.map((leave) => (
               <Card key={leave.id} className="p-4 flex items-center justify-between gap-3">
