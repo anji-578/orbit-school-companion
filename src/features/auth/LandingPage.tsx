@@ -33,7 +33,7 @@ export function LandingPage() {
           </label>
         </header>
 
-        <section className="fade-up pt-2 pb-4">
+        <section className="fade-up pt-4 pb-2 flex justify-center bg-transparent">
           <OrbitLogo variant="hero" />
         </section>
 

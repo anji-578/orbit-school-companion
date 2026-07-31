@@ -5,10 +5,11 @@ type OrbitLogoProps = {
   showTagline?: boolean
 }
 
-const LOGO = '/brand/orbit-logo.png'
-const ICON = '/brand/orbit-icon.png'
+/** Transparent brand assets (navy plate removed). Cache-bust query for deploys. */
+const LOGO = '/brand/orbit-logo.png?v=3'
+const ICON = '/brand/orbit-icon.png?v=3'
 
-/** Official Orbit brand assets from finalized logo. */
+/** Official Orbit brand — transparent PNGs that sit on the app background. */
 export function OrbitLogo({
   variant = 'lockup',
   className = '',
@@ -20,7 +21,7 @@ export function OrbitLogo({
       <img
         src={ICON}
         alt="Orbit"
-        className={`object-contain ${markClassName || 'h-9 w-9'} ${className}`}
+        className={`block object-contain bg-transparent ${markClassName || 'h-9 w-9'} ${className}`}
         draggable={false}
       />
     )
@@ -28,24 +29,23 @@ export function OrbitLogo({
 
   if (variant === 'hero') {
     return (
-      <div className={`flex justify-center ${className}`}>
+      <div className={`flex justify-center bg-transparent ${className}`}>
         <img
           src={LOGO}
           alt="Orbit — Your learning. Our orbit."
-          className="h-auto w-[min(100%,220px)] sm:w-[240px] object-contain drop-shadow-[0_16px_48px_rgba(59,130,246,0.28)]"
+          className="block h-auto w-[min(100%,200px)] sm:w-[220px] object-contain bg-transparent"
           draggable={false}
         />
       </div>
     )
   }
 
-  // Compact header/sidebar: icon + wordmark (logo already includes tagline on hero)
   return (
-    <div className={`flex items-center gap-2.5 min-w-0 ${className}`}>
+    <div className={`flex items-center gap-2.5 min-w-0 bg-transparent ${className}`}>
       <img
         src={ICON}
         alt=""
-        className={`h-10 w-10 shrink-0 object-contain ${markClassName}`}
+        className={`block h-10 w-10 shrink-0 object-contain bg-transparent ${markClassName}`}
         draggable={false}
       />
       <div className="min-w-0 leading-tight">
@@ -60,9 +60,13 @@ export function OrbitLogo({
   )
 }
 
-/** Small icon-only mark for tight UI spots. */
 export function OrbitMark({ className = '', title = 'Orbit' }: { className?: string; title?: string }) {
   return (
-    <img src={ICON} alt={title} className={`object-contain ${className || 'h-9 w-9'}`} draggable={false} />
+    <img
+      src={ICON}
+      alt={title}
+      className={`block object-contain bg-transparent ${className || 'h-9 w-9'}`}
+      draggable={false}
+    />
   )
 }
