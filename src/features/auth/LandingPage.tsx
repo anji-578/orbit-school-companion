@@ -16,9 +16,8 @@ export function LandingPage() {
   return (
     <div className="orbit-root min-h-dvh w-full overflow-y-auto orbit-scroll">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-10">
-        <header className="flex items-center justify-between gap-4">
-          <OrbitLogo variant="lockup" className="scale-[0.92] origin-left" />
-          <label className="self-start sm:self-auto flex items-center gap-2 bg-white/5 px-3 py-2 rounded-xl border border-white/10">
+        <header className="flex items-center justify-end gap-4">
+          <label className="flex items-center gap-2 bg-white/5 px-3 py-2 rounded-xl border border-white/10">
             <span className="text-[10px] font-bold text-slate-400 uppercase">{t('language')}</span>
             <select
               value={lang}

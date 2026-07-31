@@ -4,7 +4,7 @@ import { LandingPage } from '../features/auth/LandingPage'
 import { LoginPage } from '../features/auth/LoginPage'
 import { AppShell } from '../AppShell'
 import { isSupabaseConfigured } from '../lib/supabaseConfig'
-import { OrbitMark } from '../components/brand/OrbitMark'
+import { OrbitLogo } from '../components/brand/OrbitLogo'
 
 /** Routes: Landing (4 profiles) → Login → Authenticated shell */
 export function AuthGate() {
@@ -27,10 +27,10 @@ export function AuthGate() {
 
   if (!ready) {
     return (
-      <div className="orbit-root min-h-dvh w-full flex flex-col items-center justify-center gap-3">
-        <OrbitMark className="h-14 w-14" />
-        <p className="text-sm text-slate-400 font-brand text-lg tracking-wide">
-          {isSupabaseConfigured() ? 'Connecting to Orbit…' : 'Loading Orbit…'}
+      <div className="orbit-root min-h-dvh w-full flex flex-col items-center justify-center gap-4 px-6">
+        <OrbitLogo variant="hero" />
+        <p className="text-sm text-slate-400 font-medium tracking-wide">
+          {isSupabaseConfigured() ? 'Connecting…' : 'Loading…'}
         </p>
       </div>
     )
