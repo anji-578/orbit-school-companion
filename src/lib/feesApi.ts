@@ -1,6 +1,6 @@
 import { getSupabase, isSupabaseConfigured } from './supabase'
 import type { FeeItem, FeeStatus } from '../types'
-import { DEMO_STUDENT_IDS } from './attendanceApi'
+import { resolveLinkedStudentId } from './linkedStudent'
 
 async function sunriseSchoolId(): Promise<string | null> {
   const supabase = getSupabase()
@@ -20,29 +20,6 @@ async function currentRole(): Promise<string | null> {
   return (data?.role as string | undefined) ?? null
 }
 
-/** Linked child for parent/student; null when unlinked (no silent Ananya fallback). */
-export async function resolveLinkedStudentId(): Promise<string | null> {
-  const supabase = getSupabase()
-  if (!supabase) return null
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user?.id) return null
-
-  const { data: mine } = await supabase.from('students').select('id').eq('profile_id', user.id).maybeSingle()
-  if (mine?.id) return mine.id as string
-
-  const { data: linked } = await supabase
-    .from('parent_links')
-    .select('student_id')
-    .eq('parent_profile_id', user.id)
-    .limit(1)
-    .maybeSingle()
-  if (linked?.student_id) return linked.student_id as string
-
-  return null
-}
-
 export async function fetchFeeItems(): Promise<FeeItem[]> {
   if (!isSupabaseConfigured()) return []
   const supabase = getSupabase()
@@ -51,35 +28,44 @@ export async function fetchFeeItems(): Promise<FeeItem[]> {
   if (!schoolId) return []
 
   const role = await currentRole()
-  let studentId: string | null =
-    role === 'parent' || role === 'student' ? await resolveLinkedStudentId() : DEMO_STUDENT_IDS.ananya
+  const scopedStudentId =
+    role === 'parent' || role === 'student' ? await resolveLinkedStudentId() : null
 
-  // Pilot school auditor defaults to Ananya ledger when staff
-  if ((role === 'school' || role === 'teacher') && !studentId) {
-    studentId = DEMO_STUDENT_IDS.ananya
-  }
-  if (!studentId) return []
+  // Parent/student with no link → empty (honest), not Ananya fallback.
+  if ((role === 'parent' || role === 'student') && !scopedStudentId) return []
 
-  const { data } = await supabase
+  let query = supabase
     .from('fee_items')
-    .select('id, name, amount_paise, status, category')
+    .select('id, name, amount_paise, status, category, student_id, students(display_name)')
     .eq('school_id', schoolId)
-    .eq('student_id', studentId)
-    .order('created_at', { ascending: true })
+
+  if (scopedStudentId) {
+    query = query.eq('student_id', scopedStudentId)
+  }
+
+  const { data } = await query.order('created_at', { ascending: true })
 
   if (!data?.length) return []
-  return data.map((row) => ({
-    id: row.id as string,
-    name: row.name as string,
-    amount: Math.round(Number(row.amount_paise) / 100),
-    status: row.status as FeeStatus,
-    category: (row.category as string) || 'General',
-  }))
+  return data.map((row) => {
+    const student = row.students as { display_name?: string } | { display_name?: string }[] | null
+    const studentName = Array.isArray(student)
+      ? student[0]?.display_name
+      : student?.display_name
+    return {
+      id: row.id as string,
+      name: row.name as string,
+      amount: Math.round(Number(row.amount_paise) / 100),
+      status: row.status as FeeStatus,
+      category: (row.category as string) || 'General',
+      studentId: (row.student_id as string) || undefined,
+      studentName: studentName || undefined,
+    }
+  })
 }
 
 export async function markFeeItemsStatus(
   status: FeeStatus,
-  studentId?: string,
+  studentId?: string | null,
 ): Promise<{ ok: boolean; error?: string }> {
   if (!isSupabaseConfigured()) return { ok: true }
   const supabase = getSupabase()
@@ -88,12 +74,15 @@ export async function markFeeItemsStatus(
   if (!schoolId) return { ok: false, error: 'School not found' }
 
   const role = await currentRole()
-  // Parents cannot write fee_items under hardened RLS — school verifies UTR then marks Paid
-  if (role !== 'school') {
-    return { ok: true }
+  const target = studentId || (await resolveLinkedStudentId())
+  if (!target) {
+    // School verify without a student id must not wipe the whole class.
+    if (role === 'school' || role === 'teacher') {
+      return { ok: false, error: 'Student id required to update fee status' }
+    }
+    return { ok: false, error: 'No linked student for fee update' }
   }
 
-  const target = studentId || (await resolveLinkedStudentId()) || DEMO_STUDENT_IDS.ananya
   const { error } = await supabase
     .from('fee_items')
     .update({ status })
@@ -105,6 +94,31 @@ export async function markFeeItemsStatus(
   return { ok: true }
 }
 
-export async function markAllFeesPaid(studentId?: string): Promise<{ ok: boolean; error?: string }> {
-  return markFeeItemsStatus('Paid', studentId || DEMO_STUDENT_IDS.ananya)
+export async function markAllFeesPaid(studentId?: string | null): Promise<{ ok: boolean; error?: string }> {
+  return markFeeItemsStatus('Paid', studentId)
+}
+
+/** Group fee rows by student for the school class ledger. */
+export function groupFeesByStudent(fees: FeeItem[]) {
+  const map = new Map<
+    string,
+    { studentId: string; studentName: string; fees: FeeItem[]; outstanding: number; unpaidCount: number }
+  >()
+
+  for (const fee of fees) {
+    const key = fee.studentId || 'unknown'
+    const name = fee.studentName || 'Student'
+    let entry = map.get(key)
+    if (!entry) {
+      entry = { studentId: key, studentName: name, fees: [], outstanding: 0, unpaidCount: 0 }
+      map.set(key, entry)
+    }
+    entry.fees.push(fee)
+    if (fee.status !== 'Paid') {
+      entry.outstanding += fee.amount
+      entry.unpaidCount += 1
+    }
+  }
+
+  return [...map.values()].sort((a, b) => a.studentName.localeCompare(b.studentName))
 }

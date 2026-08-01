@@ -1,21 +1,23 @@
 import { CheckCircle2, XCircle } from 'lucide-react'
 import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
+import { childDisplayName } from '../../lib/linkedStudent'
 import { Panel, StatTile } from '../../components/ui/primitives'
-import { STUDENT_NAME } from '../../data/demo'
 
-/** Parent read-only view of Ananya's attendance (synced from teacher). */
+/** Parent read-only view of linked child attendance (synced from teacher). */
 export function ParentAttendance() {
   const lang = useOrbitStore((s) => s.lang)
+  const linkedStudent = useOrbitStore((s) => s.linkedStudent)
   const attendanceRecords = useOrbitStore((s) => s.attendanceRecords)
   const getAttendancePercent = useOrbitStore((s) => s.getAttendancePercent)
 
   const t = (key: string) => translate(lang, key)
+  const childName = childDisplayName(linkedStudent)
   const presentCount = attendanceRecords.filter((r) => r.status === 'Present').length
   const absentCount = attendanceRecords.length - presentCount
 
   return (
-    <Panel title={t('parentAttendanceTitle')} subtitle={t('parentAttendanceDesc').replace('{name}', STUDENT_NAME)}>
+    <Panel title={t('parentAttendanceTitle')} subtitle={t('parentAttendanceDesc').replace('{name}', childName)}>
       <div className="grid sm:grid-cols-3 gap-4">
         <StatTile label={t('studentAttendance')} value={`${getAttendancePercent()}%`} accent="var(--accent2)" />
         <StatTile label={t('present')} value={String(presentCount)} />

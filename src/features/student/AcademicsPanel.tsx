@@ -1,8 +1,10 @@
 import { Star } from 'lucide-react'
 import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
+import { childDisplayName } from '../../lib/linkedStudent'
 import { softSkills } from '../../data/demo'
 import { Panel, Card, Eyebrow, ProgressBar } from '../../components/ui/primitives'
+import { EmptyState } from '../../components/ui/EmptyState'
 
 const SUBJECT_ROWS: { field: 'math' | 'science' | 'chem'; subjectKey: string; feedbackKey: string }[] = [
   { field: 'math', subjectKey: 'mathSubject', feedbackKey: 'mathFeedback' },
@@ -26,6 +28,8 @@ function standingFor(percent: number): { key: string; className: string } {
 export function AcademicsPanel() {
   const lang = useOrbitStore((s) => s.lang)
   const role = useOrbitStore((s) => s.role)
+  const linkedStudent = useOrbitStore((s) => s.linkedStudent)
+  const classLinked = useOrbitStore((s) => s.classLinked)
   const studentGrades = useOrbitStore((s) => s.studentGrades)
   const setActiveTab = useOrbitStore((s) => s.setActiveTab)
 
@@ -33,7 +37,14 @@ export function AcademicsPanel() {
   const grade = studentGrades[0]
   const titleKey = role === 'parent' ? 'parentReportCard' : 'studentAcademics'
 
-  if (!grade) return null
+  if (!grade) {
+    return (
+      <EmptyState
+        title={t('noGradesYetTitle')}
+        description={classLinked ? t('noGradesYetDesc') : t('noClassLinkedDesc')}
+      />
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -113,7 +124,7 @@ export function AcademicsPanel() {
 
       <Eyebrow>
         <span className="flex items-center gap-2">
-          <Star className="h-3 w-3 text-amber-400 fill-amber-400" aria-hidden /> {grade.name}
+          <Star className="h-3 w-3 text-amber-400 fill-amber-400" aria-hidden /> {childDisplayName(linkedStudent, grade.name)}
         </span>
       </Eyebrow>
     </div>

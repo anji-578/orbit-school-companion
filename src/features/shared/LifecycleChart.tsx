@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
+import { childFirstName } from '../../lib/linkedStudent'
 import { subjectProgressHistory } from '../../data/demo'
 import { Card, Eyebrow } from '../../components/ui/primitives'
 import type { LifecycleMetric } from '../../types'
@@ -19,11 +20,13 @@ function shortExamLabel(exam: string) {
 
 export function LifecycleChart() {
   const lang = useOrbitStore((s) => s.lang)
+  const linkedStudent = useOrbitStore((s) => s.linkedStudent)
   const selectedLifecycleSubject = useOrbitStore((s) => s.selectedLifecycleSubject)
   const selectedLifecycleMetric = useOrbitStore((s) => s.selectedLifecycleMetric)
   const setLifecycleSubject = useOrbitStore((s) => s.setLifecycleSubject)
   const setLifecycleMetric = useOrbitStore((s) => s.setLifecycleMetric)
   const t = (key: string) => translate(lang, key)
+  const childName = childFirstName(linkedStudent)
 
   const history = subjectProgressHistory[selectedLifecycleSubject] ?? subjectProgressHistory.chemLabSubject
   const isMarks = selectedLifecycleMetric === 'marks'
@@ -89,7 +92,7 @@ export function LifecycleChart() {
     <Card className="p-4 space-y-3">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <Eyebrow>{t('ananyaProgress')}</Eyebrow>
+          <Eyebrow>{t('childProgress').replace('{name}', childName)}</Eyebrow>
           <p className="text-[15px] font-bold text-white mt-0.5 truncate">
             {t(selectedLifecycleSubject)}
             <span className="text-slate-500"> · </span>
@@ -233,7 +236,7 @@ export function LifecycleChart() {
 
       <div className="flex items-center gap-4 text-[10px] text-slate-500">
         <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-[var(--accent)]" /> Ananya
+          <span className="h-2 w-2 rounded-full bg-[var(--accent)]" /> {childName}
         </span>
         <span className="flex items-center gap-1.5">
           <span className="w-3.5 border-t border-dashed border-slate-500" />

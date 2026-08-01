@@ -269,6 +269,18 @@ export const syllabusTimeline = [
   { id: 'sy3', subject: 'Chemistry Lab', chapter: 'Equation coefficients', plannedDate: 'June 30', progress: 40 },
 ]
 
+/** Tiny demo note blob so students see Preview/Download without Storage. */
+function demoNote(title: string) {
+  const body = `${title}\n\nTeacher notes (demo)\n• Key points from today's class\n• Practice Q1–Q5 before next period\n• Ask Orbit AI if stuck`
+  const dataUrl = `data:text/plain;charset=utf-8,${encodeURIComponent(body)}`
+  return {
+    noteName: `${title.replace(/[/\\?%*:|"<>]/g, '-').slice(0, 40)}.txt`,
+    noteDataUrl: dataUrl,
+    noteMime: 'text/plain',
+    noteUploadedAt: '2026-06-20',
+  }
+}
+
 /** Shared Class 11 curriculum — teacher marks progress; students see the same truth. */
 export const initialCurriculum: SyllabusChapter[] = [
   {
@@ -279,8 +291,8 @@ export const initialCurriculum: SyllabusChapter[] = [
     plannedDate: '2026-06-15',
     quizQuery: 'Solve equations transposition algebra',
     subtopics: [
-      { id: 'st_m1', title: 'Negative variables shifting', done: true, completedAt: '2026-06-10' },
-      { id: 'st_m2', title: 'Cross multiplication of fractions', done: true, completedAt: '2026-06-12' },
+      { id: 'st_m1', title: 'Negative variables shifting', done: true, completedAt: '2026-06-10', ...demoNote('Negative variables shifting') },
+      { id: 'st_m2', title: 'Cross multiplication of fractions', done: true, completedAt: '2026-06-12', ...demoNote('Cross multiplication') },
       { id: 'st_m3', title: 'Coefficient balancing', done: false },
       { id: 'st_m4', title: 'Word problems → equations', done: false },
     ],
@@ -293,9 +305,9 @@ export const initialCurriculum: SyllabusChapter[] = [
     plannedDate: '2026-06-22',
     quizQuery: 'fractions calculations multiplication',
     subtopics: [
-      { id: 'st_m5', title: 'Numerator / denominator alignment', done: true, completedAt: '2026-06-18' },
-      { id: 'st_m6', title: 'Simplifying before multiplying', done: true, completedAt: '2026-06-20' },
-      { id: 'st_m7', title: 'Mixed numbers conversion', done: true, completedAt: '2026-06-22' },
+      { id: 'st_m5', title: 'Numerator / denominator alignment', done: true, completedAt: '2026-06-18', ...demoNote('Numerator denominator alignment') },
+      { id: 'st_m6', title: 'Simplifying before multiplying', done: true, completedAt: '2026-06-20', ...demoNote('Simplifying before multiplying') },
+      { id: 'st_m7', title: 'Mixed numbers conversion', done: true, completedAt: '2026-06-22', ...demoNote('Mixed numbers conversion') },
     ],
   },
   {
@@ -306,8 +318,8 @@ export const initialCurriculum: SyllabusChapter[] = [
     plannedDate: '2026-06-25',
     quizQuery: 'photosynthesis cycles botany',
     subtopics: [
-      { id: 'st_s1', title: 'Chloroplast structure', done: true, completedAt: '2026-06-20' },
-      { id: 'st_s2', title: 'Light vs dark reactions', done: true, completedAt: '2026-06-22' },
+      { id: 'st_s1', title: 'Chloroplast structure', done: true, completedAt: '2026-06-20', ...demoNote('Chloroplast structure') },
+      { id: 'st_s2', title: 'Light vs dark reactions', done: true, completedAt: '2026-06-22', ...demoNote('Light vs dark reactions') },
       { id: 'st_s3', title: 'Gas exchange & stomata', done: false },
       { id: 'st_s4', title: 'Balancing photosynthesis equation', done: false },
     ],
@@ -320,7 +332,7 @@ export const initialCurriculum: SyllabusChapter[] = [
     plannedDate: '2026-06-30',
     quizQuery: 'balancing chemical equations coefficient chemistry',
     subtopics: [
-      { id: 'st_c1', title: 'Law of conservation of mass', done: true, completedAt: '2026-06-24' },
+      { id: 'st_c1', title: 'Law of conservation of mass', done: true, completedAt: '2026-06-24', ...demoNote('Conservation of mass') },
       { id: 'st_c2', title: 'Stoichiometry multipliers', done: false },
       { id: 'st_c3', title: 'Redox skeleton equations', done: false },
       { id: 'st_c4', title: 'Lab: balance 5 practice sheets', done: false },
@@ -403,10 +415,10 @@ export const todayTimeline = [
 
 export const remediationTemplates = {
   chemistry: {
-    title: 'Science Midterm Answer Sheet — Ananya Rao',
+    title: 'Science Midterm Answer Sheet — Chemistry',
     flaggedWeakness: 'Balancing Chemical Coefficients (Chapter 3)',
     analysisText:
-      'Ananya understands reactants and products well, but repeatedly gets confused with stoichiometry multiplier coefficients. She treats formula numbers as immutable rather than multiplying entire batches.',
+      'Student understands reactants and products well, but repeatedly gets confused with stoichiometry multiplier coefficients. They treat formula numbers as immutable rather than multiplying entire batches.',
     modelEscalation: 'Gemini Flash (demo triage)',
     confidence: 82,
     analogyText: `### 🥞 Balancing Equations is just a Pancake Recipe!
@@ -423,13 +435,13 @@ $$\\mathbf{2}H_2 + O_2 \\rightarrow \\mathbf{2}H_2O$$`,
     validationQuestion: "Based on the recipe multiplier rule, balance: ? H₂ + O₂ → 2 H₂O. What is '?'",
     options: ['1', '2', '3', '4'],
     correctIndex: 1,
-    successToast: "Chemistry midterm updated to 48/50! +100 XP · Concept Master unlocked.",
+    successToast: 'Chemistry midterm updated to 48/50! +100 XP · Concept Master unlocked.',
   },
   mathematics: {
-    title: 'Algebraic Equations Term Test — Ananya Rao',
+    title: 'Algebraic Equations Term Test',
     flaggedWeakness: 'Negative Number Multiplication & Cross-Inversion',
     analysisText:
-      'Ananya frequently drops algebraic minus signs during equation relocations. She simplifies linear variables correctly but flips equations incorrectly when cross-multiplying.',
+      'Student frequently drops algebraic minus signs during equation relocations. They simplify linear variables correctly but flip equations incorrectly when cross-multiplying.',
     modelEscalation: 'Gemini Pro cascade (demo)',
     confidence: 54,
     analogyText: `### ⚖️ The Equals Sign is a Playground Seesaw!
@@ -444,7 +456,60 @@ $$-3x + 10 = -5 \\implies -3x = -15 \\implies x = 5$$`,
     correctIndex: 1,
     successToast: 'Mathematics midterm updated to 48/50! +100 XP synchronized.',
   },
-} as const
+  science: {
+    title: 'Photosynthesis Unit Test',
+    flaggedWeakness: 'Light vs dark reaction products',
+    analysisText:
+      'Student recalls chlorophyll and stomata, but mixes up which gases and energy carriers belong to light vs dark reactions.',
+    modelEscalation: 'Gemini Flash (demo triage)',
+    confidence: 68,
+    analogyText: '',
+    validationQuestion: 'Which gas is released mainly during the light reaction?',
+    options: ['CO₂', 'O₂', 'N₂', 'H₂'],
+    correctIndex: 1,
+    successToast: 'Science practice updated · Concept Master unlocked.',
+  },
+  english: {
+    title: 'Tenses Worksheet',
+    flaggedWeakness: 'Present perfect vs past simple',
+    analysisText:
+      'Student writes fluent sentences but often uses past simple where present perfect is needed for unfinished time.',
+    modelEscalation: 'Gemini Flash (demo triage)',
+    confidence: 71,
+    analogyText: '',
+    validationQuestion: 'Choose the better sentence: "I ___ my homework already."',
+    options: ['did', 'have done', 'do', 'doing'],
+    correctIndex: 1,
+    successToast: 'English concept practiced · +100 XP.',
+  },
+  physics: {
+    title: 'Forces & Motion Quiz',
+    flaggedWeakness: 'Net force vs balanced forces',
+    analysisText:
+      'Student remembers F = ma but treats any force pair as cancelled even when magnitudes differ.',
+    modelEscalation: 'Gemini Flash (demo triage)',
+    confidence: 63,
+    analogyText: '',
+    validationQuestion: 'If two opposite forces are 8 N and 5 N, net force is:',
+    options: ['13 N', '8 N', '5 N', '3 N'],
+    correctIndex: 3,
+    successToast: 'Physics concept practiced · +100 XP.',
+  },
+} as const satisfies Record<
+  string,
+  {
+    title: string
+    flaggedWeakness: string
+    analysisText: string
+    modelEscalation: string
+    confidence: number
+    analogyText: string
+    validationQuestion: string
+    options: string[]
+    correctIndex: number
+    successToast: string
+  }
+>
 
 export const offlineAiAnswers: Record<string, string> = {
   default: `### Newton's Second Law — Football Kick

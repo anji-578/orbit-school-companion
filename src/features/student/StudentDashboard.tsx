@@ -1,8 +1,11 @@
+import { useMemo } from 'react'
 import { AlertTriangle, ArrowRight, BrainCircuit, CheckCircle2, Circle, Clock, Sparkles } from 'lucide-react'
 import { useAuthStore } from '../../auth/authStore'
 import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
-import { STUDENT_NAME, subjectSyllabusDatabase, todayTimeline } from '../../data/demo'
+import { childFirstName } from '../../lib/linkedStudent'
+import { currentDayCode, deriveTodayTimeline } from '../../lib/timetableApi'
+import { subjectSyllabusDatabase } from '../../data/demo'
 import { Card, Eyebrow, Panel, ProgressBar, StatTile } from '../../components/ui/primitives'
 import { InviteRedeemCard } from '../../components/ui/InviteRedeemCard'
 import { LifecycleChart } from '../shared/LifecycleChart'
@@ -12,7 +15,9 @@ const FOCUS_SUBJECTS = ['chemLabSubject', 'mathSubject', 'scienceSubject'] as co
 export function StudentDashboard() {
   const lang = useOrbitStore((s) => s.lang)
   const classLinked = useOrbitStore((s) => s.classLinked)
+  const linkedStudent = useOrbitStore((s) => s.linkedStudent)
   const studyScore = useOrbitStore((s) => s.studyScore)
+  const timetableByDay = useOrbitStore((s) => s.timetableByDay)
   const attendanceRecords = useOrbitStore((s) => s.attendanceRecords)
   const getAttendancePercent = useOrbitStore((s) => s.getAttendancePercent)
   const tasks = useOrbitStore((s) => s.tasks)
@@ -21,13 +26,17 @@ export function StudentDashboard() {
   const session = useAuthStore((s) => s.session)
 
   const t = (key: string) => translate(lang, key)
-  const firstName = (session?.displayName || STUDENT_NAME).split(' ')[0]
+  const firstName = childFirstName(linkedStudent, (session?.displayName || 'Student').split(' ')[0])
   const attendancePercent = getAttendancePercent()
   const pendingTasks = tasks.filter((task) => !task.completed)
   const homeworkPercent = tasks.length
     ? Math.round((tasks.filter((task) => task.completed).length / tasks.length) * 100)
     : 100
   const lastFive = attendanceRecords.slice(-5)
+  const todayTimeline = useMemo(
+    () => deriveTodayTimeline(timetableByDay[currentDayCode()]),
+    [timetableByDay],
+  )
 
   const focusAreas = FOCUS_SUBJECTS.flatMap((key) => subjectSyllabusDatabase[key] ?? [])
     .filter((topic) => topic.strength === 'Needs Practice')
@@ -130,8 +139,11 @@ export function StudentDashboard() {
 
         <Panel title={t('todaysSchedule')}>
           <div className="space-y-2.5">
-            {todayTimeline.map((item) => (
-              <div key={item.name} className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
+            {todayTimeline.length === 0 ? (
+              <p className="text-xs text-slate-400 text-center py-6">{t('timetableEmpty')}</p>
+            ) : (
+              todayTimeline.map((item) => (
+              <div key={item.id} className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
                 <Clock className="h-4 w-4 text-slate-500 shrink-0" aria-hidden />
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-bold text-white truncate">{item.name}</p>
@@ -151,7 +163,8 @@ export function StudentDashboard() {
                   {item.status}
                 </span>
               </div>
-            ))}
+              ))
+            )}
           </div>
         </Panel>
       </div>

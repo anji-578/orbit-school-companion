@@ -1,16 +1,20 @@
 import { useRef, useState } from 'react'
 import {
   BadgeCheck,
+  Atom,
+  BookOpen,
   Calculator,
   Camera,
   CheckCircle2,
   FlaskConical,
+  Leaf,
   Loader2,
   RefreshCw,
   ScanLine,
   Sparkles,
   Upload,
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
 import { askOrbitAi } from '../../lib/gemini'
@@ -31,6 +35,14 @@ const QUALITY_LABEL: Record<string, string> = {
   mixed: 'Mixed quality',
   needs_work: 'Needs work',
 }
+
+const SCAN_SUBJECTS: { id: ScanTarget; labelKey: string; Icon: LucideIcon }[] = [
+  { id: 'chemistry', labelKey: 'chemLabSubject', Icon: FlaskConical },
+  { id: 'mathematics', labelKey: 'mathSubject', Icon: Calculator },
+  { id: 'science', labelKey: 'scienceSubject', Icon: Leaf },
+  { id: 'physics', labelKey: 'physicsSubject', Icon: Atom },
+  { id: 'english', labelKey: 'englishSubject', Icon: BookOpen },
+]
 
 export function ScannerPanel() {
   const lang = useOrbitStore((s) => s.lang)
@@ -150,30 +162,29 @@ export function ScannerPanel() {
 
       {scanStep === 'select' ? (
         <div className="space-y-4">
-          <div className="grid sm:grid-cols-2 gap-3">
-            {(['chemistry', 'mathematics'] as ScanTarget[]).map((target) => {
-              const Icon = target === 'chemistry' ? FlaskConical : Calculator
-              const label = target === 'chemistry' ? t('chemLabSubject') : t('mathSubject')
-              const active = pickedTarget === target
-              return (
-                <button
-                  key={target}
-                  type="button"
-                  onClick={() => setPickedTarget(target)}
-                  className={`p-4 rounded-2xl text-left border transition ${
-                    active
-                      ? 'border-[var(--accent)] bg-[var(--accent)]/10'
-                      : 'border-white/10 bg-white/5 hover:border-white/20'
-                  }`}
-                >
-                  <div className="h-10 w-10 rounded-xl accent-soft flex items-center justify-center mb-3">
-                    <Icon className="h-5 w-5 text-[var(--accent2)]" aria-hidden />
-                  </div>
-                  <h3 className="text-sm font-bold text-white">{label}</h3>
-                  <p className="text-[11px] text-slate-400 mt-1">Coach evaluate without an answer key</p>
-                </button>
-              )
-            })}
+          <div>
+            <Eyebrow>{t('scanPickSubject')}</Eyebrow>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {SCAN_SUBJECTS.map(({ id, labelKey, Icon }) => {
+                const active = pickedTarget === id
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setPickedTarget(id)}
+                    className={`inline-flex items-center gap-2 px-3 py-2 rounded-full text-xs font-bold border transition ${
+                      active
+                        ? 'border-[var(--accent)] bg-[var(--accent)]/15 text-white'
+                        : 'border-white/10 bg-white/5 text-slate-300 hover:border-white/25 hover:text-white'
+                    }`}
+                  >
+                    <Icon className={`h-3.5 w-3.5 ${active ? 'text-[var(--accent2)]' : 'text-slate-400'}`} aria-hidden />
+                    {t(labelKey)}
+                  </button>
+                )
+              })}
+            </div>
+            <p className="text-[10px] text-slate-500 mt-2">{t('scanCoachHint')}</p>
           </div>
 
           <Card className="p-4 space-y-3">

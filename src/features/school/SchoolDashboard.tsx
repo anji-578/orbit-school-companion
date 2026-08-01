@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
-import { ArrowRight, Bell, Briefcase, CalendarDays, Copy, CreditCard, KeyRound, Truck } from 'lucide-react'
+import type { FormEvent } from 'react'
+import { ArrowRight, Bell, Briefcase, CalendarDays, Copy, CreditCard, KeyRound, Plus, Truck } from 'lucide-react'
 import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
-import { fetchSchoolInviteCodes } from '../../lib/classLink'
+import { createClassInvite, fetchSchoolInviteCodes } from '../../lib/classLink'
 import { isSupabaseConfigured } from '../../lib/supabaseConfig'
 import { Card, Eyebrow, Panel, StatTile } from '../../components/ui/primitives'
 import { InviteRedeemCard } from '../../components/ui/InviteRedeemCard'
+
+type InviteRow = { code: string; role: string; className: string | null; uses: string }
 
 export function SchoolDashboard() {
   const lang = useOrbitStore((s) => s.lang)
@@ -19,16 +22,23 @@ export function SchoolDashboard() {
   const calendarEvents = useOrbitStore((s) => s.calendarEvents)
   const setActiveTab = useOrbitStore((s) => s.setActiveTab)
   const triggerToast = useOrbitStore((s) => s.triggerToast)
-  const [invites, setInvites] = useState<{ code: string; role: string; className: string | null; uses: string }[]>([])
+  const [invites, setInvites] = useState<InviteRow[]>([])
+  const [inviteRole, setInviteRole] = useState<'student' | 'parent' | 'teacher' | 'school'>('parent')
+  const [inviteClass, setInviteClass] = useState('Grade 8-A')
+  const [creatingInvite, setCreatingInvite] = useState(false)
 
   const t = (key: string) => translate(lang, key)
   const activeBuses = fleet.filter((b) => b.active).length
   const pendingLeaves = leaves.filter((l) => l.status === 'Reviewing').length
   const unpaidFees = fees.filter((f) => f.status !== 'Paid').length
 
-  useEffect(() => {
+  const loadInvites = () => {
     if (!isSupabaseConfigured() || !classLinked) return
     void fetchSchoolInviteCodes().then(setInvites)
+  }
+
+  useEffect(() => {
+    loadInvites()
   }, [classLinked])
 
   const copyCode = async (code: string) => {
@@ -40,6 +50,20 @@ export function SchoolDashboard() {
     }
   }
 
+  const onCreateInvite = async (e: FormEvent) => {
+    e.preventDefault()
+    setCreatingInvite(true)
+    const result = await createClassInvite({ role: inviteRole, className: inviteClass.trim() || undefined })
+    setCreatingInvite(false)
+    if (!result.ok) {
+      triggerToast(result.error)
+      return
+    }
+    triggerToast(t('inviteCreated'))
+    loadInvites()
+    void copyCode(result.code)
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -49,32 +73,67 @@ export function SchoolDashboard() {
 
       {!classLinked ? <InviteRedeemCard /> : null}
 
-      {classLinked && invites.length > 0 ? (
+      {classLinked && isSupabaseConfigured() ? (
         <Panel title={t('classInvitesTitle')} subtitle={t('classInvitesDesc')}>
-          <div className="space-y-2.5">
-            {invites.map((inv) => (
-              <Card key={inv.code} className="p-3.5 flex items-center justify-between gap-3">
-                <div className="min-w-0 flex items-center gap-3">
-                  <KeyRound className="h-4 w-4 text-[var(--accent2)] shrink-0" aria-hidden />
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold text-white font-mono truncate">{inv.code}</p>
-                    <p className="text-[10px] text-slate-400">
-                      {inv.role}
-                      {inv.className ? ` · ${inv.className}` : ''} · {inv.uses} uses
-                    </p>
+          <form onSubmit={onCreateInvite} className="flex flex-col sm:flex-row gap-2 mb-4">
+            <label className="flex-1 space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t('createInviteRole')}</span>
+              <select
+                value={inviteRole}
+                onChange={(e) => setInviteRole(e.target.value as typeof inviteRole)}
+                className="field w-full rounded-xl px-3 py-2 text-sm"
+              >
+                <option value="student">student</option>
+                <option value="parent">parent</option>
+                <option value="teacher">teacher</option>
+                <option value="school">school</option>
+              </select>
+            </label>
+            <label className="flex-[2] space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t('createInviteClass')}</span>
+              <input
+                value={inviteClass}
+                onChange={(e) => setInviteClass(e.target.value)}
+                className="field w-full rounded-xl px-3 py-2 text-sm"
+                placeholder={t('createInviteClassPlaceholder')}
+              />
+            </label>
+            <button
+              type="submit"
+              disabled={creatingInvite}
+              className="btn-accent self-end sm:self-auto shrink-0 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold"
+            >
+              <Plus className="h-3.5 w-3.5" aria-hidden />
+              {creatingInvite ? t('redeemingInvite') : t('createInvite')}
+            </button>
+          </form>
+
+          {invites.length > 0 ? (
+            <div className="space-y-2.5">
+              {invites.map((inv) => (
+                <Card key={inv.code} className="p-3.5 flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex items-center gap-3">
+                    <KeyRound className="h-4 w-4 text-[var(--accent2)] shrink-0" aria-hidden />
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-white font-mono truncate">{inv.code}</p>
+                      <p className="text-[10px] text-slate-400">
+                        {inv.role}
+                        {inv.className ? ` · ${inv.className}` : ''} · {inv.uses} uses
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => void copyCode(inv.code)}
-                  className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-white/5 border border-white/10"
-                >
-                  <Copy className="h-3.5 w-3.5" aria-hidden />
-                  {t('copy')}
-                </button>
-              </Card>
-            ))}
-          </div>
+                  <button
+                    type="button"
+                    onClick={() => void copyCode(inv.code)}
+                    className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-white/5 border border-white/10"
+                  >
+                    <Copy className="h-3.5 w-3.5" aria-hidden />
+                    {t('copy')}
+                  </button>
+                </Card>
+              ))}
+            </div>
+          ) : null}
         </Panel>
       ) : null}
 

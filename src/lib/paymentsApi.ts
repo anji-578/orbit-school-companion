@@ -1,4 +1,5 @@
 import { getSupabase, isSupabaseConfigured } from './supabase'
+import { resolveLinkedStudentId } from './linkedStudent'
 import type { PaymentSubmission, SchoolPaymentSettings } from '../types'
 
 const DEFAULT_SETTINGS: SchoolPaymentSettings = {
@@ -25,7 +26,11 @@ function mapSubmission(row: {
   payer_name: string | null
   status: string
   created_at: string
+  student_id?: string | null
+  students?: { display_name?: string } | { display_name?: string }[] | null
 }): PaymentSubmission {
+  const student = row.students
+  const studentName = Array.isArray(student) ? student[0]?.display_name : student?.display_name
   return {
     id: row.id,
     amount: Math.round(Number(row.amount_paise) / 100),
@@ -35,6 +40,8 @@ function mapSubmission(row: {
     payerName: row.payer_name ?? '',
     status: row.status as PaymentSubmission['status'],
     createdAt: row.created_at,
+    studentId: row.student_id ?? null,
+    studentName: studentName ?? null,
   }
 }
 
@@ -86,7 +93,7 @@ export async function fetchPaymentSubmissions(): Promise<PaymentSubmission[]> {
   if (!supabase) return []
   const { data, error } = await supabase
     .from('payment_submissions')
-    .select('id, amount_paise, utr, paid_on, note, payer_name, status, created_at')
+    .select('id, amount_paise, utr, paid_on, note, payer_name, status, created_at, student_id, students(display_name)')
     .order('created_at', { ascending: false })
     .limit(50)
   if (error || !data) return []
@@ -100,6 +107,8 @@ export async function fetchPaymentSubmissions(): Promise<PaymentSubmission[]> {
       payer_name: (row.payer_name as string) ?? null,
       status: row.status as string,
       created_at: row.created_at as string,
+      student_id: (row.student_id as string) ?? null,
+      students: row.students as { display_name?: string } | { display_name?: string }[] | null,
     }),
   )
 }
@@ -123,11 +132,14 @@ export async function createPaymentSubmission(input: {
   const schoolId = await defaultSchoolId()
   if (!schoolId) return { ok: false, error: 'School not found. Ask admin to finish school setup.' }
 
+  const studentId = await resolveLinkedStudentId()
+
   const { data, error } = await supabase
     .from('payment_submissions')
     .insert({
       school_id: schoolId,
       submitted_by: input.userId ?? null,
+      student_id: studentId,
       payer_name: input.payerName,
       amount_paise: Math.round(input.amount * 100),
       utr: input.utr.trim(),
@@ -135,7 +147,7 @@ export async function createPaymentSubmission(input: {
       note: input.note || null,
       status: 'Pending',
     })
-    .select('id, amount_paise, utr, paid_on, note, payer_name, status, created_at')
+    .select('id, amount_paise, utr, paid_on, note, payer_name, status, created_at, student_id, students(display_name)')
     .single()
 
   if (error || !data) {
@@ -156,6 +168,8 @@ export async function createPaymentSubmission(input: {
       payer_name: (data.payer_name as string) ?? null,
       status: data.status as string,
       created_at: data.created_at as string,
+      student_id: (data.student_id as string) ?? null,
+      students: data.students as { display_name?: string } | null,
     }),
   }
 }

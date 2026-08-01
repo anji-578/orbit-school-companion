@@ -27,6 +27,7 @@ import {
 import type { LucideIcon } from 'lucide-react'
 import { translate } from '../../i18n'
 import { useAuthStore } from '../../auth/authStore'
+import { childDisplayName, childFirstName } from '../../lib/linkedStudent'
 import { useOrbitStore } from '../../store/orbitStore'
 import type { Role } from '../../types'
 import { OrbitLogo } from '../brand/OrbitLogo'
@@ -140,14 +141,29 @@ export function Sidebar() {
   const mobileMenuOpen = useOrbitStore((s) => s.mobileMenuOpen)
   const setActiveTab = useOrbitStore((s) => s.setActiveTab)
   const setMobileMenuOpen = useOrbitStore((s) => s.setMobileMenuOpen)
+  const linkedStudent = useOrbitStore((s) => s.linkedStudent)
   const session = useAuthStore((s) => s.session)
   const logout = useAuthStore((s) => s.logout)
   const resetDemoData = useOrbitStore((s) => s.resetDemoData)
   const t = (key: string) => translate(lang, key)
   const tabs = getTabsForRole(role, lang)
   const meta = getRoleMeta(role)
-  const profileName = session?.displayName ?? (role === 'teacher' ? 'Mrs. Sarah Davis' : role === 'school' ? 'Admin Desk' : 'Ananya Rao')
-  const profileSub = session?.subtitle ?? t(meta.subKey)
+  const profileName =
+    session?.displayName ??
+    (role === 'student' || role === 'parent'
+      ? childDisplayName(linkedStudent)
+      : role === 'teacher'
+        ? 'Mrs. Sarah Davis'
+        : role === 'school'
+          ? 'Admin Desk'
+          : 'Student')
+  const profileSub =
+    session?.subtitle ??
+    (role === 'student' && linkedStudent?.className
+      ? `${linkedStudent.className}${linkedStudent.section ? ` · Section ${linkedStudent.section}` : ''}`
+      : role === 'parent' && linkedStudent
+        ? childFirstName(linkedStudent)
+        : t(meta.subKey))
   const showDemoChrome =
     session?.provider === 'local-demo' || isPilotDemoEmail(session?.email ?? '')
 

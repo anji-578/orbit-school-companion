@@ -7,6 +7,8 @@ export type HealthCheckId =
   | 'trust'
   | 'alerts'
   | 'syllabus'
+  | 'homework'
+  | 'timetable'
   | 'storage'
   | 'vapid'
 
@@ -35,6 +37,8 @@ export async function probeSystemHealth(): Promise<HealthCheck[]> {
       { id: 'trust', label: 'Trust hardening', ok: false, detail: 'Needs Supabase' },
       { id: 'alerts', label: 'Alerts tables', ok: false, detail: 'Needs Supabase' },
       { id: 'syllabus', label: 'Syllabus state', ok: false, detail: 'Needs Supabase' },
+      { id: 'homework', label: 'Homework completions', ok: false, detail: 'Needs Supabase' },
+      { id: 'timetable', label: 'Class timetable', ok: false, detail: 'Needs Supabase' },
       { id: 'storage', label: 'Notes storage', ok: false, detail: 'Needs Supabase' },
     )
   } else {
@@ -79,6 +83,26 @@ export async function probeSystemHealth(): Promise<HealthCheck[]> {
       label: 'Notes storage',
       ok: !bucketErr,
       detail: bucketErr ? `${bucketErr.message} — run storage.sql` : 'syllabus-notes bucket ready',
+    })
+
+    const hw = await supabase.from('homework_completions').select('homework_id').limit(1)
+    checks.push({
+      id: 'homework',
+      label: 'Homework completions',
+      ok: !hw.error,
+      detail: hw.error ? `${hw.error.message} — run homework_completions.sql` : 'homework_completions ready',
+    })
+
+    const tt = await supabase.from('class_timetable').select('id').limit(1)
+    checks.push({
+      id: 'timetable',
+      label: 'Class timetable',
+      ok: !tt.error && Boolean(tt.data?.length),
+      detail: tt.error
+        ? `${tt.error.message} — run timetable.sql`
+        : tt.data?.length
+          ? 'class_timetable seeded'
+          : 'Table empty — run timetable.sql',
     })
   }
 

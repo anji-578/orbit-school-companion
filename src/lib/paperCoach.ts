@@ -28,18 +28,31 @@ const COACH_SYSTEM = [
   'confidence: 0–100 integer.',
 ].join(' ')
 
+const SUBJECT_LABEL: Record<ScanTarget, string> = {
+  chemistry: 'Chemistry',
+  mathematics: 'Mathematics',
+  science: 'Science',
+  english: 'English',
+  physics: 'Physics',
+}
+
+const SUBJECT_FOCUS: Record<ScanTarget, string> = {
+  chemistry: 'Chemistry / Science lab',
+  mathematics: 'Mathematics',
+  science: 'General Science / Biology',
+  english: 'English language',
+  physics: 'Physics',
+}
+
 function fallbackInsight(target: ScanTarget): PaperCoachInsight {
   const tpl = remediationTemplates[target]
   return {
     title: tpl.title,
-    subject: target === 'chemistry' ? 'Chemistry' : 'Mathematics',
+    subject: SUBJECT_LABEL[target],
     overallQuality: 'mixed',
     confidence: tpl.confidence,
     summary: tpl.analysisText,
-    workingWell: [
-      'Shows attempt structure on the sheet',
-      target === 'chemistry' ? 'Knows reactants vs products' : 'Handles basic variable isolation',
-    ],
+    workingWell: ['Shows attempt structure on the sheet', 'Understands parts of the core idea'],
     needsImprovement: [tpl.flaggedWeakness, 'Needs clearer working steps on paper'],
     flaggedWeakness: tpl.flaggedWeakness,
     nextSteps: [
@@ -89,13 +102,11 @@ function parseInsight(raw: string, target: ScanTarget): PaperCoachInsight | null
         : 0
 
     return {
-      title: typeof parsed.title === 'string' && parsed.title.trim() ? parsed.title : `${target} answer sheet`,
+      title: typeof parsed.title === 'string' && parsed.title.trim() ? parsed.title : `${SUBJECT_LABEL[target]} answer sheet`,
       subject:
         typeof parsed.subject === 'string' && parsed.subject.trim()
           ? parsed.subject
-          : target === 'chemistry'
-            ? 'Chemistry'
-            : 'Mathematics',
+          : SUBJECT_LABEL[target],
       overallQuality,
       confidence,
       summary: parsed.summary.trim(),
@@ -152,9 +163,8 @@ export async function evaluatePaperCoach(
   imageBase64: string,
   mimeType: string,
 ): Promise<PaperCoachInsight> {
-  const subject = target === 'chemistry' ? 'Chemistry / Science' : 'Mathematics'
   const prompt = [
-    `Subject focus: ${subject}.`,
+    `Subject focus: ${SUBJECT_FOCUS[target]}.`,
     'Evaluate this student answer paper photo in coach mode.',
     'Identify what is working, what needs improvement, one primary flagged weakness, and a short remediation plan.',
     'Also create one mini check question tied to the flagged weakness.',

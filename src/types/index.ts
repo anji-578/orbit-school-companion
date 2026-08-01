@@ -6,7 +6,7 @@ export type LeaveStatus = 'Reviewing' | 'Approved' | 'Declined'
 export type FeeStatus = 'Unpaid' | 'Pending' | 'Overdue' | 'Paid'
 export type PaymentSubmissionStatus = 'Pending' | 'Verified' | 'Rejected'
 export type ScanStep = 'select' | 'scanning' | 'evaluated' | 'analogy' | 'validated'
-export type ScanTarget = 'chemistry' | 'mathematics'
+export type ScanTarget = 'chemistry' | 'mathematics' | 'science' | 'english' | 'physics'
 
 export interface PaperCoachInsight {
   title: string
@@ -67,6 +67,9 @@ export interface FeeItem {
   amount: number
   status: FeeStatus
   category: string
+  /** Present when cloud-hydrated; used by school class ledger. */
+  studentId?: string
+  studentName?: string
 }
 
 export interface PaymentRecord {
@@ -240,4 +243,7 @@ export interface PaymentSubmission {
   payerName: string
   status: PaymentSubmissionStatus
   createdAt: string
+  /** Linked child when parent/student submitted; used to clear the right ledger. */
+  studentId?: string | null
+  studentName?: string | null
 }

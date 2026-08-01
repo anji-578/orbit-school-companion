@@ -1,20 +1,22 @@
 import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
+import { childDisplayName } from '../../lib/linkedStudent'
 import { Panel, Card, Eyebrow, ProgressBar } from '../../components/ui/primitives'
-import { STUDENT_NAME } from '../../data/demo'
 
-/** Parent read-only homework tracker for Ananya. */
+/** Parent read-only homework tracker for the linked child. */
 export function ParentHomework() {
   const lang = useOrbitStore((s) => s.lang)
+  const linkedStudent = useOrbitStore((s) => s.linkedStudent)
   const tasks = useOrbitStore((s) => s.tasks)
   const t = (key: string) => translate(lang, key)
+  const childName = childDisplayName(linkedStudent)
 
   const completed = tasks.filter((task) => task.completed)
   const pending = tasks.filter((task) => !task.completed)
   const percent = tasks.length ? Math.round((completed.length / tasks.length) * 100) : 100
 
   return (
-    <Panel title={t('parentHomeworkTitle')} subtitle={t('parentHomeworkDesc').replace('{name}', STUDENT_NAME)}>
+    <Panel title={t('parentHomeworkTitle')} subtitle={t('parentHomeworkDesc').replace('{name}', childName)}>
       <Card className="p-4 space-y-2">
         <div className="flex items-center justify-between">
           <Eyebrow>{t('homeworkCompletion')}</Eyebrow>

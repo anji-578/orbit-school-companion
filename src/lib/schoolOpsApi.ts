@@ -1,4 +1,5 @@
 import { getSupabase, isSupabaseConfigured } from './supabase'
+import { resolveLinkedStudentId } from './linkedStudent'
 import type { BroadcastMessage, CalendarEvent, HomeworkTask, LeaveRequest, LeaveStatus } from '../types'
 
 async function sunriseSchoolId(): Promise<string | null> {
@@ -6,6 +7,17 @@ async function sunriseSchoolId(): Promise<string | null> {
   if (!supabase) return null
   const { data } = await supabase.from('schools').select('id').eq('code', 'SUNRISE').maybeSingle()
   return (data?.id as string | undefined) ?? null
+}
+
+async function currentRole(): Promise<string | null> {
+  const supabase = getSupabase()
+  if (!supabase) return null
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user?.id) return null
+  const { data } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
+  return (data?.role as string | undefined) ?? null
 }
 
 export async function syncAssignHomework(input: HomeworkTask & { userId?: string }): Promise<number | null> {
@@ -30,32 +42,128 @@ export async function syncAssignHomework(input: HomeworkTask & { userId?: string
   return data?.id ? Number(data.id) : null
 }
 
-export async function syncToggleHomework(id: number, completed: boolean): Promise<void> {
+export async function syncToggleHomework(id: number, completed: boolean, studentId?: string | null): Promise<void> {
   if (!isSupabaseConfigured()) return
   const supabase = getSupabase()
   if (!supabase) return
-  await supabase.from('homework_tasks').update({ completed, updated_at: new Date().toISOString() }).eq('id', id)
+
+  const linkedId = studentId ?? (await resolveLinkedStudentId())
+  if (!linkedId) return
+
+  await supabase.from('homework_completions').upsert(
+    {
+      homework_id: id,
+      student_id: linkedId,
+      completed,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'homework_id,student_id' },
+  )
 }
 
-export async function fetchHomeworkTasks(): Promise<HomeworkTask[]> {
+export async function fetchHomeworkTasks(linkedStudentId?: string | null): Promise<HomeworkTask[]> {
   if (!isSupabaseConfigured()) return []
   const supabase = getSupabase()
   if (!supabase) return []
+
+  const role = await currentRole()
+  let studentId = linkedStudentId ?? null
+  if (!studentId && (role === 'student' || role === 'parent')) {
+    studentId = await resolveLinkedStudentId()
+  }
+
   const { data } = await supabase
     .from('homework_tasks')
     .select('id, subject, task, due_label, xp, difficulty, completed')
     .order('created_at', { ascending: false })
     .limit(40)
+
   if (!data?.length) return []
-  return data.map((row) => ({
-    id: Number(row.id),
-    subject: row.subject as string,
-    task: row.task as string,
-    due: (row.due_label as string) || '',
-    xp: Number(row.xp) || 40,
-    difficulty: (row.difficulty as HomeworkTask['difficulty']) || 'Medium',
-    completed: Boolean(row.completed),
-  }))
+
+  let completionMap = new Map<number, boolean>()
+  if (studentId) {
+    const { data: completions } = await supabase
+      .from('homework_completions')
+      .select('homework_id, completed')
+      .eq('student_id', studentId)
+    if (completions?.length) {
+      completionMap = new Map(completions.map((row) => [Number(row.homework_id), Boolean(row.completed)]))
+    }
+  }
+
+  return data.map((row) => {
+    const id = Number(row.id)
+    const completed = studentId ? (completionMap.get(id) ?? false) : Boolean(row.completed)
+    return {
+      id,
+      subject: row.subject as string,
+      task: row.task as string,
+      due: (row.due_label as string) || '',
+      xp: Number(row.xp) || 40,
+      difficulty: (row.difficulty as HomeworkTask['difficulty']) || 'Medium',
+      completed,
+    }
+  })
+}
+
+export type HomeworkStudentProgress = {
+  studentId: string
+  name: string
+  completed: boolean
+}
+
+export type HomeworkClassOverview = {
+  homeworkId: number
+  completedCount: number
+  totalStudents: number
+  students: HomeworkStudentProgress[]
+}
+
+/** Teacher/school view: who finished each assignment. */
+export async function fetchHomeworkClassOverview(
+  homeworkIds: number[],
+): Promise<Record<number, HomeworkClassOverview>> {
+  if (!isSupabaseConfigured() || homeworkIds.length === 0) return {}
+  const supabase = getSupabase()
+  if (!supabase) return {}
+  const schoolId = await sunriseSchoolId()
+  if (!schoolId) return {}
+
+  const [{ data: students }, { data: completions }] = await Promise.all([
+    supabase
+      .from('students')
+      .select('id, display_name, roll_no')
+      .eq('school_id', schoolId)
+      .order('roll_no', { ascending: true }),
+    supabase
+      .from('homework_completions')
+      .select('homework_id, student_id, completed')
+      .in('homework_id', homeworkIds),
+  ])
+
+  if (!students?.length) return {}
+
+  const done = new Set(
+    (completions ?? [])
+      .filter((row) => row.completed)
+      .map((row) => `${Number(row.homework_id)}:${row.student_id as string}`),
+  )
+
+  const result: Record<number, HomeworkClassOverview> = {}
+  for (const hwId of homeworkIds) {
+    const list: HomeworkStudentProgress[] = students.map((s) => ({
+      studentId: s.id as string,
+      name: (s.display_name as string) || 'Student',
+      completed: done.has(`${hwId}:${s.id as string}`),
+    }))
+    result[hwId] = {
+      homeworkId: hwId,
+      totalStudents: list.length,
+      completedCount: list.filter((s) => s.completed).length,
+      students: list,
+    }
+  }
+  return result
 }
 
 export async function syncSubmitLeave(input: {
@@ -171,7 +279,7 @@ export async function fetchCalendarEvents(): Promise<CalendarEvent[]> {
   }))
 }
 
-export async function loadSchoolOpsSnapshot(): Promise<{
+export async function loadSchoolOpsSnapshot(linkedStudentId?: string | null): Promise<{
   tasks?: HomeworkTask[]
   leaves?: LeaveRequest[]
   broadcasts?: BroadcastMessage[]
@@ -179,7 +287,7 @@ export async function loadSchoolOpsSnapshot(): Promise<{
 }> {
   if (!isSupabaseConfigured()) return {}
   const [tasks, leaves, broadcasts, calendarEvents] = await Promise.all([
-    fetchHomeworkTasks(),
+    fetchHomeworkTasks(linkedStudentId),
     fetchLeaveRequests(),
     fetchBroadcasts(),
     fetchCalendarEvents(),

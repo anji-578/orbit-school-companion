@@ -1,7 +1,7 @@
 import { ArrowRight, Bus, CreditCard, MapPin, Sparkles } from 'lucide-react'
 import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
-import { STUDENT_NAME } from '../../data/demo'
+import { childDisplayName, childFirstName } from '../../lib/linkedStudent'
 import { Card, Panel, StatTile } from '../../components/ui/primitives'
 import { InviteRedeemCard } from '../../components/ui/InviteRedeemCard'
 import { LifecycleChart } from '../shared/LifecycleChart'
@@ -21,6 +21,7 @@ function percentOf(raw: string): number {
 export function ParentDashboard() {
   const lang = useOrbitStore((s) => s.lang)
   const classLinked = useOrbitStore((s) => s.classLinked)
+  const linkedStudent = useOrbitStore((s) => s.linkedStudent)
   const studentGrades = useOrbitStore((s) => s.studentGrades)
   const tasks = useOrbitStore((s) => s.tasks)
   const outstandingFees = useOrbitStore((s) => s.outstandingFees)
@@ -30,6 +31,7 @@ export function ParentDashboard() {
   const setActiveTab = useOrbitStore((s) => s.setActiveTab)
 
   const t = (key: string) => translate(lang, key)
+  const childName = childDisplayName(linkedStudent)
   const grade = studentGrades[0]
   const bus = fleet.find((b) => b.id === 'bus_14')
 
@@ -44,7 +46,7 @@ export function ParentDashboard() {
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-black text-white font-display">{t('goodEveningParent')}</h1>
-        <p className="text-xs text-slate-400 mt-1">{t('parentSub')}</p>
+        <p className="text-xs text-slate-400 mt-1">{t('parentSub').replace('{name}', childFirstName(linkedStudent))}</p>
       </div>
 
       {!classLinked ? <InviteRedeemCard /> : null}
@@ -120,7 +122,7 @@ export function ParentDashboard() {
               <Sparkles className="h-5 w-5 text-[var(--accent2)]" aria-hidden />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-white">{STUDENT_NAME}</h3>
+              <h3 className="text-sm font-bold text-white">{childName}</h3>
               <p className="text-[11px] text-slate-400">{t('parentHeroDesc')}</p>
             </div>
           </div>

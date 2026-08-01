@@ -1,8 +1,10 @@
 import { CreditCard, Truck } from 'lucide-react'
+import { childFirstName } from '../../lib/linkedStudent'
 import { useOrbitStore } from '../../store/orbitStore'
 
 export function MobileSimulator() {
   const active = useOrbitStore((s) => s.mobileSimulator)
+  const linkedStudent = useOrbitStore((s) => s.linkedStudent)
   const studyScore = useOrbitStore((s) => s.studyScore)
   const busPosition = useOrbitStore((s) => s.busPosition)
   const busReachedSchool = useOrbitStore((s) => s.busReachedSchool)
@@ -20,7 +22,7 @@ export function MobileSimulator() {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 h-5 w-24 bg-slate-700 rounded-b-xl z-20" />
         <div className="mt-6 space-y-3 overflow-y-auto orbit-scroll flex-1">
           <div>
-            <h4 className="text-slate-300 text-[10px] font-bold uppercase">Ananya's Companion</h4>
+            <h4 className="text-slate-300 text-[10px] font-bold uppercase">{childFirstName(linkedStudent)}&apos;s Companion</h4>
             <p className="text-[9px] text-slate-500">Live preview synced to desktop state</p>
           </div>
           <div className="bg-white/5 rounded-2xl p-3 border border-white/10">

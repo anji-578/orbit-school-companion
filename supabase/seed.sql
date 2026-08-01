@@ -52,12 +52,28 @@ begin
     instructions = excluded.instructions,
     updated_at = now();
 
-  delete from public.fee_items where student_id = 'a1111111-1111-4111-8111-111111111101';
+  delete from public.fee_items
+  where student_id in (
+    'a1111111-1111-4111-8111-111111111101',
+    'a1111111-1111-4111-8111-111111111102',
+    'a1111111-1111-4111-8111-111111111103',
+    'a1111111-1111-4111-8111-111111111104'
+  );
   insert into public.fee_items (school_id, student_id, name, amount_paise, status, category, due_date)
   values
+    -- Ananya Rao
     (sid, 'a1111111-1111-4111-8111-111111111101', 'Tuition — Term 2', 1850000, 'Unpaid', 'Tuition', current_date + 14),
     (sid, 'a1111111-1111-4111-8111-111111111101', 'Lab & Activity', 450000, 'Unpaid', 'Lab', current_date + 21),
-    (sid, 'a1111111-1111-4111-8111-111111111101', 'Transport — Quarterly', 600000, 'Paid', 'Transport', current_date - 30);
+    (sid, 'a1111111-1111-4111-8111-111111111101', 'Transport — Quarterly', 600000, 'Paid', 'Transport', current_date - 30),
+    -- Sarah Chen
+    (sid, 'a1111111-1111-4111-8111-111111111102', 'Tuition — Term 2', 1850000, 'Pending', 'Tuition', current_date + 14),
+    (sid, 'a1111111-1111-4111-8111-111111111102', 'Lab & Activity', 450000, 'Paid', 'Lab', current_date - 10),
+    -- Marcus Johnson
+    (sid, 'a1111111-1111-4111-8111-111111111103', 'Tuition — Term 2', 1850000, 'Overdue', 'Tuition', current_date - 7),
+    (sid, 'a1111111-1111-4111-8111-111111111103', 'Transport — Quarterly', 600000, 'Unpaid', 'Transport', current_date + 5),
+    -- Pranitha Reddy
+    (sid, 'a1111111-1111-4111-8111-111111111104', 'Tuition — Term 2', 1850000, 'Paid', 'Tuition', current_date - 20),
+    (sid, 'a1111111-1111-4111-8111-111111111104', 'Lab & Activity', 450000, 'Paid', 'Lab', current_date - 20);
 
   insert into public.student_grades (id, school_id, student_id, student_name, math, science, chem, comment)
   values (
@@ -95,4 +111,27 @@ begin
   insert into public.syllabus_state (school_id, class_name, curriculum)
   values (sid, 'Grade 8-A', '[]'::jsonb)
   on conflict (school_id, class_name) do nothing;
+
+  -- Class homework (completion is per-student via homework_completions.sql)
+  insert into public.homework_tasks (school_id, subject, task, due_label, xp, difficulty, completed)
+  select sid, v.subject, v.task, v.due_label, v.xp, v.difficulty, false
+  from (values
+    ('Mathematics', 'Complete exercise 4.2 — linear equations Q1–Q8', 'Friday', 50, 'Medium'),
+    ('Science', 'Draw and label the photosynthesis diagram', 'Tomorrow', 40, 'Easy'),
+    ('Chemistry Lab', 'Revise stoichiometry worksheet (Unit 3)', 'Monday', 60, 'Hard')
+  ) as v(subject, task, due_label, xp, difficulty)
+  where not exists (
+    select 1 from public.homework_tasks ht
+    where ht.school_id = sid and ht.task = v.task
+  );
+
+  -- Sample completion: Ananya finished the first Math homework if present
+  insert into public.homework_completions (homework_id, student_id, completed, updated_at)
+  select ht.id, 'a1111111-1111-4111-8111-111111111101', true, now()
+  from public.homework_tasks ht
+  where ht.school_id = sid
+    and ht.task = 'Complete exercise 4.2 — linear equations Q1–Q8'
+  on conflict (homework_id, student_id) do update set
+    completed = excluded.completed,
+    updated_at = now();
 end $$;

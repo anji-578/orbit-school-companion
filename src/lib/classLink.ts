@@ -69,3 +69,58 @@ export async function fetchSchoolInviteCodes(): Promise<{ code: string; role: st
     uses: `${row.use_count}/${row.max_uses}`,
   }))
 }
+
+const ROLE_PREFIX: Record<string, string> = {
+  student: 'STU',
+  parent: 'PAR',
+  teacher: 'TCH',
+  school: 'ADM',
+}
+
+export async function createClassInvite(input: {
+  role: 'student' | 'parent' | 'teacher' | 'school'
+  className?: string
+  studentId?: string
+  maxUses?: number
+}): Promise<{ ok: true; code: string } | { ok: false; error: string }> {
+  if (!isSupabaseConfigured()) {
+    return { ok: false, error: 'Connect Supabase to create invite codes.' }
+  }
+  const supabase = getSupabase()
+  if (!supabase) return { ok: false, error: 'Supabase client unavailable.' }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user?.id) return { ok: false, error: 'Not signed in.' }
+
+  const { data: profile } = await supabase.from('profiles').select('school_id, role').eq('id', user.id).maybeSingle()
+  if (profile?.role !== 'school' || !profile.school_id) {
+    return { ok: false, error: 'Only school admins can create invites.' }
+  }
+
+  const { data: school } = await supabase
+    .from('schools')
+    .select('id, code')
+    .eq('id', profile.school_id as string)
+    .maybeSingle()
+  if (!school?.id) return { ok: false, error: 'School not found.' }
+
+  const prefix = ROLE_PREFIX[input.role] ?? 'INV'
+  const classSlug = (input.className || 'CLASS').replace(/[^a-zA-Z0-9]/g, '').slice(0, 6).toUpperCase() || 'CLS'
+  const suffix = Math.random().toString(36).slice(2, 6).toUpperCase()
+  const code = `${(school.code as string) || 'SCHOOL'}-${prefix}-${classSlug}-${suffix}`
+
+  const { error } = await supabase.from('class_invites').insert({
+    code,
+    school_id: school.id as string,
+    role: input.role,
+    student_id: input.studentId || null,
+    class_name: input.className?.trim() || null,
+    max_uses: input.maxUses ?? 20,
+    active: true,
+  })
+
+  if (error) return { ok: false, error: error.message }
+  return { ok: true, code }
+}

@@ -108,9 +108,12 @@ When you create a Supabase project: paste URL + anon key into `.env` / Vercel en
 1. `supabase/schema.sql`
 2. `supabase/trust_hardening.sql` (invites, syllabus sync, tighter RLS)
 3. `supabase/seed.sql` (Sunrise + Ananya + invite codes)
-4. `supabase/alerts.sql` (push/SMS + notification bell RLS)
-5. `supabase/storage.sql` (syllabus note files bucket)
-6. Optional re-run: `supabase/notifications_rls.sql` if alerts.sql was applied earlier without bell policies
+4. `supabase/homework_completions.sql` (per-student homework tracking)
+5. `supabase/fees_ledger.sql` (UTR ↔ student link for class fee ledger)
+6. `supabase/timetable.sql` (Grade 8-A week schedule)
+7. `supabase/alerts.sql` (push/SMS + notification bell RLS)
+8. `supabase/storage.sql` (syllabus note files bucket)
+9. Optional re-run: `supabase/notifications_rls.sql` if alerts.sql was applied earlier without bell policies
 
 **Confirm live:** open any role → **Alerts** → “Live system check” (seed, trust, alerts, storage, VAPID).
 

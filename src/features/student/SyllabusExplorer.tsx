@@ -117,30 +117,44 @@ export function SyllabusExplorer() {
                           ) : (
                             <p className="text-[10px] text-slate-500 mt-0.5">{t('awaitingTeacher')}</p>
                           )}
+                          {sub.noteDataUrl ? (
+                            <p className="text-[10px] text-[var(--accent2)] mt-0.5 truncate">
+                              {sub.noteName || t('teacherNotes')}
+                            </p>
+                          ) : null}
                         </div>
                       </div>
-                      {sub.noteDataUrl ? (
-                        <div className="flex flex-wrap gap-2 pl-6 sm:pl-0">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setPreview({ name: sub.noteName, dataUrl: sub.noteDataUrl, mime: sub.noteMime })
-                            }
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-bold text-[var(--accent2)] bg-white/5 border border-white/10"
-                          >
-                            <Eye className="h-3 w-3" aria-hidden />
-                            {t('previewNotes')}
-                          </button>
-                          <a
-                            href={sub.noteDataUrl}
-                            download={sub.noteName || 'teacher-notes'}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-bold text-slate-300 bg-white/5 border border-white/10"
-                          >
+                      <div className="flex flex-wrap gap-2 pl-6 sm:pl-0">
+                        {sub.noteDataUrl ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setPreview({ name: sub.noteName, dataUrl: sub.noteDataUrl, mime: sub.noteMime })
+                              }
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-bold text-[var(--accent2)] bg-white/5 border border-white/10"
+                            >
+                              <Eye className="h-3 w-3" aria-hidden />
+                              {t('previewNotes')}
+                            </button>
+                            <a
+                              href={sub.noteDataUrl}
+                              download={sub.noteName || 'teacher-notes'}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-bold text-slate-300 bg-white/5 border border-white/10"
+                            >
+                              <FileText className="h-3 w-3" aria-hidden />
+                              {t('openNotes')}
+                            </a>
+                          </>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-bold text-slate-500 border border-dashed border-white/10">
                             <FileText className="h-3 w-3" aria-hidden />
-                            {t('download')}
-                          </a>
-                        </div>
-                      ) : null}
+                            {t('noNotesYet')}
+                          </span>
+                        )}
+                      </div>
                     </li>
                   ))}
                 </ul>

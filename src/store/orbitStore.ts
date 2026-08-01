@@ -19,6 +19,8 @@ import {
 import { computeStudyScore } from '../lib/studyScore'
 import { dispatchRemoteAlert, eventTypeFromNotification } from '../lib/alerts'
 import { resolveClassLinked } from '../lib/classLink'
+import { childFirstName, fetchLinkedStudent, type LinkedStudent } from '../lib/linkedStudent'
+import { currentDayCode, fetchTimetableByDay, getLocalTimetable, type TimetableByDay } from '../lib/timetableApi'
 import { getSupabase, isSupabaseConfigured } from '../lib/supabase'
 import {
   createPaymentSubmission,
@@ -134,6 +136,7 @@ interface OrbitState {
   calendarEvents: CalendarEvent[]
   leaves: LeaveRequest[]
   curriculum: SyllabusChapter[]
+  timetableByDay: TimetableByDay
   candidates: Candidate[]
   fleet: FleetBus[]
   notifications: NotificationItem[]
@@ -171,6 +174,8 @@ interface OrbitState {
 
   studyScore: number
   classLinked: boolean
+  /** Resolved child for parent/student views; null when unlinked. */
+  linkedStudent: LinkedStudent | null
   /** True when Supabase is configured — empty remote arrays must not fall back to demo seed. */
   usingCloudData: boolean
   getAttendancePercent: () => number
@@ -302,6 +307,7 @@ export const useOrbitStore = create<OrbitState>()(
       calendarEvents: initialCalendar,
       leaves: initialLeaves,
       curriculum: initialCurriculum,
+      timetableByDay: getLocalTimetable(),
       candidates: initialCandidates,
       fleet: initialFleet,
       notifications: initialNotifications,
@@ -333,12 +339,13 @@ export const useOrbitStore = create<OrbitState>()(
       selectedValidationAnswer: null,
       validationSubmitted: false,
 
-      selectedGanttDay: 'MON',
+      selectedGanttDay: currentDayCode(),
       selectedLifecycleSubject: 'chemLabSubject',
       selectedLifecycleMetric: 'marks',
 
       studyScore: computeStudyScore(attendancePercent(initialAttendance), homeworkPercent(initialTasks)),
       classLinked: true,
+      linkedStudent: null,
       usingCloudData: false,
 
       getAttendancePercent: () => attendancePercent(get().attendanceRecords),
@@ -527,9 +534,12 @@ export const useOrbitStore = create<OrbitState>()(
         get().pushNotification({
           role: 'parent',
           title: 'Homework assigned',
-          body: `Ananya received: ${task} (${subject})`,
+          body: `${childFirstName(get().linkedStudent)} received: ${task} (${subject})`,
         })
-        get().triggerToast('Homework assigned to Class 11-A · student & parent notified.')
+        const classLabel = get().linkedStudent?.className
+        get().triggerToast(
+          `Homework assigned${classLabel ? ` · ${classLabel}` : ''} · student & parent notified.`,
+        )
       },
 
       toggleTask: (id) => {
@@ -553,7 +563,7 @@ export const useOrbitStore = create<OrbitState>()(
           return { tasks, totalXp, unlockedBadges, studyScore }
         })
         if (before) {
-          void syncToggleHomework(id, !before.completed)
+          void syncToggleHomework(id, !before.completed, get().linkedStudent?.id)
         }
       },
 
@@ -577,7 +587,7 @@ export const useOrbitStore = create<OrbitState>()(
           get().pushNotification({
             role: 'parent',
             title: 'Report card updated',
-            body: "Ananya's marks and teacher comments were updated.",
+            body: `${childFirstName(get().linkedStudent)}'s marks and teacher comments were updated.`,
           })
           get().triggerToast('Marks saved and synced to Student + Parent portals.')
         })
@@ -624,12 +634,18 @@ export const useOrbitStore = create<OrbitState>()(
         const sessionEmail = (await getSupabase()?.auth.getUser())?.data.user?.email ?? ''
         const role = get().role
         const classLinked = await resolveClassLinked(sessionEmail, role)
-        const [ops, roster, attendanceRecords, studentGrades, remoteSyllabus] = await Promise.all([
-          loadSchoolOpsSnapshot(),
+        const linkedStudent = await fetchLinkedStudent(sessionEmail, role)
+        const timetableClass =
+          linkedStudent?.className && linkedStudent.section
+            ? `${linkedStudent.className}-${linkedStudent.section}`
+            : 'Grade 8-A'
+        const [ops, roster, attendanceRecords, studentGrades, remoteSyllabus, timetableByDay] = await Promise.all([
+          loadSchoolOpsSnapshot(linkedStudent?.id),
           fetchRosterWithTodayAttendance(),
           fetchAttendanceHistory(),
-          fetchStudentGrades(),
+          fetchStudentGrades(linkedStudent?.id),
           fetchSyllabusState(),
+          fetchTimetableByDay(timetableClass),
           get().loadPaymentWorkspace(),
         ])
         await get().refreshNotifications()
@@ -648,6 +664,7 @@ export const useOrbitStore = create<OrbitState>()(
           return {
             usingCloudData: cloud,
             classLinked,
+            linkedStudent,
             tasks,
             leaves: cloud ? (ops.leaves ?? []) : (ops.leaves ?? s.leaves),
             broadcasts: cloud ? (ops.broadcasts ?? []) : (ops.broadcasts ?? s.broadcasts),
@@ -656,6 +673,10 @@ export const useOrbitStore = create<OrbitState>()(
             attendanceRecords: nextAttendance,
             studentGrades: cloud ? studentGrades : studentGrades.length ? studentGrades : s.studentGrades,
             curriculum,
+            timetableByDay:
+              cloud || Object.values(timetableByDay).some((d) => d.theory.length + d.lab.length > 0)
+                ? timetableByDay
+                : s.timetableByDay,
             studyScore: computeStudyScore(attendancePercent(nextAttendance), homeworkPercent(tasks)),
           }
         })
@@ -671,11 +692,19 @@ export const useOrbitStore = create<OrbitState>()(
           get().triggerToast(result.error)
           return false
         }
-        set((s) => ({
-          paymentSubmissions: [result.submission, ...s.paymentSubmissions],
-          fees: s.fees.map((f) => (f.status !== 'Paid' ? { ...f, status: 'Pending' as const } : f)),
-        }))
-        void markFeeItemsStatus('Pending')
+        const studentId = result.submission.studentId
+        set((s) => {
+          const fees = s.fees.map((f) => {
+            const sameChild = !studentId || !f.studentId || f.studentId === studentId
+            return sameChild && f.status !== 'Paid' ? { ...f, status: 'Pending' as const } : f
+          })
+          return {
+            paymentSubmissions: [result.submission, ...s.paymentSubmissions],
+            fees,
+            outstandingFees: fees.filter((f) => f.status !== 'Paid').reduce((sum, f) => sum + f.amount, 0),
+          }
+        })
+        void markFeeItemsStatus('Pending', studentId)
         get().pushNotification({
           role: 'school',
           title: 'UTR payment submitted',
@@ -711,7 +740,8 @@ export const useOrbitStore = create<OrbitState>()(
           return
         }
 
-        const amount = target?.amount ?? get().outstandingFees
+        const amount = target?.amount ?? 0
+        const studentId = target?.studentId
         const receiptId = `UTR-${Math.floor(10000 + Math.random() * 90000)}`
         const date = new Date().toLocaleDateString('en-IN', {
           year: 'numeric',
@@ -719,24 +749,34 @@ export const useOrbitStore = create<OrbitState>()(
           day: '2-digit',
         })
 
-        set((s) => ({
-          paymentSubmissions: s.paymentSubmissions.map((p) => (p.id === id ? { ...p, status } : p)),
-          outstandingFees: 0,
-          fees: s.fees.map((f) => ({ ...f, status: 'Paid' as const })),
-          paymentHistory: [
-            {
-              id: Date.now(),
-              name: 'UPI / UTR settlement',
-              amount,
-              status: 'Paid' as const,
-              date,
-              receiptId,
-            },
-            ...s.paymentHistory,
-          ],
-          paymentReceipt: { id: receiptId, date, amount, ref: id },
-        }))
-        void markAllFeesPaid()
+        set((s) => {
+          const fees = s.fees.map((f) => {
+            if (studentId && f.studentId && f.studentId !== studentId) return f
+            if (!studentId && f.studentId) return f
+            return { ...f, status: 'Paid' as const }
+          })
+          const outstandingFees = fees.filter((f) => f.status !== 'Paid').reduce((sum, f) => sum + f.amount, 0)
+          return {
+            paymentSubmissions: s.paymentSubmissions.map((p) => (p.id === id ? { ...p, status } : p)),
+            outstandingFees,
+            fees,
+            paymentHistory: [
+              {
+                id: Date.now(),
+                name: target?.studentName
+                  ? `UPI / UTR · ${target.studentName}`
+                  : 'UPI / UTR settlement',
+                amount,
+                status: 'Paid' as const,
+                date,
+                receiptId,
+              },
+              ...s.paymentHistory,
+            ],
+            paymentReceipt: { id: receiptId, date, amount, ref: id },
+          }
+        })
+        void markAllFeesPaid(studentId)
         get().pushNotification({
           role: 'parent',
           title: 'Fee payment verified',
@@ -967,7 +1007,7 @@ export const useOrbitStore = create<OrbitState>()(
           get().pushNotification({
             role: 'parent',
             title: 'Bus arrived at school',
-            body: 'Bus 14 reached campus. Ananya is safe at school.',
+            body: `Bus 14 reached campus. ${childFirstName(get().linkedStudent)} is safe at school.`,
           })
         }
       },
@@ -999,6 +1039,7 @@ export const useOrbitStore = create<OrbitState>()(
           calendarEvents: initialCalendar,
           leaves: initialLeaves,
           curriculum: initialCurriculum,
+          timetableByDay: getLocalTimetable(),
           candidates: initialCandidates,
           fleet: initialFleet,
           notifications: initialNotifications,
@@ -1146,18 +1187,18 @@ export const useOrbitStore = create<OrbitState>()(
           set({ validationSubmitted: false })
           return
         }
-        const chemOrMath = scanTarget === 'chemistry' ? 'chem' : 'math'
+        const gradeField =
+          scanTarget === 'chemistry' ? 'chem' : scanTarget === 'science' || scanTarget === 'physics' ? 'science' : 'math'
         set((s) => ({
           scanStep: 'validated',
           studentGrades: s.studentGrades.map((g) =>
-            g.id === 'g1'
+            g.id === 'g1' || g.id === s.studentGrades[0]?.id
               ? {
                   ...g,
-                  [chemOrMath]: '48/50',
-                  comment:
-                    scanTarget === 'chemistry'
-                      ? `Growth after paper coach: ${insight.flaggedWeakness}`
-                      : `Growth after paper coach: ${insight.flaggedWeakness}`,
+                  ...(scanTarget === 'english'
+                    ? {}
+                    : { [gradeField]: '48/50' }),
+                  comment: `Growth after paper coach (${insight.subject}): ${insight.flaggedWeakness}`,
                 }
               : g,
           ),
@@ -1173,7 +1214,7 @@ export const useOrbitStore = create<OrbitState>()(
         get().pushNotification({
           role: 'parent',
           title: 'Paper coach update',
-          body: `Ananya practiced ${insight.subject}: ${insight.flaggedWeakness}`,
+          body: `${childFirstName(get().linkedStudent)} practiced ${insight.subject}: ${insight.flaggedWeakness}`,
         })
         get().triggerToast('Check passed · Concept Master unlocked.')
       },

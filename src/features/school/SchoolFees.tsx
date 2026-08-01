@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { BellRing, Check, Save, X } from 'lucide-react'
 import { useAuthStore } from '../../auth/authStore'
 import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
+import { groupFeesByStudent } from '../../lib/feesApi'
 import { Panel, Card, Eyebrow, StatTile } from '../../components/ui/primitives'
 
 const FEE_STATUS_CLASS: Record<string, string> = {
@@ -37,6 +38,8 @@ export function SchoolFees() {
   const t = (key: string) => translate(lang, key)
   const collected = paymentHistory.reduce((sum, p) => sum + p.amount, 0)
   const pending = paymentSubmissions.filter((p) => p.status === 'Pending')
+  const ledger = useMemo(() => groupFeesByStudent(fees), [fees])
+  const familiesWithDues = ledger.filter((g) => g.outstanding > 0).length
 
   useEffect(() => {
     void loadPaymentWorkspace()
@@ -72,25 +75,61 @@ export function SchoolFees() {
             accent={outstandingFees > 0 ? '#FF6B8B' : '#22C55E'}
           />
           <StatTile label={t('collectedLabel')} value={`₹${collected.toLocaleString()}`} accent="#22C55E" />
-          <StatTile label={t('pendingUtrTitle')} value={String(pending.length)} />
+          <StatTile label={t('familiesWithDues')} value={String(familiesWithDues)} />
         </div>
 
-        <div className="space-y-2.5">
-          {fees.map((fee) => (
-            <div key={fee.id} className="flex items-center justify-between gap-3 p-3.5 rounded-xl bg-white/5 border border-white/10">
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-white truncate">{fee.name}</p>
-                <p className="text-[10px] text-slate-400">{fee.category}</p>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-xs font-black text-white">₹{fee.amount.toLocaleString()}</span>
-                <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-full border ${FEE_STATUS_CLASS[fee.status]}`}>
-                  {fee.status}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
+        {ledger.length === 0 ? (
+          <p className="text-xs text-slate-400 py-4 text-center">{t('feeLedgerEmpty')}</p>
+        ) : (
+          <div className="space-y-4">
+            {ledger.map((group) => (
+              <Card key={group.studentId} className="p-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-white truncate">{group.studentName}</p>
+                    <Eyebrow>
+                      {group.unpaidCount > 0
+                        ? t('childOutstanding')
+                            .replace('{count}', String(group.unpaidCount))
+                            .replace('{amount}', `₹${group.outstanding.toLocaleString()}`)
+                        : t('childFeesCleared')}
+                    </Eyebrow>
+                  </div>
+                  <span
+                    className={`text-[9px] font-black uppercase px-2 py-1 rounded-full border shrink-0 ${
+                      group.outstanding > 0
+                        ? 'bg-rose-500/15 text-rose-300 border-rose-500/25'
+                        : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/25'
+                    }`}
+                  >
+                    {group.outstanding > 0 ? `₹${group.outstanding.toLocaleString()}` : t('cleared')}
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  {group.fees.map((fee) => (
+                    <div
+                      key={fee.id}
+                      className="flex items-center justify-between gap-3 p-2.5 rounded-lg bg-white/5 border border-white/10"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-white truncate">{fee.name}</p>
+                        <p className="text-[10px] text-slate-400">{fee.category}</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-xs font-black text-white">₹{fee.amount.toLocaleString()}</span>
+                        <span
+                          className={`text-[9px] font-black uppercase px-2 py-1 rounded-full border ${FEE_STATUS_CLASS[fee.status]}`}
+                        >
+                          {fee.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
       </Panel>
 
       <Panel title={t('schoolPaymentSettingsTitle')} subtitle={t('schoolPaymentSettingsDesc')}>
@@ -151,7 +190,9 @@ export function SchoolFees() {
                   <div>
                     <p className="text-xs font-bold text-white font-mono">{p.utr}</p>
                     <Eyebrow>
-                      {p.payerName || 'Parent'} · ₹{p.amount.toLocaleString()} · {p.paidOn || '—'}
+                      {p.payerName || 'Parent'}
+                      {p.studentName ? ` · ${p.studentName}` : ''} · ₹{p.amount.toLocaleString()} ·{' '}
+                      {p.paidOn || '—'}
                     </Eyebrow>
                     {p.note ? <p className="text-[10px] text-slate-400 mt-1">{p.note}</p> : null}
                   </div>

@@ -1,15 +1,18 @@
+import { useMemo } from 'react'
 import { ArrowRight, Briefcase, CalendarDays, UserCheck } from 'lucide-react'
 import { useAuthStore } from '../../auth/authStore'
 import { chapterProgress, curriculumProgress, useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
+import { currentDayCode, deriveTodayTimeline } from '../../lib/timetableApi'
 import { Card, Eyebrow, Panel, ProgressBar, StatTile } from '../../components/ui/primitives'
-import { teacherVacancies, todayTimeline } from '../../data/demo'
+import { teacherVacancies } from '../../data/demo'
 
 export function TeacherDashboard() {
   const lang = useOrbitStore((s) => s.lang)
   const roster = useOrbitStore((s) => s.roster)
   const leaves = useOrbitStore((s) => s.leaves)
   const curriculum = useOrbitStore((s) => s.curriculum)
+  const timetableByDay = useOrbitStore((s) => s.timetableByDay)
   const setActiveTab = useOrbitStore((s) => s.setActiveTab)
   const displayName = useAuthStore((s) => s.session?.displayName)
   const firstName = (displayName ?? 'Teacher').split(' ')[0]
@@ -22,6 +25,10 @@ export function TeacherDashboard() {
   const topChapters = [...curriculum]
     .sort((a, b) => chapterProgress(b) - chapterProgress(a))
     .slice(0, 3)
+  const todayTimeline = useMemo(
+    () => deriveTodayTimeline(timetableByDay[currentDayCode()]),
+    [timetableByDay],
+  )
 
   return (
     <div className="space-y-6">
@@ -46,8 +53,11 @@ export function TeacherDashboard() {
       <div className="grid lg:grid-cols-2 gap-4">
         <Panel title={t('todaysSchedule')}>
           <div className="space-y-2.5">
-            {todayTimeline.map((item) => (
-              <div key={item.name} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
+            {todayTimeline.length === 0 ? (
+              <p className="text-xs text-slate-400 text-center py-6">{t('timetableEmpty')}</p>
+            ) : (
+              todayTimeline.map((item) => (
+              <div key={item.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
                 <div>
                   <p className="text-xs font-bold text-white">{item.name}</p>
                   <p className="text-[10px] text-slate-400">
@@ -66,7 +76,8 @@ export function TeacherDashboard() {
                   {item.status}
                 </span>
               </div>
-            ))}
+              ))
+            )}
           </div>
         </Panel>
 
