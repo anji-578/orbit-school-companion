@@ -1,5 +1,5 @@
 import { getSupabase, isSupabaseConfigured } from './supabase'
-import { resolveSchoolId } from './schoolPolicy'
+import { classLabelsMatch, resolveClassLabel, resolveSchoolId } from './schoolPolicy'
 import { resolveLinkedStudentId } from './linkedStudent'
 import type { BroadcastMessage, CalendarEvent, HomeworkTask, LeaveRequest, LeaveStatus } from '../types'
 
@@ -15,15 +15,17 @@ async function currentRole(): Promise<string | null> {
   return (data?.role as string | undefined) ?? null
 }
 
-export async function syncAssignHomework(input: HomeworkTask & { userId?: string }): Promise<number | null> {
+export async function syncAssignHomework(input: HomeworkTask & { userId?: string; className?: string }): Promise<number | null> {
   if (!isSupabaseConfigured()) return null
   const supabase = getSupabase()
   if (!supabase) return null
   const schoolId = await resolveSchoolId()
+  const className = (input.className || resolveClassLabel()).trim()
   const { data } = await supabase
     .from('homework_tasks')
     .insert({
       school_id: schoolId,
+      class_name: className,
       subject: input.subject,
       task: input.task,
       due_label: input.due,
@@ -67,13 +69,35 @@ export async function fetchHomeworkTasks(linkedStudentId?: string | null): Promi
     studentId = await resolveLinkedStudentId()
   }
 
+  let classFilter = resolveClassLabel()
+  if (studentId) {
+    const { data: student } = await supabase
+      .from('students')
+      .select('class_name, section')
+      .eq('id', studentId)
+      .maybeSingle()
+    if (student?.class_name) {
+      classFilter = resolveClassLabel({
+        linkedClassName: student.class_name as string,
+        linkedSection: (student.section as string | null) ?? null,
+      })
+    }
+  }
+
   const { data } = await supabase
     .from('homework_tasks')
-    .select('id, subject, task, due_label, xp, difficulty, completed')
+    .select('id, subject, task, due_label, xp, difficulty, completed, class_name')
     .order('created_at', { ascending: false })
-    .limit(40)
+    .limit(80)
 
   if (!data?.length) return []
+
+  const scoped = data.filter((row) => {
+    const hwClass = (row.class_name as string | null) || ''
+    // Legacy rows without class_name stay visible; new rows match active/linked class.
+    if (!hwClass.trim()) return true
+    return classLabelsMatch(hwClass, classFilter)
+  }).slice(0, 40)
 
   let completionMap = new Map<number, boolean>()
   if (studentId) {
@@ -86,7 +110,7 @@ export async function fetchHomeworkTasks(linkedStudentId?: string | null): Promi
     }
   }
 
-  return data.map((row) => {
+  return scoped.map((row) => {
     const id = Number(row.id)
     const completed = studentId ? (completionMap.get(id) ?? false) : Boolean(row.completed)
     return {
@@ -124,19 +148,25 @@ export async function fetchHomeworkClassOverview(
   const schoolId = await resolveSchoolId()
   if (!schoolId) return {}
 
-  const [{ data: students }, { data: completions }] = await Promise.all([
+  const activeClass = resolveClassLabel()
+  const [{ data: students }, { data: completions }, { data: homeworkRows }] = await Promise.all([
     supabase
       .from('students')
-      .select('id, display_name, roll_no')
+      .select('id, display_name, roll_no, class_name, section')
       .eq('school_id', schoolId)
       .order('roll_no', { ascending: true }),
     supabase
       .from('homework_completions')
       .select('homework_id, student_id, completed')
       .in('homework_id', homeworkIds),
+    supabase.from('homework_tasks').select('id, class_name').in('id', homeworkIds),
   ])
 
   if (!students?.length) return {}
+
+  const hwClassById = new Map(
+    (homeworkRows ?? []).map((row) => [Number(row.id), ((row.class_name as string | null) || activeClass).trim()]),
+  )
 
   const done = new Set(
     (completions ?? [])
@@ -146,7 +176,15 @@ export async function fetchHomeworkClassOverview(
 
   const result: Record<number, HomeworkClassOverview> = {}
   for (const hwId of homeworkIds) {
-    const list: HomeworkStudentProgress[] = students.map((s) => ({
+    const hwClass = hwClassById.get(hwId) || activeClass
+    const classStudents = students.filter((s) => {
+      const label = resolveClassLabel({
+        linkedClassName: (s.class_name as string) || '',
+        linkedSection: (s.section as string | null) ?? null,
+      })
+      return classLabelsMatch(label, hwClass)
+    })
+    const list: HomeworkStudentProgress[] = (classStudents.length ? classStudents : students).map((s) => ({
       studentId: s.id as string,
       name: (s.display_name as string) || 'Student',
       completed: done.has(`${hwId}:${s.id as string}`),

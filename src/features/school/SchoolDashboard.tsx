@@ -5,7 +5,7 @@ import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
 import { createClassInvite, fetchSchoolInviteCodes } from '../../lib/classLink'
 import { exportAttendanceCsv, exportGradesCsv } from '../../lib/dataExport'
-import { readSchoolPolicy, writeSchoolPolicy } from '../../lib/schoolPolicy'
+import { readSchoolPolicy, saveSchoolPolicy } from '../../lib/schoolPolicy'
 import { isSupabaseConfigured } from '../../lib/supabaseConfig'
 import { Card, Eyebrow, Panel, StatTile } from '../../components/ui/primitives'
 import { InviteRedeemCard } from '../../components/ui/InviteRedeemCard'
@@ -101,8 +101,9 @@ export function SchoolDashboard() {
               value={inviteClass}
               onChange={(e) => setInviteClass(e.target.value)}
               onBlur={() => {
-                writeSchoolPolicy({ classLabel: inviteClass })
-                triggerToast(t('schoolPolicySaved'))
+                void saveSchoolPolicy({ classLabel: inviteClass }).then((result) => {
+                  triggerToast(result.ok ? t('schoolPolicySaved') : result.error || t('schoolPolicySaved'))
+                })
               }}
               className="field w-full rounded-lg px-3 py-2.5 text-sm"
               placeholder="e.g. Grade 8-A"

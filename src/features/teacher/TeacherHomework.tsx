@@ -4,6 +4,7 @@ import { CheckCircle2, ChevronDown, ChevronUp, Circle, Plus } from 'lucide-react
 import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
 import { fetchHomeworkClassOverview, type HomeworkClassOverview } from '../../lib/schoolOpsApi'
+import { readSchoolPolicy } from '../../lib/schoolPolicy'
 import { isSupabaseConfigured } from '../../lib/supabaseConfig'
 import { Panel, Card, Eyebrow } from '../../components/ui/primitives'
 import type { HomeworkTask } from '../../types'
@@ -113,7 +114,10 @@ export function TeacherHomework() {
 
   return (
     <div className="space-y-6">
-      <Panel title={t('teacherHomeworkTitle')} subtitle={t('teacherHomeworkDesc')}>
+      <Panel
+        title={t('teacherHomeworkTitle')}
+        subtitle={`${t('teacherHomeworkDesc')} · ${readSchoolPolicy().classLabel}`}
+      >
         <div className="mb-3">
           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
             {t('homeworkQuickDefaults')}

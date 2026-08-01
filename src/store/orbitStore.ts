@@ -47,7 +47,7 @@ import {
   fetchRosterWithTodayAttendance,
 } from '../lib/attendanceApi'
 import { startAttendanceQueueSync, upsertAttendanceMarkQueued } from '../lib/attendanceQueue'
-import { resolveClassLabel } from '../lib/schoolPolicy'
+import { fetchSchoolPolicy, resolveClassLabel } from '../lib/schoolPolicy'
 import { fetchStudentGrades, saveStudentGrades } from '../lib/gradesApi'
 import { fetchFeeItems, markAllFeesPaid, markFeeItemsStatus } from '../lib/feesApi'
 import { deleteSyllabusNoteFile, fetchSyllabusState, mergeCurriculum, saveSyllabusState, uploadSyllabusNoteFile } from '../lib/syllabusApi'
@@ -540,6 +540,10 @@ export const useOrbitStore = create<OrbitState>()(
       },
 
       assignHomework: ({ subject, task, due, xp, difficulty }) => {
+        const className = resolveClassLabel({
+          linkedClassName: get().linkedStudent?.className,
+          linkedSection: get().linkedStudent?.section,
+        })
         const entry: HomeworkTask = {
           id: Date.now(),
           subject,
@@ -554,7 +558,7 @@ export const useOrbitStore = create<OrbitState>()(
           const studyScore = computeStudyScore(attendancePercent(s.attendanceRecords), homeworkPercent(tasks))
           return { tasks, studyScore }
         })
-        void syncAssignHomework(entry).then((remoteId) => {
+        void syncAssignHomework({ ...entry, className }).then((remoteId) => {
           if (remoteId) {
             set((s) => ({
               tasks: s.tasks.map((t) => (t.id === entry.id ? { ...t, id: remoteId } : t)),
@@ -674,6 +678,7 @@ export const useOrbitStore = create<OrbitState>()(
       hydrateFromSupabase: async () => {
         const cloud = isSupabaseConfigured()
         await claimDemoLinks()
+        await fetchSchoolPolicy()
         const sessionEmail = (await getSupabase()?.auth.getUser())?.data.user?.email ?? ''
         const role = get().role
         const classLinked = await resolveClassLinked(sessionEmail, role)

@@ -8,7 +8,7 @@ import {
   type TimetableSlot,
 } from '../../lib/timetableApi'
 import { isSupabaseConfigured } from '../../lib/supabaseConfig'
-import { readSchoolPolicy, writeSchoolPolicy } from '../../lib/schoolPolicy'
+import { readSchoolPolicy, saveSchoolPolicy } from '../../lib/schoolPolicy'
 import { Panel, Card, Eyebrow } from '../../components/ui/primitives'
 
 const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI'] as const
@@ -89,7 +89,7 @@ export function SchoolTimetable() {
 
   const onSave = async () => {
     setSaving(true)
-    writeSchoolPolicy({ classLabel: className })
+    await saveSchoolPolicy({ classLabel: className })
     await saveTimetable(className.trim() || readSchoolPolicy().classLabel, draft)
     setSaving(false)
   }
@@ -211,7 +211,9 @@ export function SchoolTimetable() {
           type="text"
           value={className}
           onChange={(e) => setClassName(e.target.value)}
-          onBlur={() => writeSchoolPolicy({ classLabel: className })}
+          onBlur={() => {
+            void saveSchoolPolicy({ classLabel: className })
+          }}
           className="field w-full rounded-lg px-3 py-2 text-sm"
           placeholder="e.g. Grade 8-A"
         />

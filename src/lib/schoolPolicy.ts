@@ -61,6 +61,55 @@ export async function resolveSchoolId(): Promise<string | null> {
   return (school?.id as string | undefined) ?? null
 }
 
+/** Load active class from Supabase; cache locally. Falls back to local/demo. */
+export async function fetchSchoolPolicy(): Promise<SchoolPolicy> {
+  const local = readSchoolPolicy()
+  if (!isSupabaseConfigured()) return local
+  const supabase = getSupabase()
+  if (!supabase) return local
+  const schoolId = await resolveSchoolId()
+  if (!schoolId) return local
+
+  const { data, error } = await supabase
+    .from('school_policy')
+    .select('active_class_label')
+    .eq('school_id', schoolId)
+    .maybeSingle()
+
+  if (error || !data?.active_class_label) return local
+  return writeSchoolPolicy({ classLabel: String(data.active_class_label) })
+}
+
+/** Persist active class locally + to Supabase (school/teacher). */
+export async function saveSchoolPolicy(
+  next: Partial<SchoolPolicy>,
+): Promise<{ ok: boolean; policy: SchoolPolicy; error?: string }> {
+  const policy = writeSchoolPolicy(next)
+  if (!isSupabaseConfigured()) return { ok: true, policy }
+  const supabase = getSupabase()
+  if (!supabase) return { ok: true, policy }
+
+  const schoolId = await resolveSchoolId()
+  if (!schoolId) return { ok: false, policy, error: 'School not found' }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  const { error } = await supabase.from('school_policy').upsert(
+    {
+      school_id: schoolId,
+      active_class_label: policy.classLabel,
+      updated_at: new Date().toISOString(),
+      updated_by: user?.id ?? null,
+    },
+    { onConflict: 'school_id' },
+  )
+
+  if (error) return { ok: false, policy, error: error.message }
+  return { ok: true, policy }
+}
+
 /** Active class label: override → linked student → school policy → demo default. */
 export function resolveClassLabel(options?: {
   override?: string | null
@@ -73,4 +122,18 @@ export function resolveClassLabel(options?: {
   if (linkedName && linkedSection) return `${linkedName}-${linkedSection}`
   if (linkedName) return linkedName
   return readSchoolPolicy().classLabel
+}
+
+/** Normalize "Grade 8" + "A" / "Grade 8-A" style labels for matching. */
+export function classLabelsMatch(a: string | null | undefined, b: string | null | undefined): boolean {
+  const norm = (v: string) =>
+    v
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .replace(/\s*-\s*/g, '-')
+  const left = norm(a || '')
+  const right = norm(b || '')
+  if (!left || !right) return false
+  return left === right
 }
