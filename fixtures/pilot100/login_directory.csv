@@ -1,0 +1,202 @@
+role,email,password,display_name,notes,student_id
+school,admin@pilot100.orbit.app,Pilot100!,Pilot School Admin,Full school suite access for PILOT100,
+teacher,teacher01@pilot100.orbit.app,Pilot100!,Mrs. Kavitha Reddy,Mathematics · Grade 8-A,
+teacher,teacher02@pilot100.orbit.app,Pilot100!,Mr. Arun Menon,Science · Grade 7-A,
+teacher,teacher03@pilot100.orbit.app,Pilot100!,Ms. Fatima Khan,English · Grade 6-A,
+teacher,teacher04@pilot100.orbit.app,Pilot100!,Mr. Suresh Pillai,Social Studies · Grade 9-A,
+teacher,teacher05@pilot100.orbit.app,Pilot100!,Mrs. Anjali Deshmukh,Class Teacher · Grade 8-B,
+parent,parent001@pilot100.orbit.app,Pilot100!,Suresh Rao,three_siblings,
+parent,parent002@pilot100.orbit.app,Pilot100!,Lakshmi Iyer,two_siblings_same_class,
+parent,parent003@pilot100.orbit.app,Pilot100!,D'Souza Guardian,single_child,
+parent,parent004@pilot100.orbit.app,Pilot100!,Joseph Guardian,single_child,
+parent,parent005@pilot100.orbit.app,Pilot100!,Al-Hassan Guardian,single_child,
+parent,parent006@pilot100.orbit.app,Pilot100!,Chinnu Guardian,single_child,
+parent,parent007@pilot100.orbit.app,Pilot100!,Test Guardian,single_child,
+parent,parent008@pilot100.orbit.app,Pilot100!,O'Brien Guardian,single_child,
+parent,parent009@pilot100.orbit.app,Pilot100!,Sen Guardian,single_child,
+parent,parent010@pilot100.orbit.app,Pilot100!,Patel Guardian,single_child,
+parent,parent011@pilot100.orbit.app,Pilot100!,Menon Guardian,single_child,
+parent,parent012@pilot100.orbit.app,Pilot100!,Sharma Guardian,single_child,
+parent,parent013@pilot100.orbit.app,Pilot100!,Agarwal Guardian,single_child,
+parent,parent014@pilot100.orbit.app,Pilot100!,Sharma Guardian,single_child,
+parent,parent015@pilot100.orbit.app,Pilot100!,Nair Guardian,single_child,
+parent,parent016@pilot100.orbit.app,Pilot100!,Singh Guardian,single_child,
+parent,parent017@pilot100.orbit.app,Pilot100!,Mukherjee Guardian,single_child,
+parent,parent018@pilot100.orbit.app,Pilot100!,Sen Guardian,single_child,
+parent,parent019@pilot100.orbit.app,Pilot100!,Patel Guardian,single_child,
+parent,parent020@pilot100.orbit.app,Pilot100!,Joshi Guardian,single_child,
+parent,parent021@pilot100.orbit.app,Pilot100!,Rao Guardian,single_child,
+parent,parent022@pilot100.orbit.app,Pilot100!,Hegde Guardian,single_child,
+parent,parent023@pilot100.orbit.app,Pilot100!,Agarwal Guardian,single_child,
+parent,parent024@pilot100.orbit.app,Pilot100!,Sharma Guardian,single_child,
+parent,parent025@pilot100.orbit.app,Pilot100!,Nair Guardian,single_child,
+parent,parent026@pilot100.orbit.app,Pilot100!,Singh Guardian,single_child,
+parent,parent027@pilot100.orbit.app,Pilot100!,Mukherjee Guardian,single_child,
+parent,parent028@pilot100.orbit.app,Pilot100!,Kapoor Guardian,single_child,
+parent,parent029@pilot100.orbit.app,Pilot100!,Pillai Guardian,single_child,
+parent,parent030@pilot100.orbit.app,Pilot100!,Deshmukh Guardian,single_child,
+parent,parent031@pilot100.orbit.app,Pilot100!,Sen Guardian,single_child,
+parent,parent032@pilot100.orbit.app,Pilot100!,Kapoor Guardian,single_child,
+parent,parent033@pilot100.orbit.app,Pilot100!,Pillai Guardian,single_child,
+parent,parent034@pilot100.orbit.app,Pilot100!,Deshmukh Guardian,single_child,
+parent,parent035@pilot100.orbit.app,Pilot100!,Sen Guardian,single_child,
+parent,parent036@pilot100.orbit.app,Pilot100!,Patel Guardian,single_child,
+parent,parent037@pilot100.orbit.app,Pilot100!,Menon Guardian,single_child,
+parent,parent038@pilot100.orbit.app,Pilot100!,Das Guardian,single_child,
+parent,parent039@pilot100.orbit.app,Pilot100!,Joshi Guardian,single_child,
+parent,parent040@pilot100.orbit.app,Pilot100!,Rao Guardian,single_child,
+parent,parent041@pilot100.orbit.app,Pilot100!,Hegde Guardian,single_child,
+parent,parent042@pilot100.orbit.app,Pilot100!,Agarwal Guardian,single_child,
+parent,parent043@pilot100.orbit.app,Pilot100!,Sharma Guardian,single_child,
+parent,parent044@pilot100.orbit.app,Pilot100!,Nair Guardian,single_child,
+parent,parent045@pilot100.orbit.app,Pilot100!,Singh Guardian,single_child,
+parent,parent046@pilot100.orbit.app,Pilot100!,Mukherjee Guardian,single_child,
+parent,parent047@pilot100.orbit.app,Pilot100!,Pillai Guardian,single_child,
+parent,parent048@pilot100.orbit.app,Pilot100!,Deshmukh Guardian,single_child,
+parent,parent049@pilot100.orbit.app,Pilot100!,Das Guardian,single_child,
+parent,parent050@pilot100.orbit.app,Pilot100!,Joshi Guardian,single_child,
+parent,parent051@pilot100.orbit.app,Pilot100!,Sharma Guardian,single_child,
+parent,parent052@pilot100.orbit.app,Pilot100!,Hegde Guardian,single_child,
+parent,parent053@pilot100.orbit.app,Pilot100!,Agarwal Guardian,single_child,
+parent,parent054@pilot100.orbit.app,Pilot100!,Sharma Guardian,single_child,
+parent,parent055@pilot100.orbit.app,Pilot100!,Nair Guardian,single_child,
+parent,parent056@pilot100.orbit.app,Pilot100!,Singh Guardian,parent_no_student_login,
+parent,parent057@pilot100.orbit.app,Pilot100!,Mukherjee Guardian,single_child,
+parent,parent058@pilot100.orbit.app,Pilot100!,Kapoor Guardian,single_child,
+parent,parent059@pilot100.orbit.app,Pilot100!,Pillai Guardian,single_child,
+parent,parent060@pilot100.orbit.app,Pilot100!,Deshmukh Guardian,single_child,
+parent,parent061@pilot100.orbit.app,Pilot100!,Sen Guardian,single_child,
+parent,parent062@pilot100.orbit.app,Pilot100!,Patel Guardian,single_child,
+parent,parent063@pilot100.orbit.app,Pilot100!,Menon Guardian,single_child,
+parent,parent064@pilot100.orbit.app,Pilot100!,Das Guardian,single_child,
+parent,parent065@pilot100.orbit.app,Pilot100!,Joshi Guardian,single_child,
+parent,parent066@pilot100.orbit.app,Pilot100!,రెడ్డి Guardian,single_child,
+parent,parent067@pilot100.orbit.app,Pilot100!,शर्मा Guardian,single_child,
+parent,parent068@pilot100.orbit.app,Pilot100!,Agarwal Guardian,single_child,
+parent,parent069@pilot100.orbit.app,Pilot100!,Das Guardian,single_child,
+parent,parent070@pilot100.orbit.app,Pilot100!,Joshi Guardian,single_child,
+parent,parent071@pilot100.orbit.app,Pilot100!,Rao Guardian,single_child,
+parent,parent072@pilot100.orbit.app,Pilot100!,Hegde Guardian,single_child,
+parent,parent073@pilot100.orbit.app,Pilot100!,Agarwal Guardian,single_child,
+parent,parent074@pilot100.orbit.app,Pilot100!,Sharma Guardian,single_child,
+parent,parent075@pilot100.orbit.app,Pilot100!,Nair Guardian,single_child,
+parent,parent076@pilot100.orbit.app,Pilot100!,Singh Guardian,single_child,
+parent,parent077@pilot100.orbit.app,Pilot100!,Mukherjee Guardian,single_child,
+parent,parent078@pilot100.orbit.app,Pilot100!,Kapoor Guardian,single_child,
+parent,parent079@pilot100.orbit.app,Pilot100!,Pillai Guardian,single_child,
+parent,parent080@pilot100.orbit.app,Pilot100!,Deshmukh Guardian,single_child,
+parent,parent081@pilot100.orbit.app,Pilot100!,Sen Guardian,single_child,
+parent,parent082@pilot100.orbit.app,Pilot100!,Patel Guardian,single_child,
+parent,parent083@pilot100.orbit.app,Pilot100!,Menon Guardian,single_child,
+parent,parent084@pilot100.orbit.app,Pilot100!,Das Guardian,single_child,
+parent,parent085@pilot100.orbit.app,Pilot100!,Sen Guardian,single_child,
+parent,parent086@pilot100.orbit.app,Pilot100!,Patel Guardian,single_child,
+parent,parent087@pilot100.orbit.app,Pilot100!,Menon Guardian,single_child,
+parent,parent088@pilot100.orbit.app,Pilot100!,Das Guardian,single_child,
+parent,parent089@pilot100.orbit.app,Pilot100!,Joshi Guardian,single_child,
+parent,parent090@pilot100.orbit.app,Pilot100!,Rao Guardian,single_child,
+parent,parent091@pilot100.orbit.app,Pilot100!,Hegde Guardian,single_child,
+parent,parent092@pilot100.orbit.app,Pilot100!,Agarwal Guardian,single_child,
+parent,parent093@pilot100.orbit.app,Pilot100!,Sharma Guardian,single_child,
+parent,parent094@pilot100.orbit.app,Pilot100!,Nair Guardian,single_child,
+parent,parent095@pilot100.orbit.app,Pilot100!,Singh Guardian,single_child,
+parent,parent096@pilot100.orbit.app,Pilot100!,Khan Guardian,single_child,
+student,student001@pilot100.orbit.app,Pilot100!,Aarav D'Souza,roll 01 · Grade 6-A · apostrophe_surname,b1000000-0000-4000-8000-000000000001
+student,student002@pilot100.orbit.app,Pilot100!,Mary-Anne Joseph,roll 02 · Grade 6-A · hyphenated_given,b1000000-0000-4000-8000-000000000002
+student,student003@pilot100.orbit.app,Pilot100!,Muhammad Ibrahim Al-Hassan,roll 03 · Grade 6-A · long_multi_part_name,b1000000-0000-4000-8000-000000000003
+student,student004@pilot100.orbit.app,Pilot100!,Chinnu,roll 04 · Grade 6-A · single_word_name,b1000000-0000-4000-8000-000000000004
+student,student005@pilot100.orbit.app,Pilot100!,Spaced Name Test,roll 05 · Grade 6-A · leading_trailing_spaces,b1000000-0000-4000-8000-000000000005
+student,student006@pilot100.orbit.app,Pilot100!,Ñisha O'Brien,roll 06 · Grade 6-A · unicode_and_escape,b1000000-0000-4000-8000-000000000006
+student,student007@pilot100.orbit.app,Pilot100!,Saanvi Sen,roll 07 · Grade 6-? · empty_section,b1000000-0000-4000-8000-000000000007
+student,student008@pilot100.orbit.app,Pilot100!,Anika Patel,roll 99 · Grade 6-A · non_sequential_roll,b1000000-0000-4000-8000-000000000008
+student,student009@pilot100.orbit.app,Pilot100!,Navya Menon,roll 7 · Grade 6-A · roll_without_leading_zero,b1000000-0000-4000-8000-000000000009
+student,student010@pilot100.orbit.app,Pilot100!,Priya Sharma,roll 10 · Grade 6-A · duplicate_common_name_a,b1000000-0000-4000-8000-000000000010
+student,student011@pilot100.orbit.app,Pilot100!,Nikhil Joshi,roll 11 · Grade 8-A · sibling_group_a_child1,b1000000-0000-4000-8000-000000000011
+student,student012@pilot100.orbit.app,Pilot100!,Varun Rao,roll 12 · Grade 6-A · sibling_group_a_child2,b1000000-0000-4000-8000-000000000012
+student,student013@pilot100.orbit.app,Pilot100!,Dev Hegde,roll 13 · Grade 9-A · sibling_group_a_child3,b1000000-0000-4000-8000-000000000013
+student,student014@pilot100.orbit.app,Pilot100!,Om Agarwal,roll 14 · Grade 6-A · standard,b1000000-0000-4000-8000-000000000014
+student,student015@pilot100.orbit.app,Pilot100!,Priya Sharma,roll 15 · Grade 6-A · standard,b1000000-0000-4000-8000-000000000015
+student,student016@pilot100.orbit.app,Pilot100!,Meera Nair,roll 16 · Grade 6-A · standard,b1000000-0000-4000-8000-000000000016
+student,student017@pilot100.orbit.app,Pilot100!,Nisha Singh,roll 17 · Grade 6-A · standard,b1000000-0000-4000-8000-000000000017
+student,student018@pilot100.orbit.app,Pilot100!,Kavya Mukherjee,roll 18 · Grade 6-A · standard,b1000000-0000-4000-8000-000000000018
+student,student019@pilot100.orbit.app,Pilot100!,Rohan Sen,roll 01 · Grade 6-B · standard,b1000000-0000-4000-8000-000000000019
+student,student020@pilot100.orbit.app,Pilot100!,Nikhil Patel,roll 02 · Grade 6-B · standard,b1000000-0000-4000-8000-000000000020
+student,student021@pilot100.orbit.app,Pilot100!,Varun Menon,roll 03 · Grade 7-A · sibling_group_b_child1,b1000000-0000-4000-8000-000000000021
+student,student022@pilot100.orbit.app,Pilot100!,Dev Das,roll 04 · Grade 7-A · sibling_group_b_child2,b1000000-0000-4000-8000-000000000022
+student,student023@pilot100.orbit.app,Pilot100!,Om Joshi,roll 05 · Grade 6-B · standard,b1000000-0000-4000-8000-000000000023
+student,student024@pilot100.orbit.app,Pilot100!,Priya Rao,roll 06 · Grade 6-B · standard,b1000000-0000-4000-8000-000000000024
+student,student025@pilot100.orbit.app,Pilot100!,Meera Hegde,roll 07 · Grade 6-B · standard,b1000000-0000-4000-8000-000000000025
+student,student026@pilot100.orbit.app,Pilot100!,Nisha Agarwal,roll 08 · Grade 6-B · standard,b1000000-0000-4000-8000-000000000026
+student,student027@pilot100.orbit.app,Pilot100!,Kavya Sharma,roll 09 · Grade 6-B · standard,b1000000-0000-4000-8000-000000000027
+student,student028@pilot100.orbit.app,Pilot100!,Tanvi Nair,roll 10 · Grade 6-B · standard,b1000000-0000-4000-8000-000000000028
+student,student029@pilot100.orbit.app,Pilot100!,Lakshmi Singh,roll 11 · Grade 6-B · standard,b1000000-0000-4000-8000-000000000029
+student,student030@pilot100.orbit.app,Pilot100!,Gayatri Mukherjee,roll 12 · Grade 6-B · no_fees,b1000000-0000-4000-8000-000000000030
+student,student031@pilot100.orbit.app,Pilot100!,Radha Kapoor,roll 13 · Grade 6-B · all_fees_paid,b1000000-0000-4000-8000-000000000031
+student,student032@pilot100.orbit.app,Pilot100!,Tejas Pillai,roll 14 · Grade 6-B · overdue_fees,b1000000-0000-4000-8000-000000000032
+student,student033@pilot100.orbit.app,Pilot100!,Manoj Deshmukh,roll 15 · Grade 6-B · pending_utr,b1000000-0000-4000-8000-000000000033
+student,student034@pilot100.orbit.app,Pilot100!,Aarav Sen,roll 16 · Grade 6-B · standard,b1000000-0000-4000-8000-000000000034
+student,student035@pilot100.orbit.app,Pilot100!,Kavya Kapoor,roll 01 · Grade 7-A · standard,b1000000-0000-4000-8000-000000000035
+student,student036@pilot100.orbit.app,Pilot100!,Tanvi Pillai,roll 02 · Grade 7-A · standard,b1000000-0000-4000-8000-000000000036
+student,student037@pilot100.orbit.app,Pilot100!,Lakshmi Deshmukh,roll 03 · Grade 7-A · standard,b1000000-0000-4000-8000-000000000037
+student,student038@pilot100.orbit.app,Pilot100!,Gayatri Sen,roll 04 · Grade 7-A · standard,b1000000-0000-4000-8000-000000000038
+student,student039@pilot100.orbit.app,Pilot100!,Radha Patel,roll 05 · Grade 7-A · standard,b1000000-0000-4000-8000-000000000039
+student,student040@pilot100.orbit.app,Pilot100!,Tejas Menon,roll 06 · Grade 7-A · chronic_absent,b1000000-0000-4000-8000-000000000040
+student,student041@pilot100.orbit.app,Pilot100!,Manoj Das,roll 07 · Grade 7-A · perfect_attendance,b1000000-0000-4000-8000-000000000041
+student,student042@pilot100.orbit.app,Pilot100!,Aarav Joshi,roll 08 · Grade 7-A · standard,b1000000-0000-4000-8000-000000000042
+student,student043@pilot100.orbit.app,Pilot100!,Aditya Rao,roll 09 · Grade 7-A · standard,b1000000-0000-4000-8000-000000000043
+student,student044@pilot100.orbit.app,Pilot100!,Arjun Hegde,roll 10 · Grade 7-A · standard,b1000000-0000-4000-8000-000000000044
+student,student045@pilot100.orbit.app,Pilot100!,Reyansh Agarwal,roll 11 · Grade 7-A · standard,b1000000-0000-4000-8000-000000000045
+student,student046@pilot100.orbit.app,Pilot100!,Krishna Sharma,roll 12 · Grade 7-A · standard,b1000000-0000-4000-8000-000000000046
+student,student047@pilot100.orbit.app,Pilot100!,Ananya Nair,roll 13 · Grade 7-A · standard,b1000000-0000-4000-8000-000000000047
+student,student048@pilot100.orbit.app,Pilot100!,Diya Singh,roll 14 · Grade 7-A · standard,b1000000-0000-4000-8000-000000000048
+student,student049@pilot100.orbit.app,Pilot100!,Saanvi Mukherjee,roll 15 · Grade 7-A · standard,b1000000-0000-4000-8000-000000000049
+student,student050@pilot100.orbit.app,Pilot100!,Anika Kapoor,roll 16 · Grade 7-A · unlinked_no_parent,b1000000-0000-4000-8000-000000000050
+student,student051@pilot100.orbit.app,Pilot100!,Navya Pillai,roll 17 · Grade 7-A · student_login_only,b1000000-0000-4000-8000-000000000051
+student,student052@pilot100.orbit.app,Pilot100!,Rohan Deshmukh,roll 18 · Grade 7-A · standard,b1000000-0000-4000-8000-000000000052
+student,student053@pilot100.orbit.app,Pilot100!,Arjun Das,roll 01 · Grade 8-A · standard,b1000000-0000-4000-8000-000000000053
+student,student054@pilot100.orbit.app,Pilot100!,Reyansh Joshi,roll 02 · Grade 8-A · standard,b1000000-0000-4000-8000-000000000054
+student,student055@pilot100.orbit.app,Pilot100!,Priya Sharma,roll 03 · Grade 8-A · duplicate_common_name_b,b1000000-0000-4000-8000-000000000055
+student,student056@pilot100.orbit.app,Pilot100!,Ananya Hegde,roll 04 · Grade 8-A · standard,b1000000-0000-4000-8000-000000000056
+student,student057@pilot100.orbit.app,Pilot100!,Diya Agarwal,roll 05 · Grade 8-A · standard,b1000000-0000-4000-8000-000000000057
+student,student058@pilot100.orbit.app,Pilot100!,Saanvi Sharma,roll 06 · Grade 8-A · standard,b1000000-0000-4000-8000-000000000058
+student,student059@pilot100.orbit.app,Pilot100!,Anika Nair,roll 07 · Grade 8-A · standard,b1000000-0000-4000-8000-000000000059
+student,student061@pilot100.orbit.app,Pilot100!,Rohan Mukherjee,roll 09 · Grade 8-A · standard,b1000000-0000-4000-8000-000000000061
+student,student062@pilot100.orbit.app,Pilot100!,Nikhil Kapoor,roll 10 · Grade 8-A · standard,b1000000-0000-4000-8000-000000000062
+student,student063@pilot100.orbit.app,Pilot100!,Varun Pillai,roll 11 · Grade 8-A · standard,b1000000-0000-4000-8000-000000000063
+student,student064@pilot100.orbit.app,Pilot100!,Dev Deshmukh,roll 12 · Grade 8-A · standard,b1000000-0000-4000-8000-000000000064
+student,student065@pilot100.orbit.app,Pilot100!,Om Sen,roll 13 · Grade 8-A · standard,b1000000-0000-4000-8000-000000000065
+student,student066@pilot100.orbit.app,Pilot100!,Priya Patel,roll 14 · Grade 8-A · standard,b1000000-0000-4000-8000-000000000066
+student,student067@pilot100.orbit.app,Pilot100!,Meera Menon,roll 15 · Grade 8-A · standard,b1000000-0000-4000-8000-000000000067
+student,student068@pilot100.orbit.app,Pilot100!,Nisha Das,roll 16 · Grade 8-A · standard,b1000000-0000-4000-8000-000000000068
+student,student069@pilot100.orbit.app,Pilot100!,Kavya Joshi,roll 17 · Grade 8-A · standard,b1000000-0000-4000-8000-000000000069
+student,student070@pilot100.orbit.app,Pilot100!,కృష్ణ రెడ్డి,roll 18 · Grade 8-A · telugu_script_name,b1000000-0000-4000-8000-000000000070
+student,student071@pilot100.orbit.app,Pilot100!,अनिका शर्मा,roll 19 · Grade 8-A · hindi_script_name,b1000000-0000-4000-8000-000000000071
+student,student072@pilot100.orbit.app,Pilot100!,Gayatri Agarwal,roll 20 · Grade 8-A · standard,b1000000-0000-4000-8000-000000000072
+student,student073@pilot100.orbit.app,Pilot100!,Varun Das,roll 01 · Grade 8-B · standard,b1000000-0000-4000-8000-000000000073
+student,student074@pilot100.orbit.app,Pilot100!,Dev Joshi,roll 02 · Grade 8-B · standard,b1000000-0000-4000-8000-000000000074
+student,student075@pilot100.orbit.app,Pilot100!,Om Rao,roll 03 · Grade 8-B · standard,b1000000-0000-4000-8000-000000000075
+student,student076@pilot100.orbit.app,Pilot100!,Priya Hegde,roll 04 · Grade 8-B · standard,b1000000-0000-4000-8000-000000000076
+student,student077@pilot100.orbit.app,Pilot100!,Meera Agarwal,roll 05 · Grade 8-B · standard,b1000000-0000-4000-8000-000000000077
+student,student078@pilot100.orbit.app,Pilot100!,Nisha Sharma,roll 06 · Grade 8-B · standard,b1000000-0000-4000-8000-000000000078
+student,student079@pilot100.orbit.app,Pilot100!,Kavya Nair,roll 07 · Grade 8-B · standard,b1000000-0000-4000-8000-000000000079
+student,student080@pilot100.orbit.app,Pilot100!,Tanvi Singh,roll 08 · Grade 8-B · transport_fee_only,b1000000-0000-4000-8000-000000000080
+student,student081@pilot100.orbit.app,Pilot100!,Lakshmi Mukherjee,roll 09 · Grade 8-B · standard,b1000000-0000-4000-8000-000000000081
+student,student082@pilot100.orbit.app,Pilot100!,Gayatri Kapoor,roll 10 · Grade 8-B · standard,b1000000-0000-4000-8000-000000000082
+student,student083@pilot100.orbit.app,Pilot100!,Radha Pillai,roll 11 · Grade 8-B · standard,b1000000-0000-4000-8000-000000000083
+student,student084@pilot100.orbit.app,Pilot100!,Tejas Deshmukh,roll 12 · Grade 8-B · standard,b1000000-0000-4000-8000-000000000084
+student,student085@pilot100.orbit.app,Pilot100!,Manoj Sen,roll 13 · Grade 8-B · standard,b1000000-0000-4000-8000-000000000085
+student,student086@pilot100.orbit.app,Pilot100!,Aarav Patel,roll 14 · Grade 8-B · standard,b1000000-0000-4000-8000-000000000086
+student,student087@pilot100.orbit.app,Pilot100!,Aditya Menon,roll 15 · Grade 8-B · standard,b1000000-0000-4000-8000-000000000087
+student,student088@pilot100.orbit.app,Pilot100!,Arjun Das,roll 16 · Grade 8-B · standard,b1000000-0000-4000-8000-000000000088
+student,student089@pilot100.orbit.app,Pilot100!,Lakshmi Sen,roll 01 · Grade 9-A · standard,b1000000-0000-4000-8000-000000000089
+student,student090@pilot100.orbit.app,Pilot100!,Gayatri Patel,roll 02 · Grade 10-A · class_outside_main_policy,b1000000-0000-4000-8000-000000000090
+student,student091@pilot100.orbit.app,Pilot100!,Radha Menon,roll 03 · Grade 9-A · standard,b1000000-0000-4000-8000-000000000091
+student,student092@pilot100.orbit.app,Pilot100!,Tejas Das,roll 04 · Grade 9-A · standard,b1000000-0000-4000-8000-000000000092
+student,student093@pilot100.orbit.app,Pilot100!,Manoj Joshi,roll 05 · Grade 9-A · standard,b1000000-0000-4000-8000-000000000093
+student,student094@pilot100.orbit.app,Pilot100!,Aarav Rao,roll 06 · Grade 9-A · standard,b1000000-0000-4000-8000-000000000094
+student,student095@pilot100.orbit.app,Pilot100!,Aditya Hegde,roll 07 · Grade 9-A · standard,b1000000-0000-4000-8000-000000000095
+student,student096@pilot100.orbit.app,Pilot100!,Arjun Agarwal,roll 08 · Grade 9-A · standard,b1000000-0000-4000-8000-000000000096
+student,student097@pilot100.orbit.app,Pilot100!,Reyansh Sharma,roll 09 · Grade 9-A · standard,b1000000-0000-4000-8000-000000000097
+student,student098@pilot100.orbit.app,Pilot100!,Krishna Nair,roll 10 · Grade 9-A · standard,b1000000-0000-4000-8000-000000000098
+student,student099@pilot100.orbit.app,Pilot100!,Ananya Singh,roll 11 · Grade 9-A · standard,b1000000-0000-4000-8000-000000000099
+student,student100@pilot100.orbit.app,Pilot100!,Zara Khan,roll 12 · Grade 9-A · last_roster_row,b1000000-0000-4000-8000-000000000100

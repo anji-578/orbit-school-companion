@@ -58,7 +58,14 @@ export interface RosterStudent {
   id: string
   name: string
   present: boolean
+  /** False when no attendance row exists for today (not yet marked). */
+  marked?: boolean
   rollNo?: string
+  className?: string
+  section?: string | null
+  classLabel?: string
+  /** Soft-deactivate flag; omitted/true = enrolled. */
+  active?: boolean
   isDemo?: boolean
 }
 
@@ -71,6 +78,9 @@ export interface FeeItem {
   /** Present when cloud-hydrated; used by school class ledger. */
   studentId?: string
   studentName?: string
+  className?: string
+  section?: string | null
+  rollNo?: string
 }
 
 export interface PaymentRecord {

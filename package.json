@@ -8,7 +8,12 @@
     "dev:share": "vite --host",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview --host"
+    "preview": "vite preview --host",
+    "pilot100:generate": "node scripts/generate-pilot100.mjs && node scripts/generate-pilot100-auth-sql.mjs",
+    "pilot100:provision": "node scripts/provision-pilot100.mjs",
+    "pilot100:teardown": "node scripts/teardown-pilot100.mjs",
+    "test:smoke": "node scripts/smoke-hardening.mjs",
+    "test:razorpay": "node scripts/verify-razorpay-local.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.111.0",

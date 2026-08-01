@@ -1,5 +1,5 @@
 import webpush from 'web-push'
-import { createClient } from '@supabase/supabase-js'
+import { getAdmin, loadProfile, requireUser } from './_lib/supabaseAdmin'
 
 export const config = { runtime: 'nodejs' }
 
@@ -17,19 +17,12 @@ function cors(res: Response) {
   const headers = new Headers(res.headers)
   headers.set('Access-Control-Allow-Origin', '*')
   headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS')
-  headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-orbit-notify-secret')
   return new Response(res.body, { status: res.status, headers })
 }
 
 function json(data: unknown, status = 200) {
   return cors(new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } }))
-}
-
-function getAdmin() {
-  const url = (process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '').trim()
-  const key = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim()
-  if (!url || !key) return null
-  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
 }
 
 function configureWebPush() {
@@ -49,7 +42,6 @@ async function sendMsg91Sms(to: string, message: string) {
     return { status: 'skipped' as const, error: 'MSG91_AUTH_KEY not set' }
   }
 
-  // Flow API / sendhttp — works once DLT templates are approved
   const params = new URLSearchParams({
     authkey: authKey,
     mobiles: to.replace(/\D/g, ''),
@@ -73,19 +65,27 @@ export default async function handler(req: Request) {
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
 
   const admin = getAdmin()
-  const authHeader = req.headers.get('Authorization') || ''
-  const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : ''
+  if (!admin) return json({ error: 'Server misconfigured' }, 503)
+
   const internalSecret = (process.env.NOTIFY_INTERNAL_SECRET || '').trim()
   const providedSecret = (req.headers.get('x-orbit-notify-secret') || '').trim()
-
   const secretOk = Boolean(internalSecret && providedSecret && providedSecret === internalSecret)
-  let userOk = false
-  if (bearer && admin) {
-    const { data, error } = await admin.auth.getUser(bearer)
-    userOk = Boolean(!error && data.user?.id)
-  }
-  if (!secretOk && !userOk) {
-    return json({ error: 'Unauthorized — sign in or provide notify secret.' }, 401)
+
+  let callerId: string | null = null
+  let schoolId: string | null = null
+  let callerRole: string | null = null
+
+  if (!secretOk) {
+    const auth = await requireUser(req, admin)
+    if ('error' in auth) return json({ error: auth.error }, auth.status)
+    const profile = await loadProfile(admin, auth.user.id)
+    if (!profile?.school_id) return json({ error: 'No school on profile' }, 400)
+    if (!['teacher', 'school'].includes(profile.role)) {
+      return json({ error: 'Only school staff can send notifications' }, 403)
+    }
+    callerId = auth.user.id
+    schoolId = profile.school_id
+    callerRole = profile.role
   }
 
   let payload: NotifyBody
@@ -95,103 +95,123 @@ export default async function handler(req: Request) {
     return json({ error: 'Invalid JSON' }, 400)
   }
 
-  const title = (payload.title || 'Orbit').trim()
-  const body = (payload.body || '').trim()
-  const eventType = (payload.eventType || 'general').trim()
+  const title = (payload.title || 'Orbit').trim().slice(0, 120)
+  const body = (payload.body || '').trim().slice(0, 500)
+  const eventType = (payload.eventType || 'general').trim().slice(0, 64)
   if (!body) return json({ error: 'body required' }, 400)
 
-  const pushReady = configureWebPush()
+  // Internal secret path still needs an explicit school via student or fails closed for SMS fan-out
+  if (secretOk && !schoolId && payload.studentId) {
+    const { data: stu } = await admin.from('students').select('school_id').eq('id', payload.studentId).maybeSingle()
+    schoolId = (stu?.school_id as string | undefined) || null
+  }
 
+  const pushReady = configureWebPush()
   let pushSent = 0
   let pushFailed = 0
   let smsStatus: 'sent' | 'failed' | 'skipped' | 'queued' = 'skipped'
   let smsError: string | undefined
 
-  if (admin) {
-    // Persist inbox row (broadcast-style when no userId)
-    const studentId = payload.studentId?.trim() || null
-    await admin.from('app_notifications').insert({
-      user_id: payload.userId || null,
-      role: payload.role || null,
-      event_type: eventType,
-      title,
-      body,
-      student_id: studentId,
-      data: { role: payload.role, studentId },
-    })
+  const studentId = payload.studentId?.trim() || null
+  await admin.from('app_notifications').insert({
+    user_id: payload.userId || null,
+    role: payload.role || null,
+    event_type: eventType,
+    title,
+    body,
+    student_id: studentId,
+    data: { role: payload.role, studentId, sentBy: callerId, schoolId },
+  })
 
-    let pushQuery = admin.from('push_subscriptions').select('endpoint, p256dh, auth, user_id')
-    // Child-scoped: only push to the student profile + linked parents (+ staff for awareness)
-    if (studentId) {
-      const recipientIds = new Set<string>()
-      const { data: student } = await admin.from('students').select('profile_id').eq('id', studentId).maybeSingle()
-      if (student?.profile_id) recipientIds.add(student.profile_id as string)
-      const { data: parents } = await admin
-        .from('parent_links')
-        .select('parent_profile_id')
-        .eq('student_id', studentId)
-      for (const p of parents ?? []) {
-        if (p.parent_profile_id) recipientIds.add(p.parent_profile_id as string)
-      }
+  let pushQuery = admin.from('push_subscriptions').select('endpoint, p256dh, auth, user_id')
+  if (studentId) {
+    const recipientIds = new Set<string>()
+    const { data: student } = await admin
+      .from('students')
+      .select('profile_id, school_id')
+      .eq('id', studentId)
+      .maybeSingle()
+    if (schoolId && student?.school_id && student.school_id !== schoolId) {
+      return json({ error: 'Student not in your school' }, 403)
+    }
+    if (!schoolId && student?.school_id) schoolId = student.school_id as string
+    if (student?.profile_id) recipientIds.add(student.profile_id as string)
+    const { data: parents } = await admin
+      .from('parent_links')
+      .select('parent_profile_id')
+      .eq('student_id', studentId)
+    for (const p of parents ?? []) {
+      if (p.parent_profile_id) recipientIds.add(p.parent_profile_id as string)
+    }
+    if (schoolId) {
       const { data: staff } = await admin
         .from('profiles')
         .select('id')
+        .eq('school_id', schoolId)
         .in('role', ['teacher', 'school'])
         .limit(200)
       for (const s of staff ?? []) {
         if (s.id) recipientIds.add(s.id as string)
       }
-      if (recipientIds.size) {
-        pushQuery = pushQuery.in('user_id', [...recipientIds])
-      }
     }
+    if (recipientIds.size) pushQuery = pushQuery.in('user_id', [...recipientIds])
+  } else if (schoolId) {
+    const { data: members } = await admin.from('profiles').select('id').eq('school_id', schoolId).limit(500)
+    const ids = (members ?? []).map((m) => m.id as string).filter(Boolean)
+    if (ids.length) pushQuery = pushQuery.in('user_id', ids)
+  } else {
+    return json({ error: 'school or studentId required for fan-out' }, 400)
+  }
 
-    const { data: subs } = await pushQuery
-    if (pushReady && subs?.length) {
-      await Promise.all(
-        subs.map(async (sub) => {
-          try {
-            // Respect preference when possible
-            const { data: pref } = await admin
-              .from('alert_preferences')
-              .select('push_enabled, notify_absent, notify_fees, notify_leave, notify_syllabus')
-              .eq('user_id', sub.user_id)
-              .maybeSingle()
-            if (pref && pref.push_enabled === false) return
-            if (pref) {
-              if (eventType === 'absent' && pref.notify_absent === false) return
-              if (eventType === 'fees' && pref.notify_fees === false) return
-              if (eventType === 'leave' && pref.notify_leave === false) return
-              if (eventType === 'syllabus' && pref.notify_syllabus === false) return
-            }
-            await webpush.sendNotification(
-              {
-                endpoint: sub.endpoint,
-                keys: { p256dh: sub.p256dh, auth: sub.auth },
-              },
-              JSON.stringify({ title, body, url: '/', tag: eventType }),
-            )
-            pushSent += 1
-          } catch (err) {
-            pushFailed += 1
-            const message = err instanceof Error ? err.message : 'push failed'
-            if (message.includes('410') || message.includes('404')) {
-              await admin.from('push_subscriptions').delete().eq('endpoint', sub.endpoint)
-            }
+  const { data: subs } = await pushQuery
+  if (pushReady && subs?.length) {
+    await Promise.all(
+      subs.map(async (sub) => {
+        try {
+          const { data: pref } = await admin
+            .from('alert_preferences')
+            .select('push_enabled, notify_absent, notify_fees, notify_leave, notify_syllabus')
+            .eq('user_id', sub.user_id)
+            .maybeSingle()
+          if (pref && pref.push_enabled === false) return
+          if (pref) {
+            if (eventType === 'absent' && pref.notify_absent === false) return
+            if (eventType === 'fees' && pref.notify_fees === false) return
+            if (eventType === 'leave' && pref.notify_leave === false) return
+            if (eventType === 'syllabus' && pref.notify_syllabus === false) return
           }
-        }),
-      )
-    }
+          await webpush.sendNotification(
+            {
+              endpoint: sub.endpoint,
+              keys: { p256dh: sub.p256dh, auth: sub.auth },
+            },
+            JSON.stringify({ title, body, url: '/', tag: eventType }),
+          )
+          pushSent += 1
+        } catch (err) {
+          pushFailed += 1
+          const message = err instanceof Error ? err.message : 'push failed'
+          if (message.includes('410') || message.includes('404')) {
+            await admin.from('push_subscriptions').delete().eq('endpoint', sub.endpoint)
+          }
+        }
+      }),
+    )
+  }
 
-    // SMS fan-out: critical events → all opted-in phones (MSG91 required)
-    const critical = eventType === 'absent' || eventType === 'fees' || eventType === 'leave'
-    if (critical) {
-      const phones = new Set<string>()
-      if (payload.smsPhone?.trim()) phones.add(payload.smsPhone.trim())
+  const critical = eventType === 'absent' || eventType === 'fees' || eventType === 'leave'
+  if (critical && schoolId) {
+    const phones = new Set<string>()
+    if (payload.smsPhone?.trim() && callerRole === 'school') phones.add(payload.smsPhone.trim())
+
+    const { data: schoolMembers } = await admin.from('profiles').select('id').eq('school_id', schoolId)
+    const memberIds = (schoolMembers ?? []).map((m) => m.id as string)
+    if (memberIds.length) {
       const { data: prefs } = await admin
         .from('alert_preferences')
-        .select('phone_e164, sms_enabled, notify_absent, notify_fees, notify_leave')
+        .select('user_id, phone_e164, sms_enabled, notify_absent, notify_fees, notify_leave')
         .eq('sms_enabled', true)
+        .in('user_id', memberIds)
       for (const pref of prefs ?? []) {
         if (!pref.phone_e164) continue
         if (eventType === 'absent' && pref.notify_absent === false) continue
@@ -199,35 +219,31 @@ export default async function handler(req: Request) {
         if (eventType === 'leave' && pref.notify_leave === false) continue
         phones.add(String(pref.phone_e164))
       }
-
-      if (!phones.size) {
-        smsStatus = 'skipped'
-        smsError = 'No opted-in SMS phones (enable in Alerts + add number + MSG91_AUTH_KEY)'
-      } else {
-        let anySent = false
-        let anyFail = false
-        for (const phone of phones) {
-          const result = await sendMsg91Sms(phone, `${title}: ${body}`.slice(0, 160))
-          if (result.status === 'sent') anySent = true
-          if (result.status === 'failed') anyFail = true
-          if (result.status === 'skipped') smsError = result.error
-          await admin.from('sms_log').insert({
-            to_e164: phone,
-            event_type: eventType,
-            body: `${title}: ${body}`.slice(0, 300),
-            status: result.status,
-            provider_id: result.providerId ?? null,
-            error: result.error ?? null,
-            cost_paise: result.status === 'sent' ? 18 : 0,
-          })
-        }
-        smsStatus = anySent ? 'sent' : anyFail ? 'failed' : 'skipped'
-      }
     }
-  } else if (pushReady) {
-    // No service role: cannot look up subscriptions; acknowledge config
-    smsStatus = 'skipped'
-    smsError = 'SUPABASE_SERVICE_ROLE_KEY missing — push fan-out needs admin client'
+
+    if (!phones.size) {
+      smsStatus = 'skipped'
+      smsError = 'No opted-in SMS phones in this school'
+    } else {
+      let anySent = false
+      let anyFail = false
+      for (const phone of phones) {
+        const result = await sendMsg91Sms(phone, `${title}: ${body}`.slice(0, 160))
+        if (result.status === 'sent') anySent = true
+        if (result.status === 'failed') anyFail = true
+        if (result.status === 'skipped') smsError = result.error
+        await admin.from('sms_log').insert({
+          to_e164: phone,
+          event_type: eventType,
+          body: `${title}: ${body}`.slice(0, 300),
+          status: result.status,
+          provider_id: result.providerId ?? null,
+          error: result.error ?? null,
+          cost_paise: result.status === 'sent' ? 18 : 0,
+        })
+      }
+      smsStatus = anySent ? 'sent' : anyFail ? 'failed' : 'skipped'
+    }
   }
 
   return json({
@@ -237,9 +253,10 @@ export default async function handler(req: Request) {
     pushFailed,
     smsStatus,
     smsError,
+    schoolId,
     configured: {
       vapid: Boolean(pushReady),
-      supabaseAdmin: Boolean(admin),
+      supabaseAdmin: true,
       msg91: Boolean((process.env.MSG91_AUTH_KEY || '').trim()),
     },
   })

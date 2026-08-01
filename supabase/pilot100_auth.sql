@@ -1,0 +1,3 @@
+-- Prefer chunked apply: supabase/pilot100_auth_chunks/auth_*.sql then auth_links.sql
+-- Fixes: identities without generated email column; profiles.role::orbit_role
+-- Regenerate chunks with: node scripts/generate-pilot100-auth-sql.mjs

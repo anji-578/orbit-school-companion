@@ -110,9 +110,14 @@ export function PaymentsPanel() {
   }
 
   const onPayOnline = async () => {
+    const unpaidIds = fees.filter((f) => f.status !== 'Paid' && f.id).map((f) => f.id)
+    if (!unpaidIds.length) {
+      triggerToast(t('childFeesCleared'))
+      return
+    }
     setPayingOnline(true)
     const result = await startRazorpayCheckout({
-      amountRupees: Number(amount) || outstandingFees,
+      feeItemIds: unpaidIds,
       studentId: linkedStudent?.id,
       payerName: session?.displayName ?? 'Parent',
       description: `Fees for ${linkedStudent?.displayName || 'student'}`,
@@ -150,20 +155,24 @@ export function PaymentsPanel() {
         </div>
 
         <div className="space-y-2.5">
-          {fees.map((fee) => (
-            <div key={fee.id} className="flex items-center justify-between gap-3 p-3.5 rounded-xl bg-white/5 border border-white/10">
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-white truncate">{fee.name}</p>
-                <p className="text-[10px] text-slate-400">{fee.category}</p>
+          {fees.length === 0 ? (
+            <p className="text-xs text-slate-400 py-3 text-center">No fee invoices for this student yet.</p>
+          ) : (
+            fees.map((fee) => (
+              <div key={fee.id} className="flex items-center justify-between gap-3 p-3.5 rounded-xl bg-white/5 border border-white/10">
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-white truncate">{fee.name}</p>
+                  <p className="text-[10px] text-slate-400">{fee.category}</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-xs font-black text-white">₹{fee.amount.toLocaleString()}</span>
+                  <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-full border ${FEE_STATUS_CLASS[fee.status]}`}>
+                    {fee.status}
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-xs font-black text-white">₹{fee.amount.toLocaleString()}</span>
-                <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-full border ${FEE_STATUS_CLASS[fee.status]}`}>
-                  {fee.status}
-                </span>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
 
         {outstandingFees > 0 && !paymentReceipt ? (

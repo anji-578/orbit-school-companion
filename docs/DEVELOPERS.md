@@ -26,6 +26,23 @@ npm run dev
 13. `supabase/ops_surfaces.sql` (bus status, hiring, extracurriculars, Razorpay columns)
 14. `supabase/storage.sql`
 15. Optional: `supabase/notifications_rls.sql`
+16. `supabase/production_hardening_v9.sql` (profiles lock, `students.active`, `teacher_classes`, `payment_orders`, `claim_demo_links`)
+17. `supabase/audit_log_v9.sql` (school-scoped mutation audit trail)
+18. `supabase/razorpay_verify_hardening.sql` (unique `razorpay_payment_id` for idempotent verify)
+
+## Path-to-9 deploy checklist
+
+On Vercel (Production), set:
+
+- `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY` (required for `/api/razorpay/*`, `/api/notify`)
+- `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `VITE_RAZORPAY_KEY_ID` (optional online pay)
+- `GEMINI_API_KEY` (or `VITE_GEMINI_API_KEY` for local)
+- Optional: `VAPID_*`, `MSG91_*`, `NOTIFY_INTERNAL_SECRET`
+
+Smoke: `npm run test:smoke` · build: `npm run build`
+
+Razorpay verify path (manual): parent pays unpaid invoices → `/api/razorpay/order` binds `fee_item_ids` → Checkout → `/api/razorpay/verify` HMAC + marks only those invoices Paid + `audit_log` row.
 
 ## Razorpay (optional)
 

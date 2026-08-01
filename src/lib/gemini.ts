@@ -8,6 +8,7 @@ import {
   tutorAnswerToMarkdown,
   type TutorAnswer,
 } from './aiGuardrails'
+import { getSupabase } from './supabase'
 
 /**
  * Model fallbacks for new AI Studio accounts (AQ. auth keys).
@@ -74,6 +75,21 @@ export async function fetchWithRetry(
   throw lastError instanceof Error ? lastError : new Error('Gemini request failed')
 }
 
+async function authHeaders(): Promise<Record<string, string>> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  try {
+    const supabase = getSupabase()
+    if (supabase) {
+      const { data } = await supabase.auth.getSession()
+      const token = data.session?.access_token
+      if (token) headers.Authorization = `Bearer ${token}`
+    }
+  } catch {
+    /* offline / demo */
+  }
+  return headers
+}
+
 async function callViaProxy(
   prompt: string,
   system: string,
@@ -82,9 +98,10 @@ async function callViaProxy(
   temperature?: number,
 ): Promise<{ ok: true; text: string; model?: string } | { ok: false; error: string }> {
   try {
+    const headers = await authHeaders()
     const response = await fetch('/api/gemini', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({
         prompt,
         system,

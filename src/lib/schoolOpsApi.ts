@@ -2,7 +2,9 @@ import { getSupabase, isSupabaseConfigured } from './supabase'
 import { classLabelsMatch, resolveClassLabel, resolveSchoolId } from './schoolPolicy'
 import { resolveLinkedStudentId } from './linkedStudent'
 import type { BroadcastMessage, CalendarEvent, HomeworkTask, LeaveRequest, LeaveStatus } from '../types'
+import { writeAuditLog } from './auditApi'
 
+export type MutateResult<T = void> = { ok: true; data?: T } | { ok: false; error: string }
 
 async function currentRole(): Promise<string | null> {
   const supabase = getSupabase()
@@ -15,13 +17,16 @@ async function currentRole(): Promise<string | null> {
   return (data?.role as string | undefined) ?? null
 }
 
-export async function syncAssignHomework(input: HomeworkTask & { userId?: string; className?: string }): Promise<number | null> {
-  if (!isSupabaseConfigured()) return null
+export async function syncAssignHomework(
+  input: HomeworkTask & { userId?: string; className?: string },
+): Promise<MutateResult<number>> {
+  if (!isSupabaseConfigured()) return { ok: true }
   const supabase = getSupabase()
-  if (!supabase) return null
+  if (!supabase) return { ok: false, error: 'Supabase unavailable' }
   const schoolId = await resolveSchoolId()
+  if (!schoolId) return { ok: false, error: 'School not found' }
   const className = (input.className || resolveClassLabel()).trim()
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('homework_tasks')
     .insert({
       school_id: schoolId,
@@ -36,18 +41,32 @@ export async function syncAssignHomework(input: HomeworkTask & { userId?: string
     })
     .select('id')
     .maybeSingle()
-  return data?.id ? Number(data.id) : null
+  if (error) return { ok: false, error: error.message }
+  const id = data?.id ? Number(data.id) : undefined
+  if (id) {
+    void writeAuditLog({
+      action: 'homework.assign',
+      entityType: 'homework_tasks',
+      entityId: String(id),
+      payload: { subject: input.subject, className },
+    })
+  }
+  return { ok: true, data: id }
 }
 
-export async function syncToggleHomework(id: number, completed: boolean, studentId?: string | null): Promise<void> {
-  if (!isSupabaseConfigured()) return
+export async function syncToggleHomework(
+  id: number,
+  completed: boolean,
+  studentId?: string | null,
+): Promise<MutateResult> {
+  if (!isSupabaseConfigured()) return { ok: true }
   const supabase = getSupabase()
-  if (!supabase) return
+  if (!supabase) return { ok: false, error: 'Supabase unavailable' }
 
   const linkedId = studentId ?? (await resolveLinkedStudentId())
-  if (!linkedId) return
+  if (!linkedId) return { ok: false, error: 'No linked student for homework completion' }
 
-  await supabase.from('homework_completions').upsert(
+  const { error } = await supabase.from('homework_completions').upsert(
     {
       homework_id: id,
       student_id: linkedId,
@@ -56,6 +75,8 @@ export async function syncToggleHomework(id: number, completed: boolean, student
     },
     { onConflict: 'homework_id,student_id' },
   )
+  if (error) return { ok: false, error: error.message }
+  return { ok: true }
 }
 
 export async function fetchHomeworkTasks(linkedStudentId?: string | null): Promise<HomeworkTask[]> {
@@ -92,12 +113,13 @@ export async function fetchHomeworkTasks(linkedStudentId?: string | null): Promi
 
   if (!data?.length) return []
 
-  const scoped = data.filter((row) => {
-    const hwClass = (row.class_name as string | null) || ''
-    // Legacy rows without class_name stay visible; new rows match active/linked class.
-    if (!hwClass.trim()) return true
-    return classLabelsMatch(hwClass, classFilter)
-  }).slice(0, 40)
+  const scoped = data
+    .filter((row) => {
+      const hwClass = (row.class_name as string | null) || ''
+      if (!hwClass.trim()) return true
+      return classLabelsMatch(hwClass, classFilter)
+    })
+    .slice(0, 40)
 
   let completionMap = new Map<number, boolean>()
   if (studentId) {
@@ -154,7 +176,9 @@ export async function fetchHomeworkClassOverview(
       .from('students')
       .select('id, display_name, roll_no, class_name, section')
       .eq('school_id', schoolId)
-      .order('roll_no', { ascending: true }),
+      .eq('active', true)
+      .order('roll_no', { ascending: true })
+      .limit(200),
     supabase
       .from('homework_completions')
       .select('homework_id, student_id, completed')
@@ -184,7 +208,7 @@ export async function fetchHomeworkClassOverview(
       })
       return classLabelsMatch(label, hwClass)
     })
-    const list: HomeworkStudentProgress[] = (classStudents.length ? classStudents : students).map((s) => ({
+    const list: HomeworkStudentProgress[] = classStudents.map((s) => ({
       studentId: s.id as string,
       name: (s.display_name as string) || 'Student',
       completed: done.has(`${hwId}:${s.id as string}`),
@@ -203,12 +227,13 @@ export async function syncSubmitLeave(input: {
   date: string
   reason: string
   userId?: string
-}): Promise<number | null> {
-  if (!isSupabaseConfigured()) return null
+}): Promise<MutateResult<number>> {
+  if (!isSupabaseConfigured()) return { ok: true }
   const supabase = getSupabase()
-  if (!supabase) return null
+  if (!supabase) return { ok: false, error: 'Supabase unavailable' }
   const schoolId = await resolveSchoolId()
-  const { data } = await supabase
+  if (!schoolId) return { ok: false, error: 'School not found' }
+  const { data, error } = await supabase
     .from('leave_requests')
     .insert({
       school_id: schoolId,
@@ -219,14 +244,26 @@ export async function syncSubmitLeave(input: {
     })
     .select('id')
     .maybeSingle()
-  return data?.id ? Number(data.id) : null
+  if (error) return { ok: false, error: error.message }
+  return { ok: true, data: data?.id ? Number(data.id) : undefined }
 }
 
-export async function syncSetLeaveStatus(id: number, status: LeaveStatus): Promise<void> {
-  if (!isSupabaseConfigured()) return
+export async function syncSetLeaveStatus(id: number, status: LeaveStatus): Promise<MutateResult> {
+  if (!isSupabaseConfigured()) return { ok: true }
   const supabase = getSupabase()
-  if (!supabase) return
-  await supabase.from('leave_requests').update({ status, updated_at: new Date().toISOString() }).eq('id', id)
+  if (!supabase) return { ok: false, error: 'Supabase unavailable' }
+  const { error } = await supabase
+    .from('leave_requests')
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) return { ok: false, error: error.message }
+  void writeAuditLog({
+    action: 'leave.set_status',
+    entityType: 'leave_requests',
+    entityId: String(id),
+    payload: { status },
+  })
+  return { ok: true }
 }
 
 export async function fetchLeaveRequests(): Promise<LeaveRequest[]> {
@@ -247,18 +284,26 @@ export async function fetchLeaveRequests(): Promise<LeaveRequest[]> {
   }))
 }
 
-export async function syncBroadcast(input: BroadcastMessage & { userId?: string }): Promise<void> {
-  if (!isSupabaseConfigured()) return
+export async function syncBroadcast(input: BroadcastMessage & { userId?: string }): Promise<MutateResult> {
+  if (!isSupabaseConfigured()) return { ok: true }
   const supabase = getSupabase()
-  if (!supabase) return
+  if (!supabase) return { ok: false, error: 'Supabase unavailable' }
   const schoolId = await resolveSchoolId()
-  await supabase.from('broadcasts').insert({
+  if (!schoolId) return { ok: false, error: 'School not found' }
+  const { error } = await supabase.from('broadcasts').insert({
     school_id: schoolId,
     target: input.target,
     title: input.title,
     content: input.content,
     created_by: input.userId ?? null,
   })
+  if (error) return { ok: false, error: error.message }
+  void writeAuditLog({
+    action: 'broadcast.publish',
+    entityType: 'broadcasts',
+    payload: { target: input.target, title: input.title },
+  })
+  return { ok: true }
 }
 
 export async function fetchBroadcasts(): Promise<BroadcastMessage[]> {
@@ -280,18 +325,21 @@ export async function fetchBroadcasts(): Promise<BroadcastMessage[]> {
   }))
 }
 
-export async function syncCalendarEvent(input: CalendarEvent & { userId?: string }): Promise<void> {
-  if (!isSupabaseConfigured()) return
+export async function syncCalendarEvent(input: CalendarEvent & { userId?: string }): Promise<MutateResult> {
+  if (!isSupabaseConfigured()) return { ok: true }
   const supabase = getSupabase()
-  if (!supabase) return
+  if (!supabase) return { ok: false, error: 'Supabase unavailable' }
   const schoolId = await resolveSchoolId()
-  await supabase.from('calendar_events').insert({
+  if (!schoolId) return { ok: false, error: 'School not found' }
+  const { error } = await supabase.from('calendar_events').insert({
     school_id: schoolId,
     title: input.title,
     category: input.category,
     event_date: input.date,
     created_by: input.userId ?? null,
   })
+  if (error) return { ok: false, error: error.message }
+  return { ok: true }
 }
 
 export async function fetchCalendarEvents(): Promise<CalendarEvent[]> {

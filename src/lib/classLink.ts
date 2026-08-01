@@ -1,10 +1,14 @@
 import { getSupabase, isSupabaseConfigured } from './supabase'
 import { DEMO_USERS } from '../auth/demoUsers'
 
-/** Whether this account should see live class data vs “ask school for invite”. */
+/**
+ * Sunrise demo personas only (`*@orbit.app` fixture accounts).
+ * Never treat PILOT100 (`*@pilot100.orbit.app`) as demo masquerade.
+ */
 export function isPilotDemoEmail(email: string) {
   const normalized = email.trim().toLowerCase()
-  return DEMO_USERS.some((u) => u.email === normalized) || normalized.endsWith('@orbit.app')
+  if (normalized.endsWith('@pilot100.orbit.app')) return false
+  return DEMO_USERS.some((u) => u.email === normalized)
 }
 
 export async function resolveClassLinked(email: string, role: string): Promise<boolean> {

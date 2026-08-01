@@ -1,6 +1,7 @@
 import { Megaphone, UserCheck, UserX, Users } from 'lucide-react'
 import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
+import { readSchoolPolicy } from '../../lib/schoolPolicy'
 import { Panel, StatTile } from '../../components/ui/primitives'
 
 export function TeacherAttendance() {
@@ -11,13 +12,14 @@ export function TeacherAttendance() {
   const broadcastAbsentees = useOrbitStore((s) => s.broadcastAbsentees)
 
   const t = (key: string) => translate(lang, key)
+  const activeClass = readSchoolPolicy().classLabel
   const presentCount = roster.filter((r) => r.present).length
   const absentCount = roster.length - presentCount
 
   return (
     <Panel
       title={t('teacherAttendanceTitle')}
-      subtitle={t('teacherAttendanceDesc')}
+      subtitle={`${t('teacherAttendanceDesc')} · ${activeClass}`}
       action={
         <div className="flex flex-wrap gap-2 justify-end">
           <button
@@ -61,6 +63,12 @@ export function TeacherAttendance() {
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-bold text-white truncate">{student.name}</p>
+                <p className="text-[9px] text-slate-500 font-semibold">
+                  {[student.rollNo ? `Roll ${student.rollNo}` : null, student.classLabel || null]
+                    .filter(Boolean)
+                    .join(' · ')}
+                  {student.marked === false ? ' · Not marked' : ''}
+                </p>
                 {student.isDemo ? <p className="text-[9px] text-[var(--accent2)] font-bold">{t('demoMode')}</p> : null}
               </div>
             </div>

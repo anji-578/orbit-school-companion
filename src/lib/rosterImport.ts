@@ -2,10 +2,12 @@ import { getSupabase, isSupabaseConfigured } from './supabase'
 import { resolveSchoolId } from './schoolPolicy'
 import type { RosterStudent } from '../types'
 import { fetchRosterWithTodayAttendance } from './attendanceApi'
+import { writeAuditLog } from './auditApi'
 
 export type RosterCsvRow = {
   displayName: string
   className: string
+  /** Empty string means no section (stored as null) — never invent "A". */
   section: string
   rollNo: string
 }
@@ -39,7 +41,7 @@ export function parseRosterCsv(text: string): { rows: RosterCsvRow[]; error?: st
     rows.push({
       displayName,
       className: (classIdx >= 0 ? cols[classIdx] : '')?.trim() || 'Grade 8',
-      section: (sectionIdx >= 0 ? cols[sectionIdx] : '')?.trim() || 'A',
+      section: (sectionIdx >= 0 ? cols[sectionIdx] : '')?.trim() || '',
       rollNo: (rollIdx >= 0 ? cols[rollIdx] : '')?.trim() || String(i),
     })
   }
@@ -74,10 +76,17 @@ function splitCsvLine(line: string): string[] {
   return out.map((s) => s.trim())
 }
 
+function rosterKey(className: string, section: string | null | undefined, rollNo: string) {
+  return `${className.trim().toLowerCase()}|${(section || '').trim().toLowerCase()}|${rollNo.trim().toLowerCase()}`
+}
 
+/**
+ * Import CSV with upsert by (class_name, section, roll_no) within the school.
+ * Re-imports update display_name / reactivate; new rows insert.
+ */
 export async function importRosterCsv(
   fileText: string,
-): Promise<{ ok: true; imported: number; roster: RosterStudent[] } | { ok: false; error: string }> {
+): Promise<{ ok: true; imported: number; updated: number; roster: RosterStudent[] } | { ok: false; error: string }> {
   const parsed = parseRosterCsv(fileText)
   if (parsed.error) return { ok: false, error: parsed.error }
   if (!isSupabaseConfigured()) {
@@ -88,19 +97,74 @@ export async function importRosterCsv(
   const schoolId = await resolveSchoolId()
   if (!schoolId) return { ok: false, error: 'School not found.' }
 
-  const payload = parsed.rows.map((r) => ({
-    school_id: schoolId,
-    display_name: r.displayName,
-    class_name: r.className,
-    section: r.section,
-    roll_no: r.rollNo,
-  }))
+  const { data: existing, error: existingErr } = await supabase
+    .from('students')
+    .select('id, class_name, section, roll_no')
+    .eq('school_id', schoolId)
+  if (existingErr) return { ok: false, error: existingErr.message }
 
-  const { error } = await supabase.from('students').insert(payload)
-  if (error) return { ok: false, error: error.message }
+  const byKey = new Map(
+    (existing ?? []).map((row) => [
+      rosterKey(
+        (row.class_name as string) || '',
+        (row.section as string | null) ?? null,
+        row.roll_no != null ? String(row.roll_no) : '',
+      ),
+      row.id as string,
+    ]),
+  )
 
-  const roster = await fetchRosterWithTodayAttendance()
-  return { ok: true, imported: payload.length, roster }
+  const toInsert: Array<{
+    school_id: string
+    display_name: string
+    class_name: string
+    section: string | null
+    roll_no: string
+    active: boolean
+  }> = []
+  let updated = 0
+
+  for (const r of parsed.rows) {
+    const key = rosterKey(r.className, r.section || null, r.rollNo)
+    const id = byKey.get(key)
+    if (id) {
+      const { error } = await supabase
+        .from('students')
+        .update({
+          display_name: r.displayName,
+          active: true,
+        })
+        .eq('id', id)
+      if (error) return { ok: false, error: error.message }
+      updated += 1
+    } else {
+      toInsert.push({
+        school_id: schoolId,
+        display_name: r.displayName,
+        class_name: r.className,
+        section: r.section || null,
+        roll_no: r.rollNo,
+        active: true,
+      })
+    }
+  }
+
+  if (toInsert.length) {
+    const { error } = await supabase.from('students').insert(toInsert)
+    if (error) return { ok: false, error: error.message }
+  }
+
+  void writeAuditLog({
+    action: 'roster.import',
+    entityType: 'students',
+    payload: { imported: toInsert.length, updated },
+  })
+
+  const roster = await fetchRosterWithTodayAttendance({
+    activeClassOnly: false,
+    includeInactive: true,
+  })
+  return { ok: true, imported: toInsert.length, updated, roster }
 }
 
 export const ROSTER_CSV_TEMPLATE = `display_name,class_name,section,roll_no

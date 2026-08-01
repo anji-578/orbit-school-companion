@@ -1,7 +1,9 @@
-import { CheckCircle2, XCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, XCircle } from 'lucide-react'
 import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
 import { Panel, StatTile } from '../../components/ui/primitives'
+
+const CHRONIC_ABSENT_THRESHOLD = 3
 
 /** Student attendance is read-only — only teachers mark attendance. */
 export function AttendancePanel() {
@@ -12,9 +14,19 @@ export function AttendancePanel() {
   const t = (key: string) => translate(lang, key)
   const presentCount = attendanceRecords.filter((r) => r.status === 'Present').length
   const absentCount = attendanceRecords.length - presentCount
+  const chronic = absentCount >= CHRONIC_ABSENT_THRESHOLD
 
   return (
     <Panel title={t('studentAttendance')} subtitle={t('studentAttendanceDesc')}>
+      {chronic ? (
+        <div className="flex items-start gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2.5">
+          <AlertTriangle className="h-4 w-4 text-rose-300 shrink-0 mt-0.5" aria-hidden />
+          <p className="text-[11px] text-rose-100 font-semibold leading-snug">
+            High absences: {absentCount} days marked absent recently. Talk to your teacher or parent if you need help
+            catching up.
+          </p>
+        </div>
+      ) : null}
       <div className="grid sm:grid-cols-3 gap-4">
         <StatTile label={t('studentAttendance')} value={`${getAttendancePercent()}%`} accent="var(--accent2)" />
         <StatTile label={t('present')} value={String(presentCount)} />

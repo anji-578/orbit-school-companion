@@ -4,7 +4,8 @@ import { BellRing, Check, Plus, Save, X } from 'lucide-react'
 import { useAuthStore } from '../../auth/authStore'
 import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
-import { createFeeItem, groupFeesByStudent } from '../../lib/feesApi'
+import { createFeeItem, createFeeItemsForClass, groupFeesByStudent } from '../../lib/feesApi'
+import { readSchoolPolicy } from '../../lib/schoolPolicy'
 import { Panel, Card, Eyebrow, StatTile } from '../../components/ui/primitives'
 
 const FEE_STATUS_CLASS: Record<string, string> = {
@@ -32,9 +33,12 @@ export function SchoolFees() {
   const setSchoolPaymentSettings = useOrbitStore((s) => s.setSchoolPaymentSettings)
   const persistSchoolPaymentSettings = useOrbitStore((s) => s.persistSchoolPaymentSettings)
   const loadPaymentWorkspace = useOrbitStore((s) => s.loadPaymentWorkspace)
+  const loadMoreFees = useOrbitStore((s) => s.loadMoreFees)
+  const feesHasMore = useOrbitStore((s) => s.feesHasMore)
   const reviewUtrPayment = useOrbitStore((s) => s.reviewUtrPayment)
   const triggerToast = useOrbitStore((s) => s.triggerToast)
   const session = useAuthStore((s) => s.session)
+  const [loadingMoreFees, setLoadingMoreFees] = useState(false)
 
   const [saving, setSaving] = useState(false)
   const [creating, setCreating] = useState(false)
@@ -42,6 +46,8 @@ export function SchoolFees() {
   const [invoiceName, setInvoiceName] = useState('')
   const [invoiceAmount, setInvoiceAmount] = useState('')
   const [invoiceCategory, setInvoiceCategory] = useState('Tuition')
+  const [bulkClass, setBulkClass] = useState(() => readSchoolPolicy().classLabel)
+  const [bulkCreating, setBulkCreating] = useState(false)
 
   const t = (key: string) => translate(lang, key)
   const collected = paymentHistory.reduce((sum, p) => sum + p.amount, 0)
@@ -86,6 +92,28 @@ export function SchoolFees() {
     triggerToast(t('invoiceCreated'))
     setInvoiceName('')
     setInvoiceAmount('')
+    await loadPaymentWorkspace()
+  }
+
+  const onBulkClassFee = async () => {
+    const amount = Number(invoiceAmount)
+    if (!bulkClass.trim() || !invoiceName.trim() || !Number.isFinite(amount) || amount <= 0) {
+      triggerToast('Enter class, fee name, and a valid amount.')
+      return
+    }
+    setBulkCreating(true)
+    const result = await createFeeItemsForClass({
+      classLabel: bulkClass,
+      name: invoiceName,
+      amountRupees: amount,
+      category: invoiceCategory,
+    })
+    setBulkCreating(false)
+    if (!result.ok) {
+      triggerToast(result.error)
+      return
+    }
+    triggerToast(t('bulkFeeDone').replace('{count}', String(result.count)))
     await loadPaymentWorkspace()
   }
 
@@ -181,6 +209,26 @@ export function SchoolFees() {
           </label>
         </form>
 
+        <div className="flex flex-col sm:flex-row gap-2 p-3 rounded-xl bg-white/5 border border-white/10">
+          <label className="block space-y-1 flex-1">
+            <span className="text-[10px] font-bold uppercase text-slate-400">{t('bulkFeeToClass')}</span>
+            <input
+              value={bulkClass}
+              onChange={(e) => setBulkClass(e.target.value)}
+              className="field w-full rounded-xl px-3 py-2 text-sm"
+              placeholder="Grade 8-A"
+            />
+          </label>
+          <button
+            type="button"
+            disabled={bulkCreating || !invoiceName.trim() || !invoiceAmount}
+            onClick={() => void onBulkClassFee()}
+            className="btn-ghost self-end px-3 py-2 rounded-xl text-xs font-bold text-white"
+          >
+            {bulkCreating ? t('creatingInvoice') : t('bulkFeeToClass')}
+          </button>
+        </div>
+
         {ledger.length === 0 ? (
           <p className="text-xs text-slate-400 py-4 text-center">{t('feeLedgerEmpty')}</p>
         ) : (
@@ -190,6 +238,9 @@ export function SchoolFees() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-sm font-bold text-white truncate">{group.studentName}</p>
+                    {group.studentMeta ? (
+                      <p className="text-[10px] text-slate-400 font-semibold mt-0.5">{group.studentMeta}</p>
+                    ) : null}
                     <Eyebrow>
                       {group.unpaidCount > 0
                         ? t('childOutstanding')
@@ -231,6 +282,19 @@ export function SchoolFees() {
                 </div>
               </Card>
             ))}
+            {feesHasMore ? (
+              <button
+                type="button"
+                disabled={loadingMoreFees}
+                onClick={() => {
+                  setLoadingMoreFees(true)
+                  void loadMoreFees().finally(() => setLoadingMoreFees(false))
+                }}
+                className="btn-ghost w-full px-3 py-2 rounded-xl text-xs font-bold text-white"
+              >
+                {loadingMoreFees ? 'Loading…' : 'Load more invoices'}
+              </button>
+            ) : null}
           </div>
         )}
       </Panel>

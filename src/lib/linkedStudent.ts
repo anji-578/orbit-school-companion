@@ -146,11 +146,22 @@ export async function fetchLinkedStudent(sessionEmail: string, role: string): Pr
   return pickActiveStudent(all)
 }
 
-/** Prefer linked child name; fallback for local demo. */
-export function childDisplayName(linked: LinkedStudent | null, fallback = 'Ananya Rao') {
+/** Prefer linked child name; empty when unlinked (no demo name mask). */
+export function childDisplayName(linked: LinkedStudent | null, fallback = '') {
   return linked?.displayName || fallback
 }
 
-export function childFirstName(linked: LinkedStudent | null, fallback = 'Ananya') {
-  return childDisplayName(linked, fallback).split(' ')[0]
+export function childFirstName(linked: LinkedStudent | null, fallback = '') {
+  const full = childDisplayName(linked, fallback)
+  if (!full) return fallback
+  return full.split(/\s+/).filter(Boolean)[0] || full
+}
+
+/** Class/section label for disambiguating siblings and duplicate names. */
+export function childClassLabel(linked: LinkedStudent | null): string {
+  if (!linked) return ''
+  const cls = linked.className?.trim() || ''
+  const sec = linked.section?.trim()
+  if (cls && sec) return `${cls}-${sec}`
+  return cls
 }

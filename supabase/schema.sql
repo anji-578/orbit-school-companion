@@ -112,7 +112,12 @@ create policy profiles_select_self_or_school
 
 create policy profiles_update_self
   on public.profiles for update
-  using (id = auth.uid());
+  using (id = auth.uid())
+  with check (
+    id = auth.uid()
+    and role = (select p.role from public.profiles p where p.id = auth.uid())
+    and school_id is not distinct from (select p.school_id from public.profiles p where p.id = auth.uid())
+  );
 
 create policy profiles_insert_self
   on public.profiles for insert

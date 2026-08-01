@@ -62,24 +62,33 @@ export async function insertAppNotification(input: {
   return Number(data.id)
 }
 
-export async function markAppNotificationRead(id: number): Promise<void> {
-  if (!isSupabaseConfigured()) return
+export async function markAppNotificationRead(
+  id: number,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!isSupabaseConfigured()) return { ok: true }
   const supabase = getSupabase()
-  if (!supabase) return
-  await supabase.from('app_notifications').update({ read_at: new Date().toISOString() }).eq('id', id)
+  if (!supabase) return { ok: false, error: 'Supabase unavailable' }
+  const { error } = await supabase
+    .from('app_notifications')
+    .update({ read_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) return { ok: false, error: error.message }
+  return { ok: true }
 }
 
-export async function markAllAppNotificationsRead(): Promise<void> {
-  if (!isSupabaseConfigured()) return
+export async function markAllAppNotificationsRead(): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!isSupabaseConfigured()) return { ok: true }
   const supabase = getSupabase()
-  if (!supabase) return
+  if (!supabase) return { ok: false, error: 'Supabase unavailable' }
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user?.id) return
-  await supabase
+  if (!user?.id) return { ok: false, error: 'Not signed in' }
+  const { error } = await supabase
     .from('app_notifications')
     .update({ read_at: new Date().toISOString() })
     .is('read_at', null)
     .or(`user_id.eq.${user.id},user_id.is.null`)
+  if (error) return { ok: false, error: error.message }
+  return { ok: true }
 }

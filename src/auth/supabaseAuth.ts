@@ -82,17 +82,29 @@ function sessionFromAuthUser(
 async function upsertProfile(profile: OrbitProfile) {
   const supabase = getSupabase()
   if (!supabase) return
-  await supabase.from('profiles').upsert(
-    {
-      id: profile.id,
-      role: profile.role,
-      display_name: profile.displayName,
-      subtitle: profile.subtitle,
-      email: profile.email,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: 'id' },
-  )
+  const existing = await fetchProfile(profile.id)
+  const stamp = new Date().toISOString()
+  if (existing?.role) {
+    // Never rewrite role/school_id — RLS locks both after first insert.
+    await supabase
+      .from('profiles')
+      .update({
+        display_name: profile.displayName,
+        subtitle: profile.subtitle,
+        email: profile.email,
+        updated_at: stamp,
+      })
+      .eq('id', profile.id)
+    return
+  }
+  await supabase.from('profiles').insert({
+    id: profile.id,
+    role: profile.role,
+    display_name: profile.displayName,
+    subtitle: profile.subtitle,
+    email: profile.email,
+    updated_at: stamp,
+  })
 }
 
 function authErrorMessage(message: string): string {

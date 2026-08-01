@@ -1,3 +1,5 @@
+import { createClient } from '@supabase/supabase-js'
+
 export const config = { runtime: 'edge' }
 
 const MODELS = [
@@ -7,11 +9,41 @@ const MODELS = [
   'gemini-flash-lite-latest',
 ] as const
 
+/** Server-owned tutor system — client cannot override. */
+const ORBIT_TUTOR_SYSTEM = `You are Orbit AI, a careful K-12 school tutor.
+Prefer uncertainty over guessing. Never invent marks, fees, attendance, or school policy.
+If the question is outside school subjects, say you can only help with academics.
+Keep answers concise and age-appropriate.`
+
+const cors = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+}
+
 function getKey() {
   return (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '').trim()
 }
 
 type ImagePart = { mimeType: string; data: string }
+
+async function requireAuthedUser(req: Request): Promise<{ ok: true; userId: string } | { ok: false; status: number; error: string }> {
+  const authHeader = req.headers.get('Authorization') || ''
+  const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : ''
+  if (!bearer) return { ok: false, status: 401, error: 'Sign in required for Orbit AI' }
+
+  const url = (process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '').trim()
+  const anon = (process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '').trim()
+  if (!url || !anon) return { ok: false, status: 503, error: 'Auth not configured' }
+
+  const supabase = createClient(url, anon, {
+    global: { headers: { Authorization: `Bearer ${bearer}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
+  const { data, error } = await supabase.auth.getUser(bearer)
+  if (error || !data.user?.id) return { ok: false, status: 401, error: 'Unauthorized' }
+  return { ok: true, userId: data.user.id }
+}
 
 async function generate(
   model: string,
@@ -23,9 +55,7 @@ async function generate(
   temperature?: number,
 ) {
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
-  const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [
-    { text: prompt },
-  ]
+  const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [{ text: prompt }]
   if (image?.data) {
     parts.unshift({
       inlineData: {
@@ -45,7 +75,7 @@ async function generate(
       systemInstruction: { parts: [{ text: system }] },
       contents: [{ role: 'user', parts }],
       generationConfig: {
-        temperature: typeof temperature === 'number' ? temperature : jsonMode ? 0.2 : 0.45,
+        temperature: typeof temperature === 'number' ? Math.min(temperature, 0.7) : jsonMode ? 0.2 : 0.45,
         maxOutputTokens: 2048,
         ...(jsonMode ? { responseMimeType: 'application/json' } : {}),
       },
@@ -72,18 +102,17 @@ async function generate(
 }
 
 export default async function handler(req: Request): Promise<Response> {
-  const cors = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  }
-
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: cors })
   }
 
   if (req.method !== 'POST') {
     return Response.json({ error: 'Method not allowed' }, { status: 405, headers: cors })
+  }
+
+  const authed = await requireAuthedUser(req)
+  if (!authed.ok) {
+    return Response.json({ error: authed.error }, { status: authed.status, headers: cors })
   }
 
   const key = getKey()
@@ -93,7 +122,6 @@ export default async function handler(req: Request): Promise<Response> {
 
   let body: {
     prompt?: string
-    system?: string
     jsonMode?: boolean
     imageBase64?: string
     mimeType?: string
@@ -106,15 +134,18 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   const prompt = (body.prompt || '').trim()
-  const system = (body.system || 'You are Orbit AI, a careful school tutor. Prefer uncertainty over guessing.').trim()
+  if (!prompt) {
+    return Response.json({ error: 'prompt is required' }, { status: 400, headers: cors })
+  }
+  if (prompt.length > 12_000) {
+    return Response.json({ error: 'Prompt too long' }, { status: 413, headers: cors })
+  }
+
   const jsonMode = Boolean(body.jsonMode)
   const imageBase64 = (body.imageBase64 || '').replace(/^data:[^;]+;base64,/, '').trim()
   const mimeType = (body.mimeType || 'image/jpeg').trim()
   const temperature = typeof body.temperature === 'number' ? body.temperature : undefined
 
-  if (!prompt) {
-    return Response.json({ error: 'prompt is required' }, { status: 400, headers: cors })
-  }
   if (imageBase64 && imageBase64.length > 5_500_000) {
     return Response.json({ error: 'Image too large. Use a clearer, smaller photo.' }, { status: 413, headers: cors })
   }
@@ -122,9 +153,12 @@ export default async function handler(req: Request): Promise<Response> {
   const image = imageBase64 ? { mimeType, data: imageBase64 } : undefined
   const errors: string[] = []
   for (const model of MODELS) {
-    const result = await generate(model, key, prompt, system, jsonMode, image, temperature)
+    const result = await generate(model, key, prompt, ORBIT_TUTOR_SYSTEM, jsonMode, image, temperature)
     if (result.ok) {
-      return Response.json({ text: result.text, model: result.model, source: 'live' }, { headers: cors })
+      return Response.json(
+        { text: result.text, model: result.model, source: 'live', userId: authed.userId },
+        { headers: cors },
+      )
     }
     errors.push(`${model}: ${result.error}`)
     if (result.status !== 404 && result.status !== 429 && result.status !== 503) {

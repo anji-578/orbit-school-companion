@@ -1,6 +1,12 @@
 import { Users } from 'lucide-react'
 import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
+import { childClassLabel, type LinkedStudent } from '../../lib/linkedStudent'
+
+function childOptionLabel(child: LinkedStudent) {
+  const classLabel = childClassLabel(child)
+  return classLabel ? `${child.displayName} · ${classLabel}` : child.displayName
+}
 
 /** Parent multi-child picker — only renders when 2+ children are linked. */
 export function ChildSwitcher({ compact = false }: { compact?: boolean }) {
@@ -28,7 +34,7 @@ export function ChildSwitcher({ compact = false }: { compact?: boolean }) {
         >
           {linkedStudents.map((child) => (
             <option key={child.id} value={child.id} className="bg-[#0D1120]">
-              {child.displayName}
+              {childOptionLabel(child)}
             </option>
           ))}
         </select>
@@ -42,19 +48,25 @@ export function ChildSwitcher({ compact = false }: { compact?: boolean }) {
       <div className="flex flex-wrap gap-1.5">
         {linkedStudents.map((child) => {
           const selected = child.id === linkedStudent?.id
+          const classLabel = childClassLabel(child)
           return (
             <button
               key={child.id}
               type="button"
               onClick={() => void setActiveChild(child.id)}
-              className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold border transition ${
+              className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold border transition text-left ${
                 selected
                   ? 'bg-[var(--accent)] text-black border-transparent'
                   : 'bg-white/5 text-slate-300 border-white/10 hover:border-white/20'
               }`}
               aria-pressed={selected}
             >
-              {child.displayName.split(' ')[0]}
+              <span className="block">{child.displayName}</span>
+              {classLabel ? (
+                <span className={`block text-[9px] font-semibold ${selected ? 'text-black/70' : 'text-slate-500'}`}>
+                  {classLabel}
+                </span>
+              ) : null}
             </button>
           )
         })}

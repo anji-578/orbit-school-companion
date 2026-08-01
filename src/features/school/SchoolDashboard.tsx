@@ -5,6 +5,7 @@ import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
 import { createClassInvite, fetchSchoolInviteCodes } from '../../lib/classLink'
 import { exportAttendanceCsv, exportGradesCsv } from '../../lib/dataExport'
+import { fetchAuditLog, type AuditRow } from '../../lib/auditApi'
 import { readSchoolPolicy, saveSchoolPolicy } from '../../lib/schoolPolicy'
 import { isSupabaseConfigured } from '../../lib/supabaseConfig'
 import { Card, Eyebrow, Panel, StatTile } from '../../components/ui/primitives'
@@ -30,6 +31,7 @@ export function SchoolDashboard() {
   const [inviteStudentId, setInviteStudentId] = useState('')
   const [creatingInvite, setCreatingInvite] = useState(false)
   const [exportBusy, setExportBusy] = useState(false)
+  const [auditRows, setAuditRows] = useState<AuditRow[]>([])
   const roster = useOrbitStore((s) => s.roster)
 
   const t = (key: string) => translate(lang, key)
@@ -44,6 +46,9 @@ export function SchoolDashboard() {
 
   useEffect(() => {
     loadInvites()
+    if (isSupabaseConfigured() && classLinked) {
+      void fetchAuditLog(12).then(setAuditRows)
+    }
   }, [classLinked])
 
   const copyCode = async (code: string) => {
@@ -72,6 +77,29 @@ export function SchoolDashboard() {
     triggerToast(t('inviteCreated'))
     loadInvites()
     void copyCode(result.code)
+  }
+
+  /** Create one parent invite per active roster student (bulk onboarding). */
+  const onBulkParentInvites = async () => {
+    const active = roster.filter((s) => s.active !== false)
+    if (!active.length) {
+      triggerToast(t('rosterEmptyTitle'))
+      return
+    }
+    setCreatingInvite(true)
+    let okCount = 0
+    for (const student of active.slice(0, 40)) {
+      const result = await createClassInvite({
+        role: 'parent',
+        className: student.classLabel || inviteClass.trim() || undefined,
+        studentId: student.id,
+        maxUses: 2,
+      })
+      if (result.ok) okCount += 1
+    }
+    setCreatingInvite(false)
+    triggerToast(t('bulkInvitesDone').replace('{count}', String(okCount)))
+    loadInvites()
   }
 
   const onExport = async (kind: 'attendance' | 'grades') => {
@@ -177,20 +205,31 @@ export function SchoolDashboard() {
                   {roster.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.name}
+                      {s.classLabel ? ` · ${s.classLabel}` : ''}
                       {s.rollNo ? ` · Roll ${s.rollNo}` : ''}
                     </option>
                   ))}
                 </select>
               </label>
             ) : null}
-            <button
-              type="submit"
-              disabled={creatingInvite}
-              className="btn-accent self-start inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold"
-            >
-              <Plus className="h-3.5 w-3.5" aria-hidden />
-              {creatingInvite ? t('redeemingInvite') : t('createInvite')}
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="submit"
+                disabled={creatingInvite}
+                className="btn-accent self-start inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold"
+              >
+                <Plus className="h-3.5 w-3.5" aria-hidden />
+                {creatingInvite ? t('redeemingInvite') : t('createInvite')}
+              </button>
+              <button
+                type="button"
+                disabled={creatingInvite || roster.length === 0}
+                onClick={() => void onBulkParentInvites()}
+                className="btn-ghost self-start inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-white"
+              >
+                Bulk parent invites
+              </button>
+            </div>
           </form>
 
           {invites.length > 0 ? (
@@ -219,6 +258,27 @@ export function SchoolDashboard() {
               ))}
             </div>
           ) : null}
+        </Panel>
+      ) : null}
+
+      {classLinked && isSupabaseConfigured() && auditRows.length > 0 ? (
+        <Panel title="Activity log" subtitle="Recent school mutations (fees, leave, roster, attendance).">
+          <div className="space-y-2">
+            {auditRows.map((row) => (
+              <Card key={row.id} className="p-3 flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-white truncate">{row.action}</p>
+                  <Eyebrow>
+                    {row.entityType}
+                    {row.entityId ? ` · ${row.entityId.slice(0, 8)}` : ''}
+                  </Eyebrow>
+                </div>
+                <span className="text-[10px] text-slate-500 shrink-0">
+                  {new Date(row.createdAt).toLocaleString()}
+                </span>
+              </Card>
+            ))}
+          </div>
         </Panel>
       ) : null}
 

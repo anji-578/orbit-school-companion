@@ -1,6 +1,18 @@
-/** Prefer live remote rows; keep rich local samples so every tab looks filled for demos. */
-export function withSample<T>(remote: T[] | null | undefined, sample: T[]): T[] {
-  return remote && remote.length > 0 ? remote : sample
+import { isSupabaseConfigured } from './supabaseConfig'
+
+/**
+ * Prefer live remote rows. Sample fallback is demo-only (no Supabase).
+ * When cloud is configured, empty remote means empty — never invent demo data.
+ */
+export function withSample<T>(
+  remote: T[] | null | undefined,
+  sample: T[],
+  options?: { forceSample?: boolean },
+): T[] {
+  if (remote && remote.length > 0) return remote
+  if (options?.forceSample) return sample
+  if (isSupabaseConfigured()) return remote ?? []
+  return sample
 }
 
 export function timetableHasSlots(week: Record<string, { theory: unknown[]; lab: unknown[] }> | null | undefined) {

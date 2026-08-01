@@ -1,0 +1,17 @@
+{
+  "school": {
+    "code": "PILOT100",
+    "name": "Orbit Pilot Academy",
+    "upi": "orbit.pilot100@oksbi"
+  },
+  "password": "Pilot100!",
+  "counts": {
+    "students": 100,
+    "parents": 96,
+    "teachers": 5,
+    "fees": 197,
+    "logins": 201,
+    "links": 99
+  },
+  "generatedAt": "2026-08-01T14:33:59.520Z"
+}

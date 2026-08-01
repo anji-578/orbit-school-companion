@@ -38,32 +38,23 @@ import { currentDayCode, fetchTimetableByDay, getLocalTimetable, saveTimetableWe
 import { withSample, timetableHasSlots } from '../lib/sampleData'
 import { fetchStaffDirectory } from '../lib/staffApi'
 import { getSupabase, isSupabaseConfigured } from '../lib/supabase'
-import {
-  createPaymentSubmission,
-  fetchPaymentSubmissions,
-  fetchSchoolPaymentSettings,
-  reviewPaymentSubmission,
-  saveSchoolPaymentSettings,
-} from '../lib/paymentsApi'
-import {
-  loadSchoolOpsSnapshot,
-  syncAssignHomework,
-  syncBroadcast,
-  syncCalendarEvent,
-  syncSetLeaveStatus,
-  syncSubmitLeave,
-  syncToggleHomework,
-} from '../lib/schoolOpsApi'
+import { loadSchoolOpsSnapshot } from '../lib/schoolOpsApi'
 import {
   claimDemoLinks,
   fetchAttendanceHistory,
   fetchRosterWithTodayAttendance,
 } from '../lib/attendanceApi'
-import { startAttendanceQueueSync, upsertAttendanceMarkQueued } from '../lib/attendanceQueue'
+import { startAttendanceQueueSync } from '../lib/attendanceQueue'
 import { fetchSchoolPolicy, resolveClassLabel } from '../lib/schoolPolicy'
 import { fetchStudentGrades, saveStudentGrades } from '../lib/gradesApi'
-import { fetchFeeItems, markAllFeesPaid, markFeeItemsStatus } from '../lib/feesApi'
 import { deleteSyllabusNoteFile, fetchSyllabusState, mergeCurriculum, saveSyllabusState, uploadSyllabusNoteFile } from '../lib/syllabusApi'
+import { friendlyError } from '../lib/errors'
+import { attendancePercent, homeworkPercent } from './orbitHelpers'
+import { createAttendanceActions } from './attendanceActions'
+import { createPaymentActions } from './paymentActions'
+import { createSchoolOpsActions } from './schoolOpsActions'
+
+export { chapterProgress, curriculumProgress } from './orbitHelpers'
 import {
   fetchAppNotifications,
   insertAppNotification,
@@ -100,29 +91,6 @@ import type {
   ThemeMode,
 } from '../types'
 
-function attendancePercent(records: AttendanceRecord[]) {
-  if (!records.length) return 100
-  const present = records.filter((r) => r.status === 'Present').length
-  return Math.round((present / records.length) * 100)
-}
-
-function homeworkPercent(tasks: HomeworkTask[]) {
-  if (!tasks.length) return 100
-  return Math.round((tasks.filter((t) => t.completed).length / tasks.length) * 100)
-}
-
-export function chapterProgress(chapter: SyllabusChapter) {
-  if (!chapter.subtopics.length) return 0
-  const done = chapter.subtopics.filter((s) => s.done).length
-  return Math.round((done / chapter.subtopics.length) * 100)
-}
-
-export function curriculumProgress(chapters: SyllabusChapter[]) {
-  const all = chapters.flatMap((c) => c.subtopics)
-  if (!all.length) return 0
-  return Math.round((all.filter((s) => s.done).length / all.length) * 100)
-}
-
 interface OrbitState {
   role: Role
   lang: Lang
@@ -141,6 +109,7 @@ interface OrbitState {
   totalXp: number
 
   fees: FeeItem[]
+  feesHasMore: boolean
   paymentHistory: PaymentRecord[]
   outstandingFees: number
   paymentMethod: PaymentMethod
@@ -237,6 +206,7 @@ interface OrbitState {
   nudgeFeeParents: () => void
   setSchoolPaymentSettings: (patch: Partial<SchoolPaymentSettings>) => void
   loadPaymentWorkspace: () => Promise<void>
+  loadMoreFees: () => Promise<void>
   hydrateFromSupabase: () => Promise<void>
   refreshNotifications: () => Promise<void>
   submitUtrPayment: (input: {
@@ -312,6 +282,7 @@ export const useOrbitStore = create<OrbitState>()(
       totalXp: 430,
 
       fees: initialFees,
+      feesHasMore: false,
       paymentHistory: initialPaymentHistory,
       outstandingFees: 42500,
       paymentMethod: 'upi',
@@ -457,171 +428,8 @@ export const useOrbitStore = create<OrbitState>()(
         })
       },
 
-      toggleRosterPresent: (id) => {
-        const state = get()
-        const student = state.roster.find((r) => r.id === id)
-        if (!student) return
-
-        const nextPresent = !student.present
-        set({
-          roster: state.roster.map((r) => (r.id === id ? { ...r, present: nextPresent } : r)),
-        })
-        void upsertAttendanceMarkQueued(id, nextPresent).then((result) => {
-          if (result.queued) get().triggerToast('Saved offline — will sync when back online.')
-        })
-
-        const classLabel = resolveClassLabel({
-          linkedClassName: state.linkedStudent?.className,
-          linkedSection: state.linkedStudent?.section,
-        })
-
-        // Keep local history in sync when teacher marks the demo/linked child in the same session
-        if (student.isDemo || student.id === state.linkedStudent?.id) {
-          const todayLabel = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
-          const todayDay = new Date().toLocaleDateString('en-US', { weekday: 'short' })
-          set((s) => {
-            const records = [...s.attendanceRecords]
-            const last = records[records.length - 1]
-            const nextRec = {
-              date: todayLabel,
-              day: todayDay,
-              status: (nextPresent ? 'Present' : 'Absent') as AttendanceRecord['status'],
-              reason: nextPresent ? undefined : 'Marked absent by class teacher',
-            }
-            if (last && last.date === todayLabel) {
-              records[records.length - 1] = nextRec
-            } else {
-              records.push(nextRec)
-            }
-            return {
-              attendanceRecords: records,
-              studyScore: computeStudyScore(attendancePercent(records), homeworkPercent(s.tasks)),
-            }
-          })
-        }
-
-        get().pushNotification({
-          role: 'parent',
-          title: nextPresent ? 'Attendance: Present' : 'Attendance Alert',
-          body: `${student.name} marked ${nextPresent ? 'Present' : 'Absent'} in ${classLabel}.`,
-          studentId: student.id,
-        })
-        get().pushNotification({
-          role: 'student',
-          title: 'Attendance updated',
-          body: `Your status is now ${nextPresent ? 'Present' : 'Absent'} for today.`,
-          studentId: student.id,
-        })
-        get().triggerToast(
-          `${student.name} marked ${nextPresent ? 'Present' : 'Absent'} — students and parents see view-only.`,
-        )
-      },
-
-      markAllRosterPresent: () => {
-        const state = get()
-        if (!state.roster.length) {
-          get().triggerToast('Roster is empty.')
-          return
-        }
-        const needsMark = state.roster.filter((r) => !r.present)
-        set({
-          roster: state.roster.map((r) => ({ ...r, present: true })),
-        })
-        needsMark.forEach((s) => {
-          void upsertAttendanceMarkQueued(s.id, true)
-        })
-        get().triggerToast(
-          needsMark.length
-            ? `Marked all ${state.roster.length} present (1 tap).`
-            : 'Everyone already present.',
-        )
-      },
-
-      broadcastAbsentees: () => {
-        const absentees = get().roster.filter((s) => !s.present)
-        if (!absentees.length) {
-          get().triggerToast('All students present — no alerts needed.')
-          return
-        }
-        absentees.forEach((s) => {
-          get().pushNotification({
-            role: 'parent',
-            title: 'Absentee Alert',
-            body: `${s.name} was marked absent today. Please confirm.`,
-            studentId: s.id,
-          })
-        })
-        get().triggerToast(
-          `Alerts queued for: ${absentees.map((a) => a.name).join(', ')} (in-app + push/SMS if enabled)`,
-        )
-      },
-
-      assignHomework: ({ subject, task, due, xp, difficulty }) => {
-        const className = resolveClassLabel({
-          linkedClassName: get().linkedStudent?.className,
-          linkedSection: get().linkedStudent?.section,
-        })
-        const entry: HomeworkTask = {
-          id: Date.now(),
-          subject,
-          task,
-          due,
-          xp,
-          difficulty,
-          completed: false,
-        }
-        set((s) => {
-          const tasks = [entry, ...s.tasks]
-          const studyScore = computeStudyScore(attendancePercent(s.attendanceRecords), homeworkPercent(tasks))
-          return { tasks, studyScore }
-        })
-        void syncAssignHomework({ ...entry, className }).then((remoteId) => {
-          if (remoteId) {
-            set((s) => ({
-              tasks: s.tasks.map((t) => (t.id === entry.id ? { ...t, id: remoteId } : t)),
-            }))
-          }
-        })
-        get().pushNotification({
-          role: 'student',
-          title: 'New homework',
-          body: `${subject}: ${task} · due ${due}`,
-        })
-        get().pushNotification({
-          role: 'parent',
-          title: 'Homework assigned',
-          body: `${childFirstName(get().linkedStudent)} received: ${task} (${subject})`,
-        })
-        const classLabel = get().linkedStudent?.className
-        get().triggerToast(
-          `Homework assigned${classLabel ? ` · ${classLabel}` : ''} · student & parent notified.`,
-        )
-      },
-
-      toggleTask: (id) => {
-        const before = get().tasks.find((t) => t.id === id)
-        set((s) => {
-          const tasks = s.tasks.map((task) => {
-            if (task.id !== id) return task
-            return { ...task, completed: !task.completed }
-          })
-          const toggled = s.tasks.find((t) => t.id === id)
-          let totalXp = s.totalXp
-          let unlockedBadges = s.unlockedBadges
-          if (toggled) {
-            totalXp = Math.max(0, totalXp + (toggled.completed ? -toggled.xp : toggled.xp))
-          }
-          if (tasks.every((t) => t.completed) && !unlockedBadges.includes('Task Master')) {
-            unlockedBadges = [...unlockedBadges, 'Task Master']
-            queueMicrotask(() => get().triggerToast('All homework complete — Task Master unlocked!'))
-          }
-          const studyScore = computeStudyScore(attendancePercent(s.attendanceRecords), homeworkPercent(tasks))
-          return { tasks, totalXp, unlockedBadges, studyScore }
-        })
-        if (before) {
-          void syncToggleHomework(id, !before.completed, get().linkedStudent?.id)
-        }
-      },
+      ...createAttendanceActions(set, get),
+      ...createSchoolOpsActions(set, get),
 
       updateGrade: (id, patch) =>
         set((s) => ({
@@ -632,7 +440,7 @@ export const useOrbitStore = create<OrbitState>()(
         const grades = get().studentGrades
         void saveStudentGrades(grades).then((result) => {
           if (!result.ok) {
-            get().triggerToast(result.error ?? 'Could not save marks to cloud.')
+            get().triggerToast(friendlyError(result.error ?? 'Could not save marks to cloud.'))
             return
           }
           const childId = get().linkedStudent?.id
@@ -652,20 +460,7 @@ export const useOrbitStore = create<OrbitState>()(
         })
       },
 
-      setPaymentMethod: (paymentMethod) => set({ paymentMethod }),
-      setUpiId: (upiId) => set({ upiId }),
-
-      nudgeFeeParents: () => {
-        get().pushNotification({
-          role: 'parent',
-          title: 'Fee reminder',
-          body: 'School accounts nudged families with pending dues.',
-        })
-        get().triggerToast('Fee reminder notifications queued for pending accounts.')
-      },
-
-      setSchoolPaymentSettings: (patch) =>
-        set((s) => ({ schoolPaymentSettings: { ...s.schoolPaymentSettings, ...patch } })),
+      ...createPaymentActions(set, get),
 
       setActiveChild: async (studentId) => {
         const match = get().linkedStudents.find((s) => s.id === studentId)
@@ -678,43 +473,18 @@ export const useOrbitStore = create<OrbitState>()(
           fetchStudentGrades(studentId),
           get().loadPaymentWorkspace(),
         ])
-        set((s) => ({
+        const tasks = withSample(ops.tasks, [])
+        const nextAttendance = withSample(attendanceRecords, [])
+        const nextGrades = withSample(studentGrades, [])
+        set({
           linkedStudent: match,
-          tasks: withSample(ops.tasks, s.tasks),
-          attendanceRecords: withSample(attendanceRecords, s.attendanceRecords),
-          studentGrades: withSample(studentGrades, s.studentGrades),
-          studyScore: computeStudyScore(
-            attendancePercent(withSample(attendanceRecords, s.attendanceRecords)),
-            homeworkPercent(withSample(ops.tasks, s.tasks)),
-          ),
-        }))
-        get().triggerToast(`Viewing ${match.displayName.split(' ')[0]}'s data`)
-      },
-
-      loadPaymentWorkspace: async () => {
-        const cloud = isSupabaseConfigured()
-        const childId = get().linkedStudent?.id
-        const [settings, submissions, fees] = await Promise.all([
-          fetchSchoolPaymentSettings(),
-          fetchPaymentSubmissions(),
-          fetchFeeItems(childId),
-        ])
-        const outstandingFees = fees.filter((f) => f.status !== 'Paid').reduce((sum, f) => sum + f.amount, 0)
-        const filledFees = withSample(fees, get().fees.length ? get().fees : initialFees)
-        const filledOutstanding = filledFees
-          .filter((f) => f.status !== 'Paid')
-          .reduce((sum, f) => sum + f.amount, 0)
-        set((s) => ({
-          schoolPaymentSettings: settings,
-          paymentSubmissions: cloud
-            ? submissions.filter((p) => !p.id.startsWith('local_'))
-            : submissions.length
-              ? submissions
-              : s.paymentSubmissions.filter((p) => !p.id.startsWith('local_')),
-          fees: filledFees,
-          outstandingFees: fees.length ? outstandingFees : filledOutstanding,
-          showingSampleData: Boolean(s.showingSampleData || fees.length === 0),
-        }))
+          tasks,
+          attendanceRecords: nextAttendance,
+          studentGrades: nextGrades,
+          studyScore: computeStudyScore(attendancePercent(nextAttendance), homeworkPercent(tasks)),
+        })
+        const first = match.displayName.split(/\s+/).filter(Boolean)[0] || match.displayName
+        get().triggerToast(`Viewing ${first}'s data`)
       },
 
       hydrateFromSupabase: async () => {
@@ -734,7 +504,10 @@ export const useOrbitStore = create<OrbitState>()(
         const [ops, roster, attendanceRecords, studentGrades, remoteSyllabus, timetableByDay, teachers, busRoutes, hiring] =
           await Promise.all([
             loadSchoolOpsSnapshot(linkedStudent?.id),
-            fetchRosterWithTodayAttendance(),
+            fetchRosterWithTodayAttendance({
+              activeClassOnly: role === 'teacher',
+              includeInactive: role === 'school',
+            }),
             fetchAttendanceHistory(20, linkedStudent?.id),
             fetchStudentGrades(linkedStudent?.id),
             fetchSyllabusState(),
@@ -752,30 +525,25 @@ export const useOrbitStore = create<OrbitState>()(
         })
         await get().refreshNotifications()
         set((s) => {
-          const tasks = withSample(ops.tasks, s.tasks.length ? s.tasks : initialTasks)
-          const leaves = withSample(ops.leaves, s.leaves.length ? s.leaves : initialLeaves)
-          const broadcasts = withSample(ops.broadcasts, s.broadcasts.length ? s.broadcasts : initialBroadcasts)
-          const calendarEvents = withSample(
-            ops.calendarEvents,
-            s.calendarEvents.length ? s.calendarEvents : initialCalendar,
-          )
-          const nextRoster = withSample(roster, s.roster.length ? s.roster : initialRoster)
-          const nextAttendance = withSample(
-            attendanceRecords,
-            s.attendanceRecords.length ? s.attendanceRecords : initialAttendance,
-          )
-          const nextGrades = withSample(
-            studentGrades,
-            s.studentGrades.length ? s.studentGrades : initialGrades,
-          )
-          const nextTeachers = withSample(teachers, s.teachers.length ? s.teachers : schoolTeachers)
-          const nextTimetable = timetableHasSlots(timetableByDay) ? timetableByDay : getLocalTimetable()
+          const tasks = withSample(ops.tasks, initialTasks)
+          const leaves = withSample(ops.leaves, initialLeaves)
+          const broadcasts = withSample(ops.broadcasts, initialBroadcasts)
+          const calendarEvents = withSample(ops.calendarEvents, initialCalendar)
+          const nextRoster = withSample(roster, initialRoster)
+          const nextAttendance = withSample(attendanceRecords, initialAttendance)
+          const nextGrades = withSample(studentGrades, initialGrades)
+          const nextTeachers = withSample(teachers, schoolTeachers)
+          const nextTimetable = timetableHasSlots(timetableByDay)
+            ? timetableByDay
+            : cloud
+              ? timetableByDay
+              : getLocalTimetable()
           const curriculum = mergeCurriculum(
             remoteSyllabus,
-            s.curriculum.length ? s.curriculum : initialCurriculum,
+            cloud ? s.curriculum : s.curriculum.length ? s.curriculum : initialCurriculum,
           )
 
-          const usedSample =
+          const usedSample = !cloud && (
             !(ops.tasks?.length) ||
             !(ops.leaves?.length) ||
             !(ops.broadcasts?.length) ||
@@ -785,15 +553,16 @@ export const useOrbitStore = create<OrbitState>()(
             !studentGrades.length ||
             !teachers.length ||
             !timetableHasSlots(timetableByDay)
+          )
 
-          const nextFleet = busRoutes.length ? busRowsToFleet(busRoutes) : withSample([], s.fleet.length ? s.fleet : initialFleet)
-          const nextCandidates = hiring.length
-            ? hiring
-            : withSample([], s.candidates.length ? s.candidates : initialCandidates)
+          const nextFleet = busRoutes.length
+            ? busRowsToFleet(busRoutes)
+            : withSample([], initialFleet)
+          const nextCandidates = hiring.length ? hiring : withSample([], initialCandidates)
           const primaryBus = busRoutes.find((b) => b.id === 'bus_14') || busRoutes[0]
           return {
             usingCloudData: cloud,
-            showingSampleData: usedSample && !busRoutes.length,
+            showingSampleData: usedSample,
             classLinked,
             linkedStudent,
             linkedStudents,
@@ -806,9 +575,9 @@ export const useOrbitStore = create<OrbitState>()(
             studentGrades: nextGrades,
             teachers: nextTeachers,
             curriculum,
-            timetableByDay: nextTimetable,
-            fleet: nextFleet.length ? nextFleet : s.fleet,
-            candidates: nextCandidates.length ? nextCandidates : s.candidates,
+            timetableByDay: nextTimetable ?? s.timetableByDay,
+            fleet: nextFleet.length ? nextFleet : cloud ? [] : s.fleet,
+            candidates: nextCandidates.length ? nextCandidates : cloud ? [] : s.candidates,
             busReachedSchool: primaryBus?.status === 'at_school' ? true : s.busReachedSchool,
             busPosition: primaryBus
               ? primaryBus.status === 'at_school'
@@ -822,160 +591,8 @@ export const useOrbitStore = create<OrbitState>()(
         })
       },
 
-      submitUtrPayment: async (input) => {
-        if (!input.utr.trim() || input.amount <= 0) {
-          get().triggerToast('Enter a valid UTR and amount.')
-          return false
-        }
-        const result = await createPaymentSubmission({
-          ...input,
-          studentId: get().linkedStudent?.id,
-        })
-        if (!result.ok) {
-          get().triggerToast(result.error)
-          return false
-        }
-        const studentId = result.submission.studentId
-        set((s) => {
-          const fees = s.fees.map((f) => {
-            const sameChild = !studentId || !f.studentId || f.studentId === studentId
-            return sameChild && f.status !== 'Paid' ? { ...f, status: 'Pending' as const } : f
-          })
-          return {
-            paymentSubmissions: [result.submission, ...s.paymentSubmissions],
-            fees,
-            outstandingFees: fees.filter((f) => f.status !== 'Paid').reduce((sum, f) => sum + f.amount, 0),
-          }
-        })
-        void markFeeItemsStatus('Pending', studentId)
-        get().pushNotification({
-          role: 'school',
-          title: 'UTR payment submitted',
-          body: `${input.payerName || 'Parent'} submitted UTR ${input.utr} for ₹${input.amount.toLocaleString()}.`,
-        })
-        get().pushNotification({
-          role: 'parent',
-          title: 'Payment under review',
-          body: `UTR ${input.utr} submitted. School will verify shortly.`,
-        })
-        get().triggerToast('UTR submitted for school verification.')
-        return true
-      },
-
-      reviewUtrPayment: async (id, status, reviewerId) => {
-        const target = get().paymentSubmissions.find((p) => p.id === id)
-        const result = await reviewPaymentSubmission(id, status, reviewerId)
-        if (!result.ok) {
-          get().triggerToast(result.error ?? 'Could not update payment on server.')
-          return
-        }
-
-        if (status !== 'Verified') {
-          set((s) => ({
-            paymentSubmissions: s.paymentSubmissions.map((p) => (p.id === id ? { ...p, status } : p)),
-          }))
-          get().pushNotification({
-            role: 'parent',
-            title: 'Payment rejected',
-            body: 'School could not verify the UTR. Please check and resubmit.',
-          })
-          get().triggerToast('Payment marked rejected.')
-          return
-        }
-
-        const amount = target?.amount ?? 0
-        const studentId = target?.studentId
-        const receiptId = `UTR-${Math.floor(10000 + Math.random() * 90000)}`
-        const date = new Date().toLocaleDateString('en-IN', {
-          year: 'numeric',
-          month: 'long',
-          day: '2-digit',
-        })
-
-        set((s) => {
-          const fees = s.fees.map((f) => {
-            if (studentId && f.studentId && f.studentId !== studentId) return f
-            if (!studentId && f.studentId) return f
-            return { ...f, status: 'Paid' as const }
-          })
-          const outstandingFees = fees.filter((f) => f.status !== 'Paid').reduce((sum, f) => sum + f.amount, 0)
-          return {
-            paymentSubmissions: s.paymentSubmissions.map((p) => (p.id === id ? { ...p, status } : p)),
-            outstandingFees,
-            fees,
-            paymentHistory: [
-              {
-                id: Date.now(),
-                name: target?.studentName
-                  ? `UPI / UTR · ${target.studentName}`
-                  : 'UPI / UTR settlement',
-                amount,
-                status: 'Paid' as const,
-                date,
-                receiptId,
-              },
-              ...s.paymentHistory,
-            ],
-            paymentReceipt: { id: receiptId, date, amount, ref: id },
-          }
-        })
-        void markAllFeesPaid(studentId)
-        get().pushNotification({
-          role: 'parent',
-          title: 'Fee payment verified',
-          body: `UTR payment of ₹${amount.toLocaleString()} verified by school.`,
-        })
-        get().triggerToast('Payment verified · fees cleared.')
-      },
-
-      persistSchoolPaymentSettings: async () => {
-        const settings = get().schoolPaymentSettings
-        const result = await saveSchoolPaymentSettings(settings)
-        if (!result.ok) {
-          get().triggerToast(result.error ?? 'Could not save payment settings.')
-          return
-        }
-        get().triggerToast('School UPI / bank details saved.')
-      },
-
-      submitLeave: (date, reason, teacherName) => {
-        const name = teacherName?.trim() || 'Teacher'
-        const entry: LeaveRequest = { id: Date.now(), date, reason, status: 'Reviewing', teacherName: name }
-        set((s) => ({ leaves: [entry, ...s.leaves] }))
-        void syncSubmitLeave({ date, reason }).then((remoteId) => {
-          if (remoteId) {
-            set((s) => ({
-              leaves: s.leaves.map((l) => (l.id === entry.id ? { ...l, id: remoteId } : l)),
-            }))
-          }
-        })
-        get().pushNotification({
-          role: 'school',
-          title: 'Leave request',
-          body: `${name} · ${date}: ${reason}`,
-        })
-        get().triggerToast('Leave submitted — awaiting school approval.')
-      },
-
-      setLeaveStatus: (id, status) => {
-        const leave = get().leaves.find((l) => l.id === id)
-        set((s) => ({ leaves: s.leaves.map((l) => (l.id === id ? { ...l, status } : l)) }))
-        void syncSetLeaveStatus(id, status)
-        if (!leave) return
-        get().pushNotification({
-          role: 'teacher',
-          title: status === 'Approved' ? 'Leave approved' : 'Leave declined',
-          body:
-            status === 'Approved'
-              ? `Your leave for ${leave.date} was approved. Substitute planning queued.`
-              : `Your leave for ${leave.date} was declined. Contact admin if needed.`,
-        })
-        get().triggerToast(
-          status === 'Approved' ? 'Leave approved · teacher notified.' : 'Leave declined · teacher notified.',
-        )
-      },
-
       toggleSyllabusSubtopic: (chapterId, subtopicId) => {
+        const prev = get().curriculum
         set((s) => ({
           curriculum: s.curriculum.map((ch) => {
             if (ch.id !== chapterId) return ch
@@ -993,17 +610,23 @@ export const useOrbitStore = create<OrbitState>()(
             }
           }),
         }))
-        void saveSyllabusState(get().curriculum)
-        const chapter = get().curriculum.find((c) => c.id === chapterId)
-        const sub = chapter?.subtopics.find((st) => st.id === subtopicId)
-        if (sub?.done) {
-          get().triggerToast(`Marked done · ${sub.title}`)
-          get().pushNotification({
-            role: 'student',
-            title: 'Syllabus update',
-            body: `${chapter?.subject}: “${sub.title}” marked complete.`,
-          })
-        }
+        void saveSyllabusState(get().curriculum).then((result) => {
+          if (!result.ok) {
+            set({ curriculum: prev })
+            get().triggerToast(friendlyError(result.error ?? 'Could not save syllabus.'))
+            return
+          }
+          const chapter = get().curriculum.find((c) => c.id === chapterId)
+          const sub = chapter?.subtopics.find((st) => st.id === subtopicId)
+          if (sub?.done) {
+            get().triggerToast(`Marked done · ${sub.title}`)
+            get().pushNotification({
+              role: 'student',
+              title: 'Syllabus update',
+              body: `${chapter?.subject}: “${sub.title}” marked complete.`,
+            })
+          }
+        })
       },
 
       uploadSyllabusNote: async (chapterId, subtopicId, file) => {
@@ -1096,44 +719,26 @@ export const useOrbitStore = create<OrbitState>()(
         get().triggerToast('Notes removed.')
       },
 
-      submitBroadcast: (title, target, content) => {
-        const msg: BroadcastMessage = { id: Date.now(), title, target, content, date: 'Just Now' }
-        set((s) => ({ broadcasts: [msg, ...s.broadcasts] }))
-        void syncBroadcast(msg)
-        const roleMap: Record<string, NotificationItem['role']> = {
-          All: 'all',
-          Parents: 'parent',
-          Teachers: 'teacher',
-          Students: 'student',
-        }
-        get().pushNotification({
-          role: roleMap[target] ?? 'all',
-          title,
-          body: content,
-        })
-        get().triggerToast(`Circular published to ${target}.`)
-      },
-
-      addCalendarEvent: (title, category, date) => {
-        const entry = { id: Date.now(), title, category, date }
-        set((s) => ({
-          calendarEvents: [entry, ...s.calendarEvents],
-        }))
-        void syncCalendarEvent(entry)
-        if (category === 'PTA Meetings' || category === 'Holidays') {
-          get().submitBroadcast(title, 'All', `${category} scheduled for ${date}.`)
-        } else {
-          get().triggerToast('Event added to school calendar.')
-        }
-      },
-
       scheduleInterview: (id) => {
+        const prev = get().candidates.find((c) => c.id === id)?.status
         set((s) => ({
           candidates: s.candidates.map((c) => (c.id === id ? { ...c, status: 'Interview Scheduled' } : c)),
         }))
         const c = get().candidates.find((x) => x.id === id)
         if (typeof id === 'string' && id.includes('-')) {
-          void scheduleHiringInterview(id)
+          void scheduleHiringInterview(id).then((result) => {
+            if (!result.ok) {
+              if (prev) {
+                set((s) => ({
+                  candidates: s.candidates.map((row) => (row.id === id ? { ...row, status: prev } : row)),
+                }))
+              }
+              get().triggerToast(result.error ?? 'Could not schedule interview.')
+              return
+            }
+            get().triggerToast(`Interview scheduled with ${c?.name ?? 'candidate'}.`)
+          })
+          return
         }
         get().triggerToast(`Interview scheduled with ${c?.name ?? 'candidate'}.`)
       },
@@ -1167,6 +772,7 @@ export const useOrbitStore = create<OrbitState>()(
           unlockedBadges: ['Streak Keeper', 'Early Bird', 'Curious Mind'],
           totalXp: 430,
           fees: initialFees,
+          feesHasMore: false,
           paymentHistory: initialPaymentHistory,
           outstandingFees: 42500,
           paymentReceipt: null,
