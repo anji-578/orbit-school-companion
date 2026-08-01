@@ -1,0 +1,40 @@
+# Orbit · Developer notes
+
+Operational setup (not part of the product README).
+
+## Local
+
+```bash
+npm install
+npm run dev
+```
+
+## Supabase SQL order
+
+1. `supabase/schema.sql`
+2. `supabase/trust_hardening.sql`
+3. `supabase/seed.sql`
+4. `supabase/homework_completions.sql`
+5. `supabase/fees_ledger.sql`
+6. `supabase/timetable.sql`
+7. `supabase/sample_catalog.sql`
+8. `supabase/alerts.sql`
+9. `supabase/storage.sql`
+10. Optional: `supabase/notifications_rls.sql`
+
+Pilot invite codes (after seed): `SUNRISE-STU-8A`, `SUNRISE-PAR-8A`, `SUNRISE-TCH-8A`, `SUNRISE-ADM`
+
+## Deploy (Vercel)
+
+Connect the GitHub repo to Vercel. Set `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and optional notify/Gemini keys.
+
+Auth: turn **OFF** email confirm for demos. Add redirect URLs for password reset.
+
+## Alerts (Push + SMS)
+
+1. Run `supabase/alerts.sql`
+2. `npx web-push generate-vapid-keys`
+3. Set `VITE_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+4. Optional SMS: `MSG91_*` after DLT approval
+
+`/api/notify` needs a signed-in JWT or `x-orbit-notify-secret`.
