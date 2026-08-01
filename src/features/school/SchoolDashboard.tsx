@@ -25,7 +25,9 @@ export function SchoolDashboard() {
   const [invites, setInvites] = useState<InviteRow[]>([])
   const [inviteRole, setInviteRole] = useState<'student' | 'parent' | 'teacher' | 'school'>('parent')
   const [inviteClass, setInviteClass] = useState('Grade 8-A')
+  const [inviteStudentId, setInviteStudentId] = useState('')
   const [creatingInvite, setCreatingInvite] = useState(false)
+  const roster = useOrbitStore((s) => s.roster)
 
   const t = (key: string) => translate(lang, key)
   const activeBuses = fleet.filter((b) => b.active).length
@@ -53,7 +55,12 @@ export function SchoolDashboard() {
   const onCreateInvite = async (e: FormEvent) => {
     e.preventDefault()
     setCreatingInvite(true)
-    const result = await createClassInvite({ role: inviteRole, className: inviteClass.trim() || undefined })
+    const linkChild = inviteRole === 'student' || inviteRole === 'parent'
+    const result = await createClassInvite({
+      role: inviteRole,
+      className: inviteClass.trim() || undefined,
+      studentId: linkChild && inviteStudentId ? inviteStudentId : undefined,
+    })
     setCreatingInvite(false)
     if (!result.ok) {
       triggerToast(result.error)
@@ -75,33 +82,55 @@ export function SchoolDashboard() {
 
       {classLinked && isSupabaseConfigured() ? (
         <Panel title={t('classInvitesTitle')} subtitle={t('classInvitesDesc')}>
-          <form onSubmit={onCreateInvite} className="flex flex-col sm:flex-row gap-2 mb-4">
-            <label className="flex-1 space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t('createInviteRole')}</span>
-              <select
-                value={inviteRole}
-                onChange={(e) => setInviteRole(e.target.value as typeof inviteRole)}
-                className="field w-full rounded-xl px-3 py-2 text-sm"
-              >
-                <option value="student">student</option>
-                <option value="parent">parent</option>
-                <option value="teacher">teacher</option>
-                <option value="school">school</option>
-              </select>
-            </label>
-            <label className="flex-[2] space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t('createInviteClass')}</span>
-              <input
-                value={inviteClass}
-                onChange={(e) => setInviteClass(e.target.value)}
-                className="field w-full rounded-xl px-3 py-2 text-sm"
-                placeholder={t('createInviteClassPlaceholder')}
-              />
-            </label>
+          <form onSubmit={onCreateInvite} className="flex flex-col gap-2 mb-4">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <label className="flex-1 space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t('createInviteRole')}</span>
+                <select
+                  value={inviteRole}
+                  onChange={(e) => setInviteRole(e.target.value as typeof inviteRole)}
+                  className="field w-full rounded-xl px-3 py-2 text-sm"
+                >
+                  <option value="student">student</option>
+                  <option value="parent">parent</option>
+                  <option value="teacher">teacher</option>
+                  <option value="school">school</option>
+                </select>
+              </label>
+              <label className="flex-[2] space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t('createInviteClass')}</span>
+                <input
+                  value={inviteClass}
+                  onChange={(e) => setInviteClass(e.target.value)}
+                  className="field w-full rounded-xl px-3 py-2 text-sm"
+                  placeholder={t('createInviteClassPlaceholder')}
+                />
+              </label>
+            </div>
+            {inviteRole === 'student' || inviteRole === 'parent' ? (
+              <label className="space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  {t('createInviteStudent')}
+                </span>
+                <select
+                  value={inviteStudentId}
+                  onChange={(e) => setInviteStudentId(e.target.value)}
+                  className="field w-full rounded-xl px-3 py-2 text-sm"
+                >
+                  <option value="">{t('createInviteStudentAny')}</option>
+                  {roster.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                      {s.rollNo ? ` · Roll ${s.rollNo}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
             <button
               type="submit"
               disabled={creatingInvite}
-              className="btn-accent self-end sm:self-auto shrink-0 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold"
+              className="btn-accent self-start inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold"
             >
               <Plus className="h-3.5 w-3.5" aria-hidden />
               {creatingInvite ? t('redeemingInvite') : t('createInvite')}

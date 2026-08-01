@@ -94,6 +94,46 @@ export async function markFeeItemsStatus(
   return { ok: true }
 }
 
+export async function createFeeItem(input: {
+  studentId: string
+  name: string
+  amountRupees: number
+  category?: string
+  status?: FeeStatus
+  dueDate?: string
+}): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  if (!isSupabaseConfigured()) {
+    return { ok: false, error: 'Connect Supabase to create fee invoices.' }
+  }
+  const supabase = getSupabase()
+  if (!supabase) return { ok: false, error: 'Supabase client unavailable.' }
+  const schoolId = await sunriseSchoolId()
+  if (!schoolId) return { ok: false, error: 'School not found' }
+
+  const name = input.name.trim()
+  const amountPaise = Math.round(input.amountRupees * 100)
+  if (!input.studentId || !name || amountPaise <= 0) {
+    return { ok: false, error: 'Student, name, and amount are required.' }
+  }
+
+  const { data, error } = await supabase
+    .from('fee_items')
+    .insert({
+      school_id: schoolId,
+      student_id: input.studentId,
+      name,
+      amount_paise: amountPaise,
+      status: input.status ?? 'Unpaid',
+      category: input.category?.trim() || 'General',
+      due_date: input.dueDate || null,
+    })
+    .select('id')
+    .single()
+
+  if (error) return { ok: false, error: error.message }
+  return { ok: true, id: data.id as string }
+}
+
 export async function markAllFeesPaid(studentId?: string | null): Promise<{ ok: boolean; error?: string }> {
   return markFeeItemsStatus('Paid', studentId)
 }

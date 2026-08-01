@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
-import { BellRing, Check, Save, X } from 'lucide-react'
+import { BellRing, Check, Plus, Save, X } from 'lucide-react'
 import { useAuthStore } from '../../auth/authStore'
 import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
-import { groupFeesByStudent } from '../../lib/feesApi'
+import { createFeeItem, groupFeesByStudent } from '../../lib/feesApi'
 import { Panel, Card, Eyebrow, StatTile } from '../../components/ui/primitives'
 
 const FEE_STATUS_CLASS: Record<string, string> = {
@@ -23,6 +23,7 @@ const SUB_STATUS_CLASS: Record<string, string> = {
 export function SchoolFees() {
   const lang = useOrbitStore((s) => s.lang)
   const fees = useOrbitStore((s) => s.fees)
+  const roster = useOrbitStore((s) => s.roster)
   const outstandingFees = useOrbitStore((s) => s.outstandingFees)
   const paymentHistory = useOrbitStore((s) => s.paymentHistory)
   const schoolPaymentSettings = useOrbitStore((s) => s.schoolPaymentSettings)
@@ -32,9 +33,16 @@ export function SchoolFees() {
   const persistSchoolPaymentSettings = useOrbitStore((s) => s.persistSchoolPaymentSettings)
   const loadPaymentWorkspace = useOrbitStore((s) => s.loadPaymentWorkspace)
   const reviewUtrPayment = useOrbitStore((s) => s.reviewUtrPayment)
+  const triggerToast = useOrbitStore((s) => s.triggerToast)
   const session = useAuthStore((s) => s.session)
 
   const [saving, setSaving] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [invoiceStudentId, setInvoiceStudentId] = useState('')
+  const [invoiceName, setInvoiceName] = useState('')
+  const [invoiceAmount, setInvoiceAmount] = useState('')
+  const [invoiceCategory, setInvoiceCategory] = useState('Tuition')
+
   const t = (key: string) => translate(lang, key)
   const collected = paymentHistory.reduce((sum, p) => sum + p.amount, 0)
   const pending = paymentSubmissions.filter((p) => p.status === 'Pending')
@@ -45,11 +53,40 @@ export function SchoolFees() {
     void loadPaymentWorkspace()
   }, [loadPaymentWorkspace])
 
+  useEffect(() => {
+    if (!invoiceStudentId && roster[0]?.id) setInvoiceStudentId(roster[0].id)
+  }, [roster, invoiceStudentId])
+
   const onSaveSettings = async (e: FormEvent) => {
     e.preventDefault()
     setSaving(true)
     await persistSchoolPaymentSettings()
     setSaving(false)
+  }
+
+  const onCreateInvoice = async (e: FormEvent) => {
+    e.preventDefault()
+    const amount = Number(invoiceAmount)
+    if (!invoiceStudentId || !invoiceName.trim() || !Number.isFinite(amount) || amount <= 0) {
+      triggerToast('Enter student, fee name, and a valid amount.')
+      return
+    }
+    setCreating(true)
+    const result = await createFeeItem({
+      studentId: invoiceStudentId,
+      name: invoiceName,
+      amountRupees: amount,
+      category: invoiceCategory,
+    })
+    setCreating(false)
+    if (!result.ok) {
+      triggerToast(result.error)
+      return
+    }
+    triggerToast(t('invoiceCreated'))
+    setInvoiceName('')
+    setInvoiceAmount('')
+    await loadPaymentWorkspace()
   }
 
   return (
@@ -77,6 +114,72 @@ export function SchoolFees() {
           <StatTile label={t('collectedLabel')} value={`₹${collected.toLocaleString()}`} accent="#22C55E" />
           <StatTile label={t('familiesWithDues')} value={String(familiesWithDues)} />
         </div>
+
+        <form
+          onSubmit={onCreateInvoice}
+          className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2 p-3 rounded-xl bg-white/5 border border-white/10"
+        >
+          <label className="block space-y-1">
+            <span className="text-[10px] font-bold uppercase text-slate-400">{t('invoiceStudent')}</span>
+            <select
+              value={invoiceStudentId}
+              onChange={(e) => setInvoiceStudentId(e.target.value)}
+              className="field w-full rounded-xl px-3 py-2 text-sm"
+              required
+            >
+              {roster.length === 0 ? (
+                <option value="">{t('invoiceStudentPlaceholder')}</option>
+              ) : (
+                roster.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))
+              )}
+            </select>
+          </label>
+          <label className="block space-y-1">
+            <span className="text-[10px] font-bold uppercase text-slate-400">{t('invoiceName')}</span>
+            <input
+              required
+              value={invoiceName}
+              onChange={(e) => setInvoiceName(e.target.value)}
+              className="field w-full rounded-xl px-3 py-2 text-sm"
+              placeholder="Term 2 Tuition"
+            />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-[10px] font-bold uppercase text-slate-400">{t('invoiceAmount')}</span>
+            <input
+              required
+              type="number"
+              min={1}
+              step={1}
+              value={invoiceAmount}
+              onChange={(e) => setInvoiceAmount(e.target.value)}
+              className="field w-full rounded-xl px-3 py-2 text-sm"
+              placeholder="12000"
+            />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-[10px] font-bold uppercase text-slate-400">{t('invoiceCategory')}</span>
+            <div className="flex gap-2">
+              <input
+                value={invoiceCategory}
+                onChange={(e) => setInvoiceCategory(e.target.value)}
+                className="field w-full rounded-xl px-3 py-2 text-sm"
+              />
+              <button
+                type="submit"
+                disabled={creating || roster.length === 0}
+                className="btn-accent shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold"
+              >
+                <Plus className="h-3.5 w-3.5" aria-hidden />
+                {creating ? t('creatingInvoice') : t('createInvoice')}
+              </button>
+            </div>
+          </label>
+        </form>
 
         {ledger.length === 0 ? (
           <p className="text-xs text-slate-400 py-4 text-center">{t('feeLedgerEmpty')}</p>

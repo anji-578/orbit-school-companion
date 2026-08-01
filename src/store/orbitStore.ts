@@ -201,7 +201,6 @@ interface OrbitState {
   markNotificationRead: (id: number) => void
   markAllNotificationsRead: () => void
 
-  toggleAttendanceDate: (date: string) => void
   toggleRosterPresent: (id: string) => void
   broadcastAbsentees: () => void
   toggleTask: (id: number) => void
@@ -429,22 +428,6 @@ export const useOrbitStore = create<OrbitState>()(
         })
       },
 
-      toggleAttendanceDate: (date) => {
-        set((s) => {
-          const attendanceRecords = s.attendanceRecords.map((rec) => {
-            if (rec.date !== date) return rec
-            const status = rec.status === 'Present' ? 'Absent' : 'Present'
-            return {
-              ...rec,
-              status: status as AttendanceRecord['status'],
-              reason: status === 'Absent' ? 'Manual toggle' : undefined,
-            }
-          })
-          const studyScore = computeStudyScore(attendancePercent(attendanceRecords), homeworkPercent(s.tasks))
-          return { attendanceRecords, studyScore }
-        })
-      },
-
       toggleRosterPresent: (id) => {
         const state = get()
         const student = state.roster.find((r) => r.id === id)
@@ -456,8 +439,13 @@ export const useOrbitStore = create<OrbitState>()(
         })
         void upsertAttendanceMark(id, nextPresent)
 
-        // Cross-role sync for demo student Ananya (and any isDemo flag)
-        if (student.isDemo) {
+        const classLabel =
+          state.linkedStudent?.className && state.linkedStudent.section
+            ? `${state.linkedStudent.className}-${state.linkedStudent.section}`
+            : 'Grade 8-A'
+
+        // Keep local history in sync when teacher marks the demo/linked child in the same session
+        if (student.isDemo || student.id === state.linkedStudent?.id) {
           const todayLabel = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
           const todayDay = new Date().toLocaleDateString('en-US', { weekday: 'short' })
           set((s) => {
@@ -479,20 +467,21 @@ export const useOrbitStore = create<OrbitState>()(
               studyScore: computeStudyScore(attendancePercent(records), homeworkPercent(s.tasks)),
             }
           })
-          get().pushNotification({
-            role: 'parent',
-            title: nextPresent ? 'Attendance: Present' : 'Attendance Alert',
-            body: `${student.name} marked ${nextPresent ? 'Present' : 'Absent'} in Class 11-A.`,
-          })
-          get().pushNotification({
-            role: 'student',
-            title: 'Attendance updated',
-            body: `Your status is now ${nextPresent ? 'Present' : 'Absent'} for today.`,
-          })
-          get().triggerToast(
-            `Synced: ${student.name} marked ${nextPresent ? 'Present' : 'Absent'} across Student + Parent nodes.`,
-          )
         }
+
+        get().pushNotification({
+          role: 'parent',
+          title: nextPresent ? 'Attendance: Present' : 'Attendance Alert',
+          body: `${student.name} marked ${nextPresent ? 'Present' : 'Absent'} in ${classLabel}.`,
+        })
+        get().pushNotification({
+          role: 'student',
+          title: 'Attendance updated',
+          body: `Your status is now ${nextPresent ? 'Present' : 'Absent'} for today.`,
+        })
+        get().triggerToast(
+          `${student.name} marked ${nextPresent ? 'Present' : 'Absent'} — students and parents see view-only.`,
+        )
       },
 
       broadcastAbsentees: () => {

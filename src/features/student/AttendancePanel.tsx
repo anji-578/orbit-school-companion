@@ -3,18 +3,18 @@ import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
 import { Panel, StatTile } from '../../components/ui/primitives'
 
+/** Student attendance is read-only — only teachers mark attendance. */
 export function AttendancePanel() {
   const lang = useOrbitStore((s) => s.lang)
   const attendanceRecords = useOrbitStore((s) => s.attendanceRecords)
   const getAttendancePercent = useOrbitStore((s) => s.getAttendancePercent)
-  const toggleAttendanceDate = useOrbitStore((s) => s.toggleAttendanceDate)
 
   const t = (key: string) => translate(lang, key)
   const presentCount = attendanceRecords.filter((r) => r.status === 'Present').length
   const absentCount = attendanceRecords.length - presentCount
 
   return (
-    <Panel title={t('studentAttendance')} subtitle="Tap a day to simulate a manual correction.">
+    <Panel title={t('studentAttendance')} subtitle={t('studentAttendanceDesc')}>
       <div className="grid sm:grid-cols-3 gap-4">
         <StatTile label={t('studentAttendance')} value={`${getAttendancePercent()}%`} accent="var(--accent2)" />
         <StatTile label={t('present')} value={String(presentCount)} />
@@ -23,13 +23,9 @@ export function AttendancePanel() {
 
       <div className="grid grid-cols-3 sm:grid-cols-5 gap-2.5">
         {attendanceRecords.map((record) => (
-          <button
+          <div
             key={record.date}
-            type="button"
-            onClick={() => toggleAttendanceDate(record.date)}
-            aria-pressed={record.status === 'Present'}
-            aria-label={`${record.date}: ${record.status}. Toggle status`}
-            className={`rounded-xl border p-3 text-center transition hover:-translate-y-0.5 ${
+            className={`rounded-xl border p-3 text-center ${
               record.status === 'Present'
                 ? 'bg-emerald-500/10 border-emerald-500/25'
                 : 'bg-rose-500/10 border-rose-500/25'
@@ -43,7 +39,7 @@ export function AttendancePanel() {
               <XCircle className="h-4 w-4 text-rose-400 mx-auto mt-1.5" aria-hidden />
             )}
             {record.reason ? <p className="text-[8px] text-slate-500 mt-1 leading-tight">{record.reason}</p> : null}
-          </button>
+          </div>
         ))}
       </div>
     </Panel>

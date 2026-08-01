@@ -17,6 +17,7 @@ export function AppShell() {
   const setNotifOpen = useOrbitStore((s) => s.setNotifOpen)
   const notifOpen = useOrbitStore((s) => s.notifOpen)
   const setRole = useOrbitStore((s) => s.setRole)
+  const linkedStudent = useOrbitStore((s) => s.linkedStudent)
   const hydrateFromSupabase = useOrbitStore((s) => s.hydrateFromSupabase)
   const meta = getRoleMeta(role)
   const t = (key: string) => translate(lang, key)
@@ -54,6 +55,14 @@ export function AppShell() {
 
   const displayName = session?.displayName ?? 'Orbit User'
   const greetName = displayName.split(' ')[0]
+  const linkedClassLabel =
+    linkedStudent?.className
+      ? `${linkedStudent.className}${linkedStudent.section ? `-${linkedStudent.section}` : ''}`
+      : null
+  const subtitle =
+    (role === 'student' || role === 'parent') && linkedClassLabel
+      ? linkedClassLabel
+      : (session?.subtitle ?? t(meta.subKey))
 
   return (
     <div
@@ -73,7 +82,7 @@ export function AppShell() {
             <h1 className="font-display text-2xl lg:text-3xl font-bold tracking-tight text-white">
               {t(meta.greetKey)}, {greetName}
             </h1>
-            <p className="text-sm text-slate-400 mt-1">{session?.subtitle ?? t(meta.subKey)}</p>
+            <p className="text-sm text-slate-400 mt-1">{subtitle}</p>
             {session?.provider === 'local-demo' ? (
               <p className="text-[10px] text-amber-300/90 mt-2 font-semibold">{t('authDemoHint')}</p>
             ) : null}

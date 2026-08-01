@@ -17,7 +17,7 @@ export const DEMO_USERS: DemoUser[] = [
     email: 'student@orbit.app',
     password: 'student123',
     displayName: 'Ananya Rao',
-    subtitle: 'Class 11-A · Roll 14',
+    subtitle: 'Grade 8-A · Roll 14',
   },
   {
     id: 'u_parent',
@@ -25,7 +25,7 @@ export const DEMO_USERS: DemoUser[] = [
     email: 'parent@orbit.app',
     password: 'parent123',
     displayName: 'Parent of Ananya',
-    subtitle: 'Guardian · Orion Layout',
+    subtitle: 'Guardian · Grade 8-A',
   },
   {
     id: 'u_teacher',
@@ -33,7 +33,7 @@ export const DEMO_USERS: DemoUser[] = [
     email: 'teacher@orbit.app',
     password: 'teacher123',
     displayName: 'Mrs. Sarah Davis',
-    subtitle: 'Mathematics · Class Teacher 11-A',
+    subtitle: 'Mathematics · Class Teacher Grade 8-A',
   },
   {
     id: 'u_school',
