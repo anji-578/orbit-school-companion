@@ -1,19 +1,22 @@
 import { Phone } from 'lucide-react'
 import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
-import { schoolTeachers } from '../../data/demo'
 import { Panel, Card, Eyebrow } from '../../components/ui/primitives'
+import { DemoNotice } from '../../components/ui/DemoNotice'
 
 export function TeachersPanel() {
   const lang = useOrbitStore((s) => s.lang)
+  const teachers = useOrbitStore((s) => s.teachers)
+  const showingSampleData = useOrbitStore((s) => s.showingSampleData)
   const triggerToast = useOrbitStore((s) => s.triggerToast)
 
   const t = (key: string) => translate(lang, key)
 
   return (
     <Panel title={t('childTeachersTab')} subtitle={t('childTeachersDesc')}>
+      {showingSampleData ? <DemoNotice detailKey="demoTeachersHint" /> : null}
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {schoolTeachers.map((teacher) => (
+        {teachers.map((teacher) => (
           <Card key={teacher.id} className="p-5 space-y-3">
             <div className="flex items-center gap-3">
               <img

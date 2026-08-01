@@ -111,9 +111,12 @@ When you create a Supabase project: paste URL + anon key into `.env` / Vercel en
 4. `supabase/homework_completions.sql` (per-student homework tracking)
 5. `supabase/fees_ledger.sql` (UTR ↔ student link for class fee ledger)
 6. `supabase/timetable.sql` (Grade 8-A week schedule)
-7. `supabase/alerts.sql` (push/SMS + notification bell RLS)
-8. `supabase/storage.sql` (syllabus note files bucket)
-9. Optional re-run: `supabase/notifications_rls.sql` if alerts.sql was applied earlier without bell policies
+7. `supabase/sample_catalog.sql` (staff directory + sample leaves/broadcasts/calendar/grades)
+8. `supabase/alerts.sql` (push/SMS + notification bell RLS)
+9. `supabase/storage.sql` (syllabus note files bucket)
+10. Optional re-run: `supabase/notifications_rls.sql` if alerts.sql was applied earlier without bell policies
+
+**Teammate demos:** tabs stay filled with sample data when live rows are empty. A “Sample data” badge appears in the header until real school data replaces it.
 
 **Confirm live:** open any role → **Alerts** → “Live system check” (seed, trust, alerts, storage, VAPID).
 

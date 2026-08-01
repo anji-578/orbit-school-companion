@@ -22,6 +22,7 @@ export function Header() {
   const triggerToast = useOrbitStore((s) => s.triggerToast)
   const session = useAuthStore((s) => s.session)
   const logout = useAuthStore((s) => s.logout)
+  const showingSampleData = useOrbitStore((s) => s.showingSampleData)
   const t = (key: string) => translate(lang, key)
   const meta = getRoleMeta(role)
 
@@ -45,6 +46,14 @@ export function Header() {
         {showDemoChrome ? (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wide bg-amber-500/15 text-amber-300 border border-amber-500/25 shrink-0">
             {t('demoMode')}
+          </span>
+        ) : null}
+        {showingSampleData ? (
+          <span
+            className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wide bg-sky-500/15 text-sky-300 border border-sky-500/25 shrink-0"
+            title={t('demoSurfaceHint')}
+          >
+            {t('sampleDataBadge')}
           </span>
         ) : null}
       </div>

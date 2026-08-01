@@ -15,12 +15,15 @@ import {
   initialPaymentHistory,
   initialRoster,
   initialTasks,
+  schoolTeachers,
 } from '../data/demo'
 import { computeStudyScore } from '../lib/studyScore'
 import { dispatchRemoteAlert, eventTypeFromNotification } from '../lib/alerts'
 import { resolveClassLinked } from '../lib/classLink'
 import { childFirstName, fetchLinkedStudent, type LinkedStudent } from '../lib/linkedStudent'
 import { currentDayCode, fetchTimetableByDay, getLocalTimetable, saveTimetableWeek, type TimetableByDay } from '../lib/timetableApi'
+import { withSample, timetableHasSlots } from '../lib/sampleData'
+import { fetchStaffDirectory } from '../lib/staffApi'
 import { getSupabase, isSupabaseConfigured } from '../lib/supabase'
 import {
   createPaymentSubmission,
@@ -79,6 +82,7 @@ import type {
   SchoolPaymentSettings,
   StudentGrade,
   SyllabusChapter,
+  TeacherProfile,
   ThemeMode,
 } from '../types'
 
@@ -137,10 +141,12 @@ interface OrbitState {
   leaves: LeaveRequest[]
   curriculum: SyllabusChapter[]
   timetableByDay: TimetableByDay
+  teachers: TeacherProfile[]
   candidates: Candidate[]
   fleet: FleetBus[]
   notifications: NotificationItem[]
-
+  /** True when at least one list is showing local/sample fill for demos. */
+  showingSampleData: boolean
   busPosition: number
   busReachedSchool: boolean
 
@@ -309,9 +315,11 @@ export const useOrbitStore = create<OrbitState>()(
       leaves: initialLeaves,
       curriculum: initialCurriculum,
       timetableByDay: getLocalTimetable(),
+      teachers: schoolTeachers,
       candidates: initialCandidates,
       fleet: initialFleet,
       notifications: initialNotifications,
+      showingSampleData: true,
 
       busPosition: 40,
       busReachedSchool: false,
@@ -617,6 +625,10 @@ export const useOrbitStore = create<OrbitState>()(
           fetchFeeItems(),
         ])
         const outstandingFees = fees.filter((f) => f.status !== 'Paid').reduce((sum, f) => sum + f.amount, 0)
+        const filledFees = withSample(fees, get().fees.length ? get().fees : initialFees)
+        const filledOutstanding = filledFees
+          .filter((f) => f.status !== 'Paid')
+          .reduce((sum, f) => sum + f.amount, 0)
         set((s) => ({
           schoolPaymentSettings: settings,
           paymentSubmissions: cloud
@@ -624,8 +636,9 @@ export const useOrbitStore = create<OrbitState>()(
             : submissions.length
               ? submissions
               : s.paymentSubmissions.filter((p) => !p.id.startsWith('local_')),
-          fees: cloud ? fees : fees.length ? fees : s.fees,
-          outstandingFees: cloud ? outstandingFees : fees.length ? outstandingFees : s.outstandingFees,
+          fees: filledFees,
+          outstandingFees: fees.length ? outstandingFees : filledOutstanding,
+          showingSampleData: Boolean(s.showingSampleData || fees.length === 0),
         }))
       },
 
@@ -640,44 +653,68 @@ export const useOrbitStore = create<OrbitState>()(
           linkedStudent?.className && linkedStudent.section
             ? `${linkedStudent.className}-${linkedStudent.section}`
             : 'Grade 8-A'
-        const [ops, roster, attendanceRecords, studentGrades, remoteSyllabus, timetableByDay] = await Promise.all([
-          loadSchoolOpsSnapshot(linkedStudent?.id),
-          fetchRosterWithTodayAttendance(),
-          fetchAttendanceHistory(),
-          fetchStudentGrades(linkedStudent?.id),
-          fetchSyllabusState(),
-          fetchTimetableByDay(timetableClass),
-          get().loadPaymentWorkspace(),
-        ])
+        const [ops, roster, attendanceRecords, studentGrades, remoteSyllabus, timetableByDay, teachers] =
+          await Promise.all([
+            loadSchoolOpsSnapshot(linkedStudent?.id),
+            fetchRosterWithTodayAttendance(),
+            fetchAttendanceHistory(),
+            fetchStudentGrades(linkedStudent?.id),
+            fetchSyllabusState(),
+            fetchTimetableByDay(timetableClass),
+            fetchStaffDirectory(),
+            get().loadPaymentWorkspace(),
+          ])
         await get().refreshNotifications()
         set((s) => {
-          const tasks = cloud ? (ops.tasks ?? []) : (ops.tasks ?? s.tasks)
-          const nextAttendance = cloud
-            ? attendanceRecords
-            : attendanceRecords.length
-              ? attendanceRecords
-              : s.attendanceRecords
-          const curriculum = cloud
-            ? mergeCurriculum(remoteSyllabus, s.curriculum)
-            : remoteSyllabus?.length
-              ? mergeCurriculum(remoteSyllabus, s.curriculum)
-              : s.curriculum
+          const tasks = withSample(ops.tasks, s.tasks.length ? s.tasks : initialTasks)
+          const leaves = withSample(ops.leaves, s.leaves.length ? s.leaves : initialLeaves)
+          const broadcasts = withSample(ops.broadcasts, s.broadcasts.length ? s.broadcasts : initialBroadcasts)
+          const calendarEvents = withSample(
+            ops.calendarEvents,
+            s.calendarEvents.length ? s.calendarEvents : initialCalendar,
+          )
+          const nextRoster = withSample(roster, s.roster.length ? s.roster : initialRoster)
+          const nextAttendance = withSample(
+            attendanceRecords,
+            s.attendanceRecords.length ? s.attendanceRecords : initialAttendance,
+          )
+          const nextGrades = withSample(
+            studentGrades,
+            s.studentGrades.length ? s.studentGrades : initialGrades,
+          )
+          const nextTeachers = withSample(teachers, s.teachers.length ? s.teachers : schoolTeachers)
+          const nextTimetable = timetableHasSlots(timetableByDay) ? timetableByDay : getLocalTimetable()
+          const curriculum = mergeCurriculum(
+            remoteSyllabus,
+            s.curriculum.length ? s.curriculum : initialCurriculum,
+          )
+
+          const usedSample =
+            !(ops.tasks?.length) ||
+            !(ops.leaves?.length) ||
+            !(ops.broadcasts?.length) ||
+            !(ops.calendarEvents?.length) ||
+            !roster.length ||
+            !attendanceRecords.length ||
+            !studentGrades.length ||
+            !teachers.length ||
+            !timetableHasSlots(timetableByDay)
+
           return {
             usingCloudData: cloud,
+            showingSampleData: usedSample,
             classLinked,
             linkedStudent,
             tasks,
-            leaves: cloud ? (ops.leaves ?? []) : (ops.leaves ?? s.leaves),
-            broadcasts: cloud ? (ops.broadcasts ?? []) : (ops.broadcasts ?? s.broadcasts),
-            calendarEvents: cloud ? (ops.calendarEvents ?? []) : (ops.calendarEvents ?? s.calendarEvents),
-            roster: cloud ? roster : roster.length ? roster : s.roster,
+            leaves,
+            broadcasts,
+            calendarEvents,
+            roster: nextRoster,
             attendanceRecords: nextAttendance,
-            studentGrades: cloud ? studentGrades : studentGrades.length ? studentGrades : s.studentGrades,
+            studentGrades: nextGrades,
+            teachers: nextTeachers,
             curriculum,
-            timetableByDay:
-              cloud || Object.values(timetableByDay).some((d) => d.theory.length + d.lab.length > 0)
-                ? timetableByDay
-                : s.timetableByDay,
+            timetableByDay: nextTimetable,
             studyScore: computeStudyScore(attendancePercent(nextAttendance), homeworkPercent(tasks)),
           }
         })
@@ -1041,9 +1078,11 @@ export const useOrbitStore = create<OrbitState>()(
           leaves: initialLeaves,
           curriculum: initialCurriculum,
           timetableByDay: getLocalTimetable(),
+          teachers: schoolTeachers,
           candidates: initialCandidates,
           fleet: initialFleet,
           notifications: initialNotifications,
+          showingSampleData: true,
           busPosition: 40,
           busReachedSchool: false,
           studyScore: computeStudyScore(attendancePercent(initialAttendance), homeworkPercent(initialTasks)),

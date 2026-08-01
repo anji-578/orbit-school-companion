@@ -9,6 +9,7 @@ export type HealthCheckId =
   | 'syllabus'
   | 'homework'
   | 'timetable'
+  | 'samples'
   | 'storage'
   | 'vapid'
 
@@ -39,6 +40,7 @@ export async function probeSystemHealth(): Promise<HealthCheck[]> {
       { id: 'syllabus', label: 'Syllabus state', ok: false, detail: 'Needs Supabase' },
       { id: 'homework', label: 'Homework completions', ok: false, detail: 'Needs Supabase' },
       { id: 'timetable', label: 'Class timetable', ok: false, detail: 'Needs Supabase' },
+      { id: 'samples', label: 'Sample catalog', ok: false, detail: 'Needs Supabase' },
       { id: 'storage', label: 'Notes storage', ok: false, detail: 'Needs Supabase' },
     )
   } else {
@@ -103,6 +105,18 @@ export async function probeSystemHealth(): Promise<HealthCheck[]> {
         : tt.data?.length
           ? 'class_timetable seeded'
           : 'Table empty — run timetable.sql',
+    })
+
+    const staff = await supabase.from('staff_directory').select('id').limit(1)
+    checks.push({
+      id: 'samples',
+      label: 'Sample catalog',
+      ok: !staff.error && Boolean(staff.data?.length),
+      detail: staff.error
+        ? `${staff.error.message} — run sample_catalog.sql`
+        : staff.data?.length
+          ? 'staff_directory ready'
+          : 'Empty — run sample_catalog.sql',
     })
   }
 
