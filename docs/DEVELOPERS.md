@@ -15,12 +15,13 @@ npm run dev
 2. `supabase/trust_hardening.sql`
 3. `supabase/seed.sql`
 4. `supabase/homework_completions.sql`
-5. `supabase/fees_ledger.sql`
-6. `supabase/timetable.sql`
-7. `supabase/sample_catalog.sql`
-8. `supabase/alerts.sql`
-9. `supabase/storage.sql`
-10. Optional: `supabase/notifications_rls.sql`
+5. `supabase/rls_recursion_fix.sql` (breaks students ↔ parent_links RLS loop)
+6. `supabase/fees_ledger.sql`
+7. `supabase/timetable.sql`
+8. `supabase/sample_catalog.sql`
+9. `supabase/alerts.sql`
+10. `supabase/storage.sql`
+11. Optional: `supabase/notifications_rls.sql`
 
 Pilot invite codes (after seed): `SUNRISE-STU-8A`, `SUNRISE-PAR-8A`, `SUNRISE-TCH-8A`, `SUNRISE-ADM`
 
