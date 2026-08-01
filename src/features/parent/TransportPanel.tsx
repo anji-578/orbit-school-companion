@@ -1,9 +1,12 @@
-import { useEffect } from 'react'
-import { Bus, Gauge, Phone, Users } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Bus, Gauge, Phone, RefreshCw } from 'lucide-react'
 import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
 import { Panel, Card, Eyebrow, StatTile } from '../../components/ui/primitives'
 import { DemoNotice } from '../../components/ui/DemoNotice'
+import { ChildSwitcher } from '../../components/ui/ChildSwitcher'
+import { fetchBusRoutes, relativeUpdated, type BusRouteRow } from '../../lib/opsSurfacesApi'
+import { isSupabaseConfigured } from '../../lib/supabaseConfig'
 
 export function TransportPanel() {
   const lang = useOrbitStore((s) => s.lang)
@@ -11,23 +14,64 @@ export function TransportPanel() {
   const busPosition = useOrbitStore((s) => s.busPosition)
   const busReachedSchool = useOrbitStore((s) => s.busReachedSchool)
   const tickBus = useOrbitStore((s) => s.tickBus)
+  const showingSampleData = useOrbitStore((s) => s.showingSampleData)
   const triggerToast = useOrbitStore((s) => s.triggerToast)
 
+  const [routes, setRoutes] = useState<BusRouteRow[]>([])
   const t = (key: string) => translate(lang, key)
-  const bus = fleet.find((b) => b.id === 'bus_14')
+  const bus = fleet.find((b) => b.id === 'bus_14') || fleet[0]
+  const liveRoute = routes.find((r) => r.id === bus?.id) || routes[0]
+  const useLiveStatus = isSupabaseConfigured() && routes.length > 0
 
   useEffect(() => {
-    if (busReachedSchool) return
+    if (!isSupabaseConfigured()) return
+    void fetchBusRoutes().then(setRoutes)
+  }, [])
+
+  useEffect(() => {
+    if (useLiveStatus || busReachedSchool) return
     const interval = window.setInterval(() => tickBus(), 1400)
     return () => window.clearInterval(interval)
-  }, [busReachedSchool, tickBus])
+  }, [useLiveStatus, busReachedSchool, tickBus])
 
-  const routeX = 30 + (busPosition / 100) * 340
+  const routeX = 30 + ((useLiveStatus ? (liveRoute?.status === 'at_school' ? 92 : liveRoute?.status === 'en_route' ? 55 : 12) : busPosition) / 100) * 340
+  const statusLabel = liveRoute
+    ? liveRoute.status === 'en_route'
+      ? t('busStatusEnRoute')
+      : liveRoute.status === 'at_school'
+        ? t('busStatusAtSchool')
+        : liveRoute.status === 'cancelled'
+          ? t('busStatusCancelled')
+          : t('busStatusIdle')
+    : busReachedSchool
+      ? t('childReached')
+      : t('busStatusEnRoute')
 
   return (
     <div className="space-y-6">
-      <DemoNotice detailKey="demoTransportHint" />
-      <Panel title={t('busTracker')} subtitle={bus?.route}>
+      <ChildSwitcher compact />
+      {!useLiveStatus ? <DemoNotice detailKey="demoTransportHint" /> : null}
+      <Panel
+        title={t('busTracker')}
+        subtitle={liveRoute?.routeLabel || bus?.route}
+        action={
+          useLiveStatus ? (
+            <button
+              type="button"
+              className="btn-ghost px-2.5 py-1.5 rounded-lg text-[10px] font-bold text-white"
+              onClick={() =>
+                void fetchBusRoutes().then((rows) => {
+                  setRoutes(rows)
+                  triggerToast(t('busStatusRefreshed'))
+                })
+              }
+            >
+              <RefreshCw className="h-3.5 w-3.5 inline mr-1" aria-hidden />
+              {t('refresh')}
+            </button>
+          ) : null
+        }
+      >
         <svg viewBox="0 0 400 90" className="w-full h-24" role="img" aria-label="Bus route map">
           <path d="M20,60 C 100,20 180,80 200,45 S 320,10 380,45" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth={6} strokeLinecap="round" />
           <path
@@ -37,7 +81,7 @@ export function TransportPanel() {
             strokeWidth={6}
             strokeLinecap="round"
             strokeDasharray="380"
-            strokeDashoffset={380 - (busPosition / 100) * 380}
+            strokeDashoffset={380 - ((useLiveStatus ? (liveRoute?.status === 'at_school' ? 92 : 55) : busPosition) / 100) * 380}
           />
           <circle cx={20} cy={60} r={5} fill="#94a3b8" />
           <circle cx={380} cy={45} r={5} fill="#94a3b8" />
@@ -47,26 +91,39 @@ export function TransportPanel() {
             </div>
           </foreignObject>
           <text x={20} y={78} fontSize={9} fill="#94a3b8">
-            Home
+            {t('homeStop')}
           </text>
           <text x={355} y={35} fontSize={9} fill="#94a3b8">
-            School
+            {t('schoolStop')}
           </text>
         </svg>
 
-        {busReachedSchool ? (
-          <div className="flex items-center gap-2 text-emerald-300 text-xs font-bold justify-center bg-emerald-500/10 border border-emerald-500/25 rounded-xl py-2.5">
-            {t('childReached')}
-          </div>
-        ) : null}
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-white bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2.5">
+          <span>{statusLabel}</span>
+          {liveRoute ? (
+            <span className="text-[10px] text-slate-400 font-semibold">
+              {t('updatedAgo').replace('{time}', relativeUpdated(liveRoute.lastUpdatedAt))}
+              {liveRoute.etaText ? ` · ETA ${liveRoute.etaText}` : ''}
+            </span>
+          ) : null}
+        </div>
+        {showingSampleData && !useLiveStatus ? (
+          <p className="text-[10px] text-slate-500 mt-2">{t('busNoGpsHonest')}</p>
+        ) : (
+          <p className="text-[10px] text-slate-500 mt-2">{t('busNoGpsHonest')}</p>
+        )}
       </Panel>
 
       {bus ? (
         <Panel title={t('liveTransit')}>
           <div className="grid sm:grid-cols-3 gap-4">
-            <StatTile label="Speed" value={`${Math.round(bus.speed)} km/h`} accent="var(--accent2)" />
-            <StatTile label="Capacity" value={bus.capacity} />
-            <StatTile label="Position" value={`${Math.round(busPosition)}%`} />
+            <StatTile
+              label={t('status')}
+              value={statusLabel}
+              accent="var(--accent2)"
+            />
+            <StatTile label={t('capacity')} value={liveRoute?.capacity || bus.capacity} />
+            <StatTile label="Driver" value={liveRoute?.driver || bus.driver} />
           </div>
 
           <Card className="p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -76,20 +133,13 @@ export function TransportPanel() {
               </div>
               <div>
                 <Eyebrow>Driver</Eyebrow>
-                <h3 className="text-sm font-bold text-white">{bus.driver}</h3>
+                <h3 className="text-sm font-bold text-white">{liveRoute?.driver || bus.driver}</h3>
                 <p className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
-                  <Users className="h-3 w-3" aria-hidden /> {bus.route}
+                  <Phone className="h-3 w-3" aria-hidden />
+                  {liveRoute?.phone || bus.phone}
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => triggerToast(`${t('callDriver')}: ${bus.driver} (${bus.phone}) — simulated.`)}
-              className="btn-accent flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold shrink-0"
-            >
-              <Phone className="h-3.5 w-3.5" aria-hidden />
-              {t('callDriver')}
-            </button>
           </Card>
         </Panel>
       ) : null}

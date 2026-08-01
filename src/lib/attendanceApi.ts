@@ -1,5 +1,6 @@
 import { getSupabase, isSupabaseConfigured } from './supabase'
 import { resolveSchoolId } from './schoolPolicy'
+import { resolveLinkedStudentId } from './linkedStudent'
 import type { AttendanceRecord, AttendanceStatus, RosterStudent } from '../types'
 
 /** Stable demo student IDs (seeded in Supabase for Sunrise). */
@@ -46,11 +47,18 @@ export async function claimDemoLinks(): Promise<void> {
       .eq('id', DEMO_STUDENT_IDS.ananya)
   } else if (email === 'parent@orbit.app') {
     await supabase.from('parent_links').upsert(
-      {
-        parent_profile_id: user.id,
-        student_id: DEMO_STUDENT_IDS.ananya,
-        relationship: 'guardian',
-      },
+      [
+        {
+          parent_profile_id: user.id,
+          student_id: DEMO_STUDENT_IDS.ananya,
+          relationship: 'guardian',
+        },
+        {
+          parent_profile_id: user.id,
+          student_id: DEMO_STUDENT_IDS.sarah,
+          relationship: 'guardian',
+        },
+      ],
       { onConflict: 'parent_profile_id,student_id' },
     )
   }
@@ -126,33 +134,15 @@ export async function upsertAttendanceMark(
   return { ok: true }
 }
 
-export async function fetchAttendanceHistory(limit = 20): Promise<AttendanceRecord[]> {
+export async function fetchAttendanceHistory(
+  limit = 20,
+  preferredStudentId?: string | null,
+): Promise<AttendanceRecord[]> {
   if (!isSupabaseConfigured()) return []
   const supabase = getSupabase()
   if (!supabase) return []
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  let studentId: string | null = null
-  if (user?.id) {
-    const { data: mine } = await supabase
-      .from('students')
-      .select('id')
-      .eq('profile_id', user.id)
-      .maybeSingle()
-    if (mine?.id) studentId = mine.id as string
-    if (!studentId) {
-      const { data: linked } = await supabase
-        .from('parent_links')
-        .select('student_id')
-        .eq('parent_profile_id', user.id)
-        .limit(1)
-        .maybeSingle()
-      if (linked?.student_id) studentId = linked.student_id as string
-    }
-  }
+  const studentId = preferredStudentId || (await resolveLinkedStudentId(preferredStudentId))
   if (!studentId) return []
 
   const { data } = await supabase

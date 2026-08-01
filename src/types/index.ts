@@ -26,7 +26,7 @@ export interface PaperCoachInsight {
 }
 
 export type LifecycleMetric = 'marks' | 'ranks'
-export type PaymentMethod = 'upi' | 'card'
+export type PaymentMethod = 'upi' | 'razorpay'
 
 export interface AttendanceRecord {
   date: string
@@ -214,7 +214,7 @@ export interface JobVacancy {
 }
 
 export interface Candidate {
-  id: number
+  id: string | number
   name: string
   subject: string
   experience: string

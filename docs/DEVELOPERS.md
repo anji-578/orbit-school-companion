@@ -23,8 +23,14 @@ npm run dev
 10. `supabase/alerts.sql`
 11. `supabase/notifications_student_scope.sql` (child-scoped alerts via `student_id`)
 12. `supabase/school_policy_and_homework_class.sql` (active class policy + homework `class_name`)
-13. `supabase/storage.sql`
-14. Optional: `supabase/notifications_rls.sql`
+13. `supabase/ops_surfaces.sql` (bus status, hiring, extracurriculars, Razorpay columns)
+14. `supabase/storage.sql`
+15. Optional: `supabase/notifications_rls.sql`
+
+## Razorpay (optional)
+
+Set `VITE_RAZORPAY_KEY_ID`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` on Vercel.  
+Parent Payments shows **Pay online**; UTR remains the ₹0 path when keys are missing.
 
 Pilot invite codes (after seed): `SUNRISE-STU-8A`, `SUNRISE-PAR-8A`, `SUNRISE-TCH-8A`, `SUNRISE-ADM`
 

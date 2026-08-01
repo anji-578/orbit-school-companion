@@ -6,7 +6,9 @@ import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
 import { Panel, Card, Eyebrow, StatTile } from '../../components/ui/primitives'
 import { InviteRedeemCard } from '../../components/ui/InviteRedeemCard'
+import { ChildSwitcher } from '../../components/ui/ChildSwitcher'
 import { buildReceiptPdfBlob, downloadBlob } from '../../lib/receiptPdf'
+import { isRazorpayConfigured, startRazorpayCheckout } from '../../lib/razorpay'
 
 const FEE_STATUS_CLASS: Record<string, string> = {
   Paid: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/25',
@@ -32,6 +34,7 @@ export function PaymentsPanel() {
   const paymentSubmissions = useOrbitStore((s) => s.paymentSubmissions)
   const loadPaymentWorkspace = useOrbitStore((s) => s.loadPaymentWorkspace)
   const submitUtrPayment = useOrbitStore((s) => s.submitUtrPayment)
+  const linkedStudent = useOrbitStore((s) => s.linkedStudent)
   const triggerToast = useOrbitStore((s) => s.triggerToast)
   const session = useAuthStore((s) => s.session)
 
@@ -40,6 +43,8 @@ export function PaymentsPanel() {
   const [paidOn, setPaidOn] = useState('')
   const [note, setNote] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [payingOnline, setPayingOnline] = useState(false)
+  const razorpayReady = isRazorpayConfigured()
 
   const t = (key: string) => translate(lang, key)
 
@@ -104,6 +109,23 @@ export function PaymentsPanel() {
     }
   }
 
+  const onPayOnline = async () => {
+    setPayingOnline(true)
+    const result = await startRazorpayCheckout({
+      amountRupees: Number(amount) || outstandingFees,
+      studentId: linkedStudent?.id,
+      payerName: session?.displayName ?? 'Parent',
+      description: `Fees for ${linkedStudent?.displayName || 'student'}`,
+    })
+    setPayingOnline(false)
+    if (!result.ok) {
+      triggerToast(result.error)
+      return
+    }
+    triggerToast(t('razorpayPaidToast'))
+    void loadPaymentWorkspace()
+  }
+
   const pendingMine = paymentSubmissions.filter((p) => p.status === 'Pending')
 
   if (!classLinked) {
@@ -116,6 +138,7 @@ export function PaymentsPanel() {
 
   return (
     <div className="space-y-6">
+      <ChildSwitcher compact />
       <Panel title={t('billingTitle')} subtitle={t('billingUtrSubtitle')}>
         <div className="grid sm:grid-cols-2 gap-4">
           <StatTile
@@ -211,6 +234,17 @@ export function PaymentsPanel() {
               <button type="submit" disabled={submitting} className="btn-accent w-full rounded-xl py-3 text-sm font-bold">
                 {submitting ? t('submittingUtr') : t('submitUtr')}
               </button>
+              <button
+                type="button"
+                disabled={payingOnline || !razorpayReady}
+                onClick={() => void onPayOnline()}
+                className="btn-ghost w-full rounded-xl py-3 text-sm font-bold text-white disabled:opacity-50"
+              >
+                {payingOnline ? t('razorpayOpening') : t('payOnlineRazorpay')}
+              </button>
+              <p className="text-[9px] text-slate-500 text-center">
+                {razorpayReady ? t('razorpayReadyHint') : t('razorpayMissingHint')}
+              </p>
               <p className="text-[9px] text-slate-500 text-center">{t('utrZeroFeeNote')}</p>
             </form>
           </Card>

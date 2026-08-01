@@ -115,6 +115,7 @@ export async function createPaymentSubmission(input: {
   note: string
   payerName: string
   userId?: string
+  studentId?: string | null
 }): Promise<{ ok: true; submission: PaymentSubmission } | { ok: false; error: string }> {
   if (!isSupabaseConfigured()) {
     return {
@@ -127,7 +128,7 @@ export async function createPaymentSubmission(input: {
   const schoolId = await resolveSchoolId()
   if (!schoolId) return { ok: false, error: 'School not found. Ask admin to finish school setup.' }
 
-  const studentId = await resolveLinkedStudentId()
+  const studentId = input.studentId || (await resolveLinkedStudentId())
 
   const { data, error } = await supabase
     .from('payment_submissions')

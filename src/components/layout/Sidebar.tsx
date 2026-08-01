@@ -34,6 +34,7 @@ import { childDisplayName, childFirstName } from '../../lib/linkedStudent'
 import { useOrbitStore } from '../../store/orbitStore'
 import type { Role } from '../../types'
 import { OrbitLogo } from '../brand/OrbitLogo'
+import { ChildSwitcher } from '../ui/ChildSwitcher'
 import { isPilotDemoEmail } from '../../lib/classLink'
 
 const ROLE_META: Record<
@@ -237,6 +238,8 @@ export function Sidebar() {
               </span>
             </div>
           </div>
+
+          <ChildSwitcher />
 
           <nav className="space-y-1" aria-label={`${role} sections`}>
             {primary.map((item) => {

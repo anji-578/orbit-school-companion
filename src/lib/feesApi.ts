@@ -15,7 +15,7 @@ async function currentRole(): Promise<string | null> {
   return (data?.role as string | undefined) ?? null
 }
 
-export async function fetchFeeItems(): Promise<FeeItem[]> {
+export async function fetchFeeItems(preferredStudentId?: string | null): Promise<FeeItem[]> {
   if (!isSupabaseConfigured()) return []
   const supabase = getSupabase()
   if (!supabase) return []
@@ -24,7 +24,9 @@ export async function fetchFeeItems(): Promise<FeeItem[]> {
 
   const role = await currentRole()
   const scopedStudentId =
-    role === 'parent' || role === 'student' ? await resolveLinkedStudentId() : null
+    role === 'parent' || role === 'student'
+      ? preferredStudentId || (await resolveLinkedStudentId(preferredStudentId))
+      : null
 
   // Parent/student with no link → empty (honest), not Ananya fallback.
   if ((role === 'parent' || role === 'student') && !scopedStudentId) return []

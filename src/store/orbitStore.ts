@@ -20,7 +20,20 @@ import {
 import { computeStudyScore } from '../lib/studyScore'
 import { dispatchRemoteAlert, eventTypeFromNotification } from '../lib/alerts'
 import { resolveClassLinked } from '../lib/classLink'
-import { childFirstName, fetchLinkedStudent, type LinkedStudent } from '../lib/linkedStudent'
+import {
+  childFirstName,
+  fetchLinkedStudent,
+  fetchLinkedStudents,
+  pickActiveStudent,
+  setActiveStudentIdPreference,
+  type LinkedStudent,
+} from '../lib/linkedStudent'
+import {
+  busRowsToFleet,
+  fetchBusRoutes,
+  fetchHiringApplications,
+  scheduleHiringInterview,
+} from '../lib/opsSurfacesApi'
 import { currentDayCode, fetchTimetableByDay, getLocalTimetable, saveTimetableWeek, type TimetableByDay } from '../lib/timetableApi'
 import { withSample, timetableHasSlots } from '../lib/sampleData'
 import { fetchStaffDirectory } from '../lib/staffApi'
@@ -183,9 +196,12 @@ interface OrbitState {
   classLinked: boolean
   /** Resolved child for parent/student views; null when unlinked. */
   linkedStudent: LinkedStudent | null
+  /** All linked children (parent multi-child). */
+  linkedStudents: LinkedStudent[]
   /** True when Supabase is configured — empty remote arrays must not fall back to demo seed. */
   usingCloudData: boolean
   getAttendancePercent: () => number
+  setActiveChild: (studentId: string) => Promise<void>
 
   setRole: (role: Role) => void
   setLang: (lang: Lang) => void
@@ -241,7 +257,7 @@ interface OrbitState {
   clearSyllabusNote: (chapterId: string, subtopicId: string) => void
   submitBroadcast: (title: string, target: string, content: string) => void
   addCalendarEvent: (title: string, category: CalendarEvent['category'], date: string) => void
-  scheduleInterview: (id: number) => void
+  scheduleInterview: (id: string | number) => void
 
   tickBus: () => void
   resetDemoData: () => void
@@ -356,6 +372,7 @@ export const useOrbitStore = create<OrbitState>()(
       studyScore: computeStudyScore(attendancePercent(initialAttendance), homeworkPercent(initialTasks)),
       classLinked: true,
       linkedStudent: null,
+      linkedStudents: [],
       usingCloudData: false,
 
       getAttendancePercent: () => attendancePercent(get().attendanceRecords),
@@ -650,12 +667,37 @@ export const useOrbitStore = create<OrbitState>()(
       setSchoolPaymentSettings: (patch) =>
         set((s) => ({ schoolPaymentSettings: { ...s.schoolPaymentSettings, ...patch } })),
 
+      setActiveChild: async (studentId) => {
+        const match = get().linkedStudents.find((s) => s.id === studentId)
+        if (!match) return
+        setActiveStudentIdPreference(studentId)
+        set({ linkedStudent: match })
+        const [ops, attendanceRecords, studentGrades] = await Promise.all([
+          loadSchoolOpsSnapshot(studentId),
+          fetchAttendanceHistory(20, studentId),
+          fetchStudentGrades(studentId),
+          get().loadPaymentWorkspace(),
+        ])
+        set((s) => ({
+          linkedStudent: match,
+          tasks: withSample(ops.tasks, s.tasks),
+          attendanceRecords: withSample(attendanceRecords, s.attendanceRecords),
+          studentGrades: withSample(studentGrades, s.studentGrades),
+          studyScore: computeStudyScore(
+            attendancePercent(withSample(attendanceRecords, s.attendanceRecords)),
+            homeworkPercent(withSample(ops.tasks, s.tasks)),
+          ),
+        }))
+        get().triggerToast(`Viewing ${match.displayName.split(' ')[0]}'s data`)
+      },
+
       loadPaymentWorkspace: async () => {
         const cloud = isSupabaseConfigured()
+        const childId = get().linkedStudent?.id
         const [settings, submissions, fees] = await Promise.all([
           fetchSchoolPaymentSettings(),
           fetchPaymentSubmissions(),
-          fetchFeeItems(),
+          fetchFeeItems(childId),
         ])
         const outstandingFees = fees.filter((f) => f.status !== 'Paid').reduce((sum, f) => sum + f.amount, 0)
         const filledFees = withSample(fees, get().fees.length ? get().fees : initialFees)
@@ -682,20 +724,24 @@ export const useOrbitStore = create<OrbitState>()(
         const sessionEmail = (await getSupabase()?.auth.getUser())?.data.user?.email ?? ''
         const role = get().role
         const classLinked = await resolveClassLinked(sessionEmail, role)
-        const linkedStudent = await fetchLinkedStudent(sessionEmail, role)
+        const linkedStudents = await fetchLinkedStudents(sessionEmail, role)
+        const linkedStudent =
+          pickActiveStudent(linkedStudents) ?? (await fetchLinkedStudent(sessionEmail, role))
         const timetableClass = resolveClassLabel({
           linkedClassName: linkedStudent?.className,
           linkedSection: linkedStudent?.section,
         })
-        const [ops, roster, attendanceRecords, studentGrades, remoteSyllabus, timetableByDay, teachers] =
+        const [ops, roster, attendanceRecords, studentGrades, remoteSyllabus, timetableByDay, teachers, busRoutes, hiring] =
           await Promise.all([
             loadSchoolOpsSnapshot(linkedStudent?.id),
             fetchRosterWithTodayAttendance(),
-            fetchAttendanceHistory(),
+            fetchAttendanceHistory(20, linkedStudent?.id),
             fetchStudentGrades(linkedStudent?.id),
             fetchSyllabusState(),
             fetchTimetableByDay(timetableClass),
             fetchStaffDirectory(),
+            fetchBusRoutes(),
+            fetchHiringApplications(),
             get().loadPaymentWorkspace(),
           ])
         startAttendanceQueueSync((result) => {
@@ -740,11 +786,17 @@ export const useOrbitStore = create<OrbitState>()(
             !teachers.length ||
             !timetableHasSlots(timetableByDay)
 
+          const nextFleet = busRoutes.length ? busRowsToFleet(busRoutes) : withSample([], s.fleet.length ? s.fleet : initialFleet)
+          const nextCandidates = hiring.length
+            ? hiring
+            : withSample([], s.candidates.length ? s.candidates : initialCandidates)
+          const primaryBus = busRoutes.find((b) => b.id === 'bus_14') || busRoutes[0]
           return {
             usingCloudData: cloud,
-            showingSampleData: usedSample,
+            showingSampleData: usedSample && !busRoutes.length,
             classLinked,
             linkedStudent,
+            linkedStudents,
             tasks,
             leaves,
             broadcasts,
@@ -755,6 +807,16 @@ export const useOrbitStore = create<OrbitState>()(
             teachers: nextTeachers,
             curriculum,
             timetableByDay: nextTimetable,
+            fleet: nextFleet.length ? nextFleet : s.fleet,
+            candidates: nextCandidates.length ? nextCandidates : s.candidates,
+            busReachedSchool: primaryBus?.status === 'at_school' ? true : s.busReachedSchool,
+            busPosition: primaryBus
+              ? primaryBus.status === 'at_school'
+                ? 92
+                : primaryBus.status === 'en_route'
+                  ? 55
+                  : 12
+              : s.busPosition,
             studyScore: computeStudyScore(attendancePercent(nextAttendance), homeworkPercent(tasks)),
           }
         })
@@ -765,7 +827,10 @@ export const useOrbitStore = create<OrbitState>()(
           get().triggerToast('Enter a valid UTR and amount.')
           return false
         }
-        const result = await createPaymentSubmission(input)
+        const result = await createPaymentSubmission({
+          ...input,
+          studentId: get().linkedStudent?.id,
+        })
         if (!result.ok) {
           get().triggerToast(result.error)
           return false
@@ -1067,6 +1132,9 @@ export const useOrbitStore = create<OrbitState>()(
           candidates: s.candidates.map((c) => (c.id === id ? { ...c, status: 'Interview Scheduled' } : c)),
         }))
         const c = get().candidates.find((x) => x.id === id)
+        if (typeof id === 'string' && id.includes('-')) {
+          void scheduleHiringInterview(id)
+        }
         get().triggerToast(`Interview scheduled with ${c?.name ?? 'candidate'}.`)
       },
 
