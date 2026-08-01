@@ -58,6 +58,7 @@ export interface RosterStudent {
   id: string
   name: string
   present: boolean
+  rollNo?: string
   isDemo?: boolean
 }
 

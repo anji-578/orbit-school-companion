@@ -5,6 +5,7 @@ import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
 import { extracurricularListing } from '../../data/demo'
 import { Panel, Card, Eyebrow } from '../../components/ui/primitives'
+import { DemoNotice } from '../../components/ui/DemoNotice'
 
 type CategoryKey = keyof typeof extracurricularListing
 
@@ -29,6 +30,7 @@ export function ExtracurricularPanel() {
 
   return (
     <Panel title={t(titleKey)} subtitle="Discover coaches and clubs to build skills beyond the classroom.">
+      <DemoNotice detailKey="demoExtraHint" />
       <div className="flex flex-wrap gap-2" role="tablist" aria-label="Extracurricular categories">
         {CATEGORY_KEYS.map((key) => {
           const meta = CATEGORY_META[key]

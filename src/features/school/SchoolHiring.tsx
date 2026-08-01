@@ -2,6 +2,7 @@ import { CalendarCheck, GraduationCap } from 'lucide-react'
 import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
 import { Panel, Card, Eyebrow } from '../../components/ui/primitives'
+import { DemoNotice } from '../../components/ui/DemoNotice'
 
 export function SchoolHiring() {
   const lang = useOrbitStore((s) => s.lang)
@@ -12,6 +13,7 @@ export function SchoolHiring() {
 
   return (
     <Panel title={t('schoolHiringTitle')} subtitle={t('schoolHiringDesc')}>
+      <DemoNotice detailKey="demoHiringHint" />
       <div className="grid sm:grid-cols-2 gap-4">
         {candidates.map((candidate) => (
           <Card key={candidate.id} className="p-5 space-y-3">

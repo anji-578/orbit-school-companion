@@ -3,6 +3,7 @@ import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
 import { teacherVacancies } from '../../data/demo'
 import { Panel, Card, Eyebrow, ProgressBar } from '../../components/ui/primitives'
+import { DemoNotice } from '../../components/ui/DemoNotice'
 
 export function TeacherJobs() {
   const lang = useOrbitStore((s) => s.lang)
@@ -12,6 +13,7 @@ export function TeacherJobs() {
 
   return (
     <Panel title={t('teacherJobsTitle')} subtitle={t('teacherJobsDesc')}>
+      <DemoNotice detailKey="demoJobsHint" />
       <div className="grid sm:grid-cols-2 gap-4">
         {teacherVacancies.map((job) => (
           <Card key={job.id} className="p-5 space-y-3">

@@ -3,6 +3,7 @@ import { Bus, Phone } from 'lucide-react'
 import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
 import { Panel, Card, Eyebrow } from '../../components/ui/primitives'
+import { DemoNotice } from '../../components/ui/DemoNotice'
 
 const BUS_COLORS = ['#22C55E', '#4DA6FF', '#FFB454']
 
@@ -21,6 +22,7 @@ export function SchoolFleet() {
 
   return (
     <div className="space-y-6">
+      <DemoNotice detailKey="demoFleetHint" />
       <Panel title={t('schoolFleetTitle')} subtitle={t('schoolFleetDesc')}>
         <svg viewBox="0 0 400 120" className="w-full h-32" role="img" aria-label="Fleet map">
           <rect x={10} y={20} width={380} height={80} rx={14} fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)" />

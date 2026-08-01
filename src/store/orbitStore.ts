@@ -20,7 +20,7 @@ import { computeStudyScore } from '../lib/studyScore'
 import { dispatchRemoteAlert, eventTypeFromNotification } from '../lib/alerts'
 import { resolveClassLinked } from '../lib/classLink'
 import { childFirstName, fetchLinkedStudent, type LinkedStudent } from '../lib/linkedStudent'
-import { currentDayCode, fetchTimetableByDay, getLocalTimetable, type TimetableByDay } from '../lib/timetableApi'
+import { currentDayCode, fetchTimetableByDay, getLocalTimetable, saveTimetableWeek, type TimetableByDay } from '../lib/timetableApi'
 import { getSupabase, isSupabaseConfigured } from '../lib/supabase'
 import {
   createPaymentSubmission,
@@ -260,6 +260,7 @@ interface OrbitState {
   resetScanner: () => void
 
   setGanttDay: (day: string) => void
+  saveTimetable: (className: string, week: TimetableByDay) => Promise<boolean>
   setLifecycleSubject: (key: string) => void
   setLifecycleMetric: (m: 'marks' | 'ranks') => void
   unlockBadge: (name: string) => void
@@ -1235,6 +1236,29 @@ export const useOrbitStore = create<OrbitState>()(
       },
 
       setGanttDay: (selectedGanttDay) => set({ selectedGanttDay }),
+
+      saveTimetable: async (className, week) => {
+        const result = await saveTimetableWeek(className, week)
+        if (!result.ok) {
+          get().triggerToast(result.error ?? 'Could not save timetable.')
+          return false
+        }
+        const refreshed = await fetchTimetableByDay(className)
+        set({ timetableByDay: refreshed })
+        get().pushNotification({
+          role: 'student',
+          title: 'Timetable updated',
+          body: `${className} schedule was updated by school.`,
+        })
+        get().pushNotification({
+          role: 'teacher',
+          title: 'Timetable updated',
+          body: `${className} periods were saved by school admin.`,
+        })
+        get().triggerToast('Timetable saved for class.')
+        return true
+      },
+
       setLifecycleSubject: (selectedLifecycleSubject) => set({ selectedLifecycleSubject }),
       setLifecycleMetric: (selectedLifecycleMetric) => set({ selectedLifecycleMetric }),
 

@@ -89,10 +89,12 @@ export async function fetchRosterWithTodayAttendance(): Promise<RosterStudent[]>
 
   return students.map((row) => {
     const id = row.id as string
+    const roll = row.roll_no != null ? String(row.roll_no) : undefined
     return {
       id,
-      name: (row.display_name as string) || `Student ${row.roll_no ?? ''}`.trim(),
+      name: (row.display_name as string) || `Student ${roll ?? ''}`.trim(),
       present: presentById.has(id) ? Boolean(presentById.get(id)) : true,
+      rollNo: roll,
       isDemo: id === DEMO_STUDENT_IDS.ananya,
     }
   })

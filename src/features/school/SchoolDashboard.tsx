@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { ArrowRight, Bell, Briefcase, CalendarDays, Copy, CreditCard, KeyRound, Plus, Truck } from 'lucide-react'
+import { ArrowRight, Bell, Briefcase, Calendar, CalendarDays, Copy, CreditCard, KeyRound, Plus, Truck, Users } from 'lucide-react'
 import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
 import { createClassInvite, fetchSchoolInviteCodes } from '../../lib/classLink'
@@ -204,9 +204,11 @@ export function SchoolDashboard() {
         </Panel>
       </div>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4">
         {[
           { icon: CreditCard, key: 'schoolFeeAuditorTitle', tab: 'school-fees' },
+          { icon: Users, key: 'schoolRosterTitle', tab: 'school-roster' },
+          { icon: Calendar, key: 'schoolTimetableTitle', tab: 'school-timetable' },
           { icon: CalendarDays, key: 'schoolLeavesTitle', tab: 'school-leaves' },
           { icon: Briefcase, key: 'schoolHiringTitle', tab: 'school-hiring' },
           { icon: Bell, key: 'schoolBroadcastingTitle', tab: 'school-broadcast' },

@@ -3,6 +3,7 @@ import { Bus, Gauge, Phone, Users } from 'lucide-react'
 import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
 import { Panel, Card, Eyebrow, StatTile } from '../../components/ui/primitives'
+import { DemoNotice } from '../../components/ui/DemoNotice'
 
 export function TransportPanel() {
   const lang = useOrbitStore((s) => s.lang)
@@ -25,6 +26,7 @@ export function TransportPanel() {
 
   return (
     <div className="space-y-6">
+      <DemoNotice detailKey="demoTransportHint" />
       <Panel title={t('busTracker')} subtitle={bus?.route}>
         <svg viewBox="0 0 400 90" className="w-full h-24" role="img" aria-label="Bus route map">
           <path d="M20,60 C 100,20 180,80 200,45 S 320,10 380,45" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth={6} strokeLinecap="round" />

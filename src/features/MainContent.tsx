@@ -38,6 +38,8 @@ import { SchoolCalendar } from './school/SchoolCalendar'
 import { SchoolBroadcast } from './school/SchoolBroadcast'
 import { SchoolFleet } from './school/SchoolFleet'
 import { SchoolLeaves } from './school/SchoolLeaves'
+import { SchoolTimetable } from './school/SchoolTimetable'
+import { SchoolRoster } from './school/SchoolRoster'
 
 const ROLE_ROUTES: Record<Role, Record<string, ComponentType>> = {
   student: {
@@ -82,6 +84,8 @@ const ROLE_ROUTES: Record<Role, Record<string, ComponentType>> = {
     dashboard: SchoolDashboard,
     alerts: AlertsPanel,
     'school-fees': SchoolFees,
+    'school-roster': SchoolRoster,
+    'school-timetable': SchoolTimetable,
     'school-leaves': SchoolLeaves,
     'school-hiring': SchoolHiring,
     'school-calendar': SchoolCalendar,

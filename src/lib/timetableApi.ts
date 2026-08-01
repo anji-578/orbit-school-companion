@@ -139,3 +139,84 @@ export async function fetchTimetableByDay(className = 'Grade 8-A'): Promise<Time
   }
   return week
 }
+
+export function createEmptySlot(type: 'Theory' | 'Lab' = 'Theory'): TimetableSlot {
+  return {
+    id: crypto.randomUUID(),
+    code: type === 'Lab' ? 'L' : 'A',
+    name: '',
+    start: '08:00',
+    end: '08:50',
+    room: '',
+    teacher: '',
+    type,
+  }
+}
+
+/** Replace the full week for a class (school/teacher). */
+export async function saveTimetableWeek(
+  className: string,
+  week: TimetableByDay,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!isSupabaseConfigured()) {
+    return { ok: false, error: 'Connect Supabase to save the timetable.' }
+  }
+  const supabase = getSupabase()
+  if (!supabase) return { ok: false, error: 'Supabase client unavailable.' }
+  const schoolId = await sunriseSchoolId()
+  if (!schoolId) return { ok: false, error: 'School not found.' }
+
+  const rows: {
+    id: string
+    school_id: string
+    class_name: string
+    day_code: string
+    slot_type: string
+    code: string
+    name: string
+    start_time: string
+    end_time: string
+    room: string | null
+    teacher_name: string | null
+    sort_order: number
+  }[] = []
+
+  for (const day of DAY_CODES) {
+    const block = week[day] ?? { theory: [], lab: [] }
+    const ordered = [...block.theory, ...block.lab]
+    ordered.forEach((slot, idx) => {
+      if (!slot.name.trim()) return
+      rows.push({
+        id: slot.id.match(
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+        )
+          ? slot.id
+          : crypto.randomUUID(),
+        school_id: schoolId,
+        class_name: className,
+        day_code: day,
+        slot_type: slot.type,
+        code: slot.code.trim() || (slot.type === 'Lab' ? 'L' : 'A'),
+        name: slot.name.trim(),
+        start_time: slot.start || '08:00',
+        end_time: slot.end || '08:50',
+        room: slot.room.trim() || null,
+        teacher_name: slot.teacher.trim() || null,
+        sort_order: idx + 1,
+      })
+    })
+  }
+
+  const { error: delError } = await supabase
+    .from('class_timetable')
+    .delete()
+    .eq('school_id', schoolId)
+    .eq('class_name', className)
+  if (delError) return { ok: false, error: delError.message }
+
+  if (rows.length === 0) return { ok: true }
+
+  const { error: insError } = await supabase.from('class_timetable').insert(rows)
+  if (insError) return { ok: false, error: insError.message }
+  return { ok: true }
+}
