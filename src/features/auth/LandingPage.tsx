@@ -297,7 +297,7 @@ export function LandingPage() {
             <p className="text-sm text-slate-400 mt-2 max-w-lg mx-auto">{t('landingTourSub')}</p>
           </div>
 
-          <div className="flex flex-wrap justify-center gap-2 mb-8">
+          <div className="flex flex-wrap justify-center gap-2 mb-8" role="tablist" aria-label={t('landingTourTitle')}>
             {FEATURES.map((feat) => {
               const Icon = feat.icon
               const on = feat.id === activeFeature
@@ -305,16 +305,14 @@ export function LandingPage() {
                 <button
                   key={feat.id}
                   type="button"
+                  role="tab"
+                  aria-selected={on}
                   onClick={() => setActiveFeature(feat.id)}
-                  className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-full text-[11px] font-bold border transition ${
-                    on
-                      ? 'border-transparent text-[#05070f]'
-                      : 'border-white/10 text-slate-300 bg-white/5 hover:bg-white/10'
-                  }`}
-                  style={on ? { background: `linear-gradient(135deg, ${feat.accent}, color-mix(in srgb, ${feat.accent} 60%, white))` } : undefined}
+                  className={`landing-feat-tab ${on ? 'is-active' : ''}`}
+                  style={{ ['--feat-accent' as string]: feat.accent }}
                 >
-                  <Icon className="h-3.5 w-3.5" aria-hidden />
-                  {t(feat.titleKey)}
+                  <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                  <span>{t(feat.titleKey)}</span>
                 </button>
               )
             })}

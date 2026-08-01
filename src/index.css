@@ -421,6 +421,46 @@ html[data-theme='light'] .orbit-root .orbit-scroll::-webkit-scrollbar-thumb {
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
+/* Feature tour tabs — theme-aware contrast for light + dark */
+.landing-feat-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: #cbd5e1;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.15s ease;
+}
+
+.landing-feat-tab:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #f1f5f9;
+}
+
+.landing-feat-tab.is-active {
+  color: #f8fafc;
+  background: color-mix(in srgb, var(--feat-accent) 28%, rgba(8, 12, 24, 0.92));
+  border-color: color-mix(in srgb, var(--feat-accent) 70%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--feat-accent) 35%, transparent),
+    0 10px 24px -14px color-mix(in srgb, var(--feat-accent) 65%, transparent);
+}
+
+.landing-feat-tab.is-active svg {
+  color: var(--feat-accent);
+}
+
 html[data-theme='light'] .landing-persona {
   background: rgba(255, 255, 255, 0.9);
   border-color: rgba(11, 31, 68, 0.08);
@@ -430,6 +470,32 @@ html[data-theme='light'] .landing-story-panel {
   background: rgba(255, 255, 255, 0.72);
   border-color: rgba(11, 31, 68, 0.08);
   box-shadow: 0 20px 50px -30px rgba(11, 31, 68, 0.25);
+}
+
+html[data-theme='light'] .landing-feat-tab {
+  border-color: rgba(11, 31, 68, 0.12);
+  background: rgba(255, 255, 255, 0.92);
+  color: #475569;
+  box-shadow: 0 1px 2px rgba(11, 31, 68, 0.04);
+}
+
+html[data-theme='light'] .landing-feat-tab:hover {
+  background: #ffffff;
+  border-color: rgba(11, 31, 68, 0.2);
+  color: #0f172a;
+}
+
+html[data-theme='light'] .landing-feat-tab.is-active {
+  color: #0b1f44;
+  background: color-mix(in srgb, var(--feat-accent) 16%, #ffffff);
+  border-color: color-mix(in srgb, var(--feat-accent) 55%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--feat-accent) 18%, transparent),
+    0 8px 20px -12px color-mix(in srgb, var(--feat-accent) 45%, transparent);
+}
+
+html[data-theme='light'] .landing-feat-tab.is-active svg {
+  color: color-mix(in srgb, var(--feat-accent) 85%, #0b1f44);
 }
 
 .toast-in {
