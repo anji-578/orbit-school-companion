@@ -20,6 +20,7 @@ async function generate(
   system: string,
   jsonMode: boolean,
   image?: ImagePart,
+  temperature?: number,
 ) {
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
   const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [
@@ -44,7 +45,7 @@ async function generate(
       systemInstruction: { parts: [{ text: system }] },
       contents: [{ role: 'user', parts }],
       generationConfig: {
-        temperature: jsonMode ? 0.3 : 0.6,
+        temperature: typeof temperature === 'number' ? temperature : jsonMode ? 0.2 : 0.45,
         maxOutputTokens: 2048,
         ...(jsonMode ? { responseMimeType: 'application/json' } : {}),
       },
@@ -96,6 +97,7 @@ export default async function handler(req: Request): Promise<Response> {
     jsonMode?: boolean
     imageBase64?: string
     mimeType?: string
+    temperature?: number
   }
   try {
     body = (await req.json()) as typeof body
@@ -104,10 +106,11 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   const prompt = (body.prompt || '').trim()
-  const system = (body.system || 'You are Orbit AI, a helpful school tutor.').trim()
+  const system = (body.system || 'You are Orbit AI, a careful school tutor. Prefer uncertainty over guessing.').trim()
   const jsonMode = Boolean(body.jsonMode)
   const imageBase64 = (body.imageBase64 || '').replace(/^data:[^;]+;base64,/, '').trim()
   const mimeType = (body.mimeType || 'image/jpeg').trim()
+  const temperature = typeof body.temperature === 'number' ? body.temperature : undefined
 
   if (!prompt) {
     return Response.json({ error: 'prompt is required' }, { status: 400, headers: cors })
@@ -119,7 +122,7 @@ export default async function handler(req: Request): Promise<Response> {
   const image = imageBase64 ? { mimeType, data: imageBase64 } : undefined
   const errors: string[] = []
   for (const model of MODELS) {
-    const result = await generate(model, key, prompt, system, jsonMode, image)
+    const result = await generate(model, key, prompt, system, jsonMode, image, temperature)
     if (result.ok) {
       return Response.json({ text: result.text, model: result.model, source: 'live' }, { headers: cors })
     }

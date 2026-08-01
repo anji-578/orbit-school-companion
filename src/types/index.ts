@@ -89,6 +89,8 @@ export interface NotificationItem {
   body: string
   unread: boolean
   time: string
+  /** When set, alert is scoped to this child (parent/student RLS). */
+  studentId?: string
 }
 
 export interface BroadcastMessage {

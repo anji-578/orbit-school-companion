@@ -1,4 +1,5 @@
 import { getSupabase, isSupabaseConfigured } from './supabase'
+import { resolveClassLabel, resolveSchoolId } from './schoolPolicy'
 import { timetableByDay as demoTimetable } from '../data/demo'
 import type { ClassSlot } from '../types'
 
@@ -47,12 +48,6 @@ function demoAsTimetable(): TimetableByDay {
   return week
 }
 
-async function sunriseSchoolId(): Promise<string | null> {
-  const supabase = getSupabase()
-  if (!supabase) return null
-  const { data } = await supabase.from('schools').select('id').eq('code', 'SUNRISE').maybeSingle()
-  return (data?.id as string | undefined) ?? null
-}
 
 /** Current weekday code (falls back to MON on weekends). */
 export function currentDayCode(date = new Date()): (typeof DAY_CODES)[number] {
@@ -104,11 +99,11 @@ export function getLocalTimetable(): TimetableByDay {
   return demoAsTimetable()
 }
 
-export async function fetchTimetableByDay(className = 'Grade 8-A'): Promise<TimetableByDay> {
+export async function fetchTimetableByDay(className = resolveClassLabel()): Promise<TimetableByDay> {
   if (!isSupabaseConfigured()) return demoAsTimetable()
   const supabase = getSupabase()
   if (!supabase) return demoAsTimetable()
-  const schoolId = await sunriseSchoolId()
+  const schoolId = await resolveSchoolId()
   if (!schoolId) return emptyWeek()
 
   const { data, error } = await supabase
@@ -163,7 +158,7 @@ export async function saveTimetableWeek(
   }
   const supabase = getSupabase()
   if (!supabase) return { ok: false, error: 'Supabase client unavailable.' }
-  const schoolId = await sunriseSchoolId()
+  const schoolId = await resolveSchoolId()
   if (!schoolId) return { ok: false, error: 'School not found.' }
 
   const rows: {

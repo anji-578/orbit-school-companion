@@ -1,14 +1,9 @@
 import { getSupabase, isSupabaseConfigured } from './supabase'
+import { resolveSchoolId } from './schoolPolicy'
 import type { StudentGrade } from '../types'
 import { DEMO_STUDENT_IDS } from './attendanceApi'
 import { resolveLinkedStudentId } from './linkedStudent'
 
-async function sunriseSchoolId(): Promise<string | null> {
-  const supabase = getSupabase()
-  if (!supabase) return null
-  const { data } = await supabase.from('schools').select('id').eq('code', 'SUNRISE').maybeSingle()
-  return (data?.id as string | undefined) ?? null
-}
 
 async function currentRole(): Promise<string | null> {
   const supabase = getSupabase()
@@ -25,7 +20,7 @@ export async function fetchStudentGrades(linkedStudentId?: string | null): Promi
   if (!isSupabaseConfigured()) return []
   const supabase = getSupabase()
   if (!supabase) return []
-  const schoolId = await sunriseSchoolId()
+  const schoolId = await resolveSchoolId()
   if (!schoolId) return []
 
   const role = await currentRole()
@@ -62,7 +57,7 @@ export async function saveStudentGrades(grades: StudentGrade[]): Promise<{ ok: b
   if (!isSupabaseConfigured()) return { ok: true }
   const supabase = getSupabase()
   if (!supabase) return { ok: true }
-  const schoolId = await sunriseSchoolId()
+  const schoolId = await resolveSchoolId()
   if (!schoolId) return { ok: false, error: 'School not found' }
 
   const studentId = await resolveLinkedStudentId()

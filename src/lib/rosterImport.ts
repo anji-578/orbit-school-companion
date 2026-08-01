@@ -1,4 +1,5 @@
 import { getSupabase, isSupabaseConfigured } from './supabase'
+import { resolveSchoolId } from './schoolPolicy'
 import type { RosterStudent } from '../types'
 import { fetchRosterWithTodayAttendance } from './attendanceApi'
 
@@ -73,12 +74,6 @@ function splitCsvLine(line: string): string[] {
   return out.map((s) => s.trim())
 }
 
-async function sunriseSchoolId(): Promise<string | null> {
-  const supabase = getSupabase()
-  if (!supabase) return null
-  const { data } = await supabase.from('schools').select('id').eq('code', 'SUNRISE').maybeSingle()
-  return (data?.id as string | undefined) ?? null
-}
 
 export async function importRosterCsv(
   fileText: string,
@@ -90,7 +85,7 @@ export async function importRosterCsv(
   }
   const supabase = getSupabase()
   if (!supabase) return { ok: false, error: 'Supabase client unavailable.' }
-  const schoolId = await sunriseSchoolId()
+  const schoolId = await resolveSchoolId()
   if (!schoolId) return { ok: false, error: 'School not found.' }
 
   const payload = parsed.rows.map((r) => ({

@@ -104,8 +104,12 @@ export function ScannerPanel() {
     if (!insight) return
     setRemediationLoading(true)
     const prompt = `Explain the concept behind this student weakness using one short, friendly, real-world analogy: "${insight.flaggedWeakness}". Context: ${insight.summary}. Also touch on: ${insight.needsImprovement.join('; ')}. Format the answer in markdown with a heading, 2-3 bullet points, and one formula wrapped in $$ if relevant.`
-    const system =
-      'You are Orbit AI, a patient school tutor. Explain concepts to a school student with a vivid, simple analogy. Keep responses under 120 words.'
+    const system = [
+      'You are Orbit AI, a patient school tutor.',
+      'Explain with one vivid analogy. Keep under 120 words.',
+      'Do not invent marks or claim board-exam certainty.',
+      'If unsure, say what to verify in the textbook.',
+    ].join(' ')
     const result = await askOrbitAi(prompt, system)
     setRemediation(result.text, result.source)
   }

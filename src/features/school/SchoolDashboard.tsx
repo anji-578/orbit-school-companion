@@ -4,6 +4,8 @@ import { ArrowRight, Bell, Briefcase, Calendar, CalendarDays, Copy, CreditCard, 
 import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
 import { createClassInvite, fetchSchoolInviteCodes } from '../../lib/classLink'
+import { exportAttendanceCsv, exportGradesCsv } from '../../lib/dataExport'
+import { readSchoolPolicy, writeSchoolPolicy } from '../../lib/schoolPolicy'
 import { isSupabaseConfigured } from '../../lib/supabaseConfig'
 import { Card, Eyebrow, Panel, StatTile } from '../../components/ui/primitives'
 import { InviteRedeemCard } from '../../components/ui/InviteRedeemCard'
@@ -24,9 +26,10 @@ export function SchoolDashboard() {
   const triggerToast = useOrbitStore((s) => s.triggerToast)
   const [invites, setInvites] = useState<InviteRow[]>([])
   const [inviteRole, setInviteRole] = useState<'student' | 'parent' | 'teacher' | 'school'>('parent')
-  const [inviteClass, setInviteClass] = useState('Grade 8-A')
+  const [inviteClass, setInviteClass] = useState(() => readSchoolPolicy().classLabel)
   const [inviteStudentId, setInviteStudentId] = useState('')
   const [creatingInvite, setCreatingInvite] = useState(false)
+  const [exportBusy, setExportBusy] = useState(false)
   const roster = useOrbitStore((s) => s.roster)
 
   const t = (key: string) => translate(lang, key)
@@ -71,12 +74,64 @@ export function SchoolDashboard() {
     void copyCode(result.code)
   }
 
+  const onExport = async (kind: 'attendance' | 'grades') => {
+    setExportBusy(true)
+    const result = kind === 'attendance' ? await exportAttendanceCsv() : await exportGradesCsv()
+    setExportBusy(false)
+    if (!result.ok) {
+      triggerToast(result.error)
+      return
+    }
+    triggerToast(t(kind === 'attendance' ? 'exportAttendanceDone' : 'exportGradesDone').replace('{count}', String(result.count)))
+  }
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-black text-white font-display">{t('goodDayAdmin')}</h1>
         <p className="text-xs text-slate-400 mt-1">{t('adminSub')}</p>
       </div>
+
+      <Panel title={t('schoolPolicyTitle')} subtitle={t('schoolPolicyDesc')}>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <label className="space-y-1 block">
+            <span className="text-[10px] font-bold text-slate-400 uppercase">{t('activeClassLabel')}</span>
+            <input
+              type="text"
+              value={inviteClass}
+              onChange={(e) => setInviteClass(e.target.value)}
+              onBlur={() => {
+                writeSchoolPolicy({ classLabel: inviteClass })
+                triggerToast(t('schoolPolicySaved'))
+              }}
+              className="field w-full rounded-lg px-3 py-2.5 text-sm"
+              placeholder="e.g. Grade 8-A"
+            />
+          </label>
+          <div className="space-y-2">
+            <p className="text-[10px] font-bold text-slate-400 uppercase">{t('dataExportTitle')}</p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={exportBusy}
+                onClick={() => void onExport('attendance')}
+                className="btn-ghost px-3 py-2 rounded-xl text-[11px] font-bold text-white"
+              >
+                {t('exportAttendanceCsv')}
+              </button>
+              <button
+                type="button"
+                disabled={exportBusy}
+                onClick={() => void onExport('grades')}
+                className="btn-ghost px-3 py-2 rounded-xl text-[11px] font-bold text-white"
+              >
+                {t('exportGradesCsv')}
+              </button>
+            </div>
+            <p className="text-[10px] text-slate-500">{t('dataExportHint')}</p>
+          </div>
+        </div>
+      </Panel>
 
       {!classLinked ? <InviteRedeemCard /> : null}
 

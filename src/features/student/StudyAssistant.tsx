@@ -2,22 +2,21 @@ import { useRef, useState } from 'react'
 import { CheckCircle2, Info, Loader2, Mic, MicOff, RefreshCw, Send, Volume2, VolumeX, XCircle } from 'lucide-react'
 import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
-import { askOrbitAi, generateOrbitQuiz, isAiConfigured } from '../../lib/gemini'
+import { askOrbitTutor, generateOrbitQuiz, isAiConfigured } from '../../lib/gemini'
+import type { TutorAnswer } from '../../lib/aiGuardrails'
 import { renderFormattedContent } from '../../lib/markdown'
 import { startVoiceRecognition, speakText } from '../../lib/speech'
 import type { VoiceRecognitionHandle, SpeechHandle } from '../../lib/speech'
 import { Panel, Card, Eyebrow } from '../../components/ui/primitives'
 
-const SYSTEM_PROMPT =
-  'You are Orbit AI, a friendly school tutor for Indian secondary school students. Answer clearly and briefly using markdown ' +
-  'with a short heading, 2-4 bullet points, and a formula wrapped in $$ if relevant.'
-
 export function StudyAssistant() {
   const lang = useOrbitStore((s) => s.lang)
+  const curriculum = useOrbitStore((s) => s.curriculum)
   const aiPrompt = useOrbitStore((s) => s.aiPrompt)
   const aiResponse = useOrbitStore((s) => s.aiResponse)
   const aiLoading = useOrbitStore((s) => s.aiLoading)
   const aiSource = useOrbitStore((s) => s.aiSource)
+  const [tutorMeta, setTutorMeta] = useState<TutorAnswer | null>(null)
   const quizMode = useOrbitStore((s) => s.quizMode)
   const activeQuiz = useOrbitStore((s) => s.activeQuiz)
   const selectedAnswers = useOrbitStore((s) => s.selectedAnswers)
@@ -47,13 +46,19 @@ export function StudyAssistant() {
   const handleAsk = async () => {
     if (!aiPrompt.trim() || aiLoading) return
     setAiLoading(true)
-    const result = await askOrbitAi(aiPrompt, SYSTEM_PROMPT)
+    setTutorMeta(null)
+    const result = await askOrbitTutor(aiPrompt, curriculum)
+    setTutorMeta(result.answer)
     setAiResult(result.text, result.source)
     if (result.source === 'offline' && result.error) {
       triggerToast(`AI offline: ${result.error.slice(0, 80)}`)
     }
-    unlockBadge('Curious Mind')
-    addXp(10)
+    if (result.answer.refuse) {
+      triggerToast(t('aiRefusedToast'))
+    } else {
+      unlockBadge('Curious Mind')
+      addXp(10)
+    }
   }
 
   const handleGenerateQuiz = async () => {
@@ -116,6 +121,7 @@ export function StudyAssistant() {
             onClick={() => {
               speechRef.current?.cancel()
               setSpeaking(false)
+              setTutorMeta(null)
               clearAiPanel()
             }}
             className="btn-ghost flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-slate-300"
@@ -126,6 +132,10 @@ export function StudyAssistant() {
         )
       }
     >
+      <p className="text-[11px] text-amber-100/90 bg-amber-500/10 border border-amber-500/25 rounded-xl px-3 py-2">
+        {t('aiGuardrailBanner')}
+      </p>
+
       {!isAiConfigured() ? (
         <div className="flex items-center gap-2 text-[11px] text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2">
           <Info className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -187,9 +197,27 @@ export function StudyAssistant() {
 
       {aiResponse ? (
         <Card className="p-5 space-y-3">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
             <Eyebrow>{aiSource === 'live' ? t('liveAiAnswer') : t('offlineAiBadge')}</Eyebrow>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              {tutorMeta ? (
+                <span
+                  className={`text-[9px] font-black uppercase tracking-wide px-2 py-1 rounded-full border ${
+                    tutorMeta.confidence === 'high'
+                      ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/25'
+                      : tutorMeta.confidence === 'medium'
+                        ? 'bg-sky-500/15 text-sky-300 border-sky-500/25'
+                        : 'bg-amber-500/15 text-amber-300 border-amber-500/25'
+                  }`}
+                >
+                  {t(`aiConfidence_${tutorMeta.confidence}`)}
+                </span>
+              ) : null}
+              {tutorMeta?.groundedInSyllabus ? (
+                <span className="text-[9px] font-black uppercase tracking-wide px-2 py-1 rounded-full bg-teal-500/15 text-teal-300 border border-teal-500/25">
+                  {t('aiGroundedSyllabus')}
+                </span>
+              ) : null}
               <span
                 className={`text-[9px] font-black uppercase tracking-wide px-2 py-1 rounded-full ${
                   aiSource === 'live'
@@ -211,6 +239,7 @@ export function StudyAssistant() {
             </div>
           </div>
           <div className="prose-ai text-sm">{renderFormattedContent(aiResponse)}</div>
+          <p className="text-[11px] text-slate-400 border-t border-white/10 pt-3">{t('aiVerifyWithTeacher')}</p>
         </Card>
       ) : null}
 

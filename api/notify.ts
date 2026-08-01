@@ -10,6 +10,7 @@ type NotifyBody = {
   role?: string
   smsPhone?: string
   userId?: string
+  studentId?: string
 }
 
 function cors(res: Response) {
@@ -108,16 +109,44 @@ export default async function handler(req: Request) {
 
   if (admin) {
     // Persist inbox row (broadcast-style when no userId)
+    const studentId = payload.studentId?.trim() || null
     await admin.from('app_notifications').insert({
       user_id: payload.userId || null,
       role: payload.role || null,
       event_type: eventType,
       title,
       body,
-      data: { role: payload.role },
+      student_id: studentId,
+      data: { role: payload.role, studentId },
     })
 
-    const { data: subs } = await admin.from('push_subscriptions').select('endpoint, p256dh, auth, user_id')
+    let pushQuery = admin.from('push_subscriptions').select('endpoint, p256dh, auth, user_id')
+    // Child-scoped: only push to the student profile + linked parents (+ staff for awareness)
+    if (studentId) {
+      const recipientIds = new Set<string>()
+      const { data: student } = await admin.from('students').select('profile_id').eq('id', studentId).maybeSingle()
+      if (student?.profile_id) recipientIds.add(student.profile_id as string)
+      const { data: parents } = await admin
+        .from('parent_links')
+        .select('parent_profile_id')
+        .eq('student_id', studentId)
+      for (const p of parents ?? []) {
+        if (p.parent_profile_id) recipientIds.add(p.parent_profile_id as string)
+      }
+      const { data: staff } = await admin
+        .from('profiles')
+        .select('id')
+        .in('role', ['teacher', 'school'])
+        .limit(200)
+      for (const s of staff ?? []) {
+        if (s.id) recipientIds.add(s.id as string)
+      }
+      if (recipientIds.size) {
+        pushQuery = pushQuery.in('user_id', [...recipientIds])
+      }
+    }
+
+    const { data: subs } = await pushQuery
     if (pushReady && subs?.length) {
       await Promise.all(
         subs.map(async (sub) => {

@@ -45,8 +45,9 @@ import {
   claimDemoLinks,
   fetchAttendanceHistory,
   fetchRosterWithTodayAttendance,
-  upsertAttendanceMark,
 } from '../lib/attendanceApi'
+import { startAttendanceQueueSync, upsertAttendanceMarkQueued } from '../lib/attendanceQueue'
+import { resolveClassLabel } from '../lib/schoolPolicy'
 import { fetchStudentGrades, saveStudentGrades } from '../lib/gradesApi'
 import { fetchFeeItems, markAllFeesPaid, markFeeItemsStatus } from '../lib/feesApi'
 import { deleteSyllabusNoteFile, fetchSyllabusState, mergeCurriculum, saveSyllabusState, uploadSyllabusNoteFile } from '../lib/syllabusApi'
@@ -379,7 +380,15 @@ export const useOrbitStore = create<OrbitState>()(
         const localId = Date.now()
         set((s) => ({
           notifications: [
-            { id: localId, time: 'Just now', unread: n.unread ?? true, role: n.role, title: n.title, body: n.body },
+            {
+              id: localId,
+              time: 'Just now',
+              unread: n.unread ?? true,
+              role: n.role,
+              title: n.title,
+              body: n.body,
+              studentId: n.studentId,
+            },
             ...s.notifications,
           ],
         }))
@@ -389,6 +398,7 @@ export const useOrbitStore = create<OrbitState>()(
           body: n.body,
           role: n.role,
           eventType,
+          studentId: n.studentId,
         }).then((remoteId) => {
           if (remoteId) {
             set((s) => ({
@@ -403,6 +413,7 @@ export const useOrbitStore = create<OrbitState>()(
           title: n.title,
           body: n.body,
           role: n.role,
+          studentId: n.studentId,
         })
       },
 
@@ -438,12 +449,14 @@ export const useOrbitStore = create<OrbitState>()(
         set({
           roster: state.roster.map((r) => (r.id === id ? { ...r, present: nextPresent } : r)),
         })
-        void upsertAttendanceMark(id, nextPresent)
+        void upsertAttendanceMarkQueued(id, nextPresent).then((result) => {
+          if (result.queued) get().triggerToast('Saved offline — will sync when back online.')
+        })
 
-        const classLabel =
-          state.linkedStudent?.className && state.linkedStudent.section
-            ? `${state.linkedStudent.className}-${state.linkedStudent.section}`
-            : 'Grade 8-A'
+        const classLabel = resolveClassLabel({
+          linkedClassName: state.linkedStudent?.className,
+          linkedSection: state.linkedStudent?.section,
+        })
 
         // Keep local history in sync when teacher marks the demo/linked child in the same session
         if (student.isDemo || student.id === state.linkedStudent?.id) {
@@ -474,11 +487,13 @@ export const useOrbitStore = create<OrbitState>()(
           role: 'parent',
           title: nextPresent ? 'Attendance: Present' : 'Attendance Alert',
           body: `${student.name} marked ${nextPresent ? 'Present' : 'Absent'} in ${classLabel}.`,
+          studentId: student.id,
         })
         get().pushNotification({
           role: 'student',
           title: 'Attendance updated',
           body: `Your status is now ${nextPresent ? 'Present' : 'Absent'} for today.`,
+          studentId: student.id,
         })
         get().triggerToast(
           `${student.name} marked ${nextPresent ? 'Present' : 'Absent'} — students and parents see view-only.`,
@@ -496,7 +511,7 @@ export const useOrbitStore = create<OrbitState>()(
           roster: state.roster.map((r) => ({ ...r, present: true })),
         })
         needsMark.forEach((s) => {
-          void upsertAttendanceMark(s.id, true)
+          void upsertAttendanceMarkQueued(s.id, true)
         })
         get().triggerToast(
           needsMark.length
@@ -516,6 +531,7 @@ export const useOrbitStore = create<OrbitState>()(
             role: 'parent',
             title: 'Absentee Alert',
             body: `${s.name} was marked absent today. Please confirm.`,
+            studentId: s.id,
           })
         })
         get().triggerToast(
@@ -598,15 +614,18 @@ export const useOrbitStore = create<OrbitState>()(
             get().triggerToast(result.error ?? 'Could not save marks to cloud.')
             return
           }
+          const childId = get().linkedStudent?.id
           get().pushNotification({
             role: 'student',
             title: 'Marks updated',
             body: 'Your teacher saved new midterm scores and diagnostic notes.',
+            studentId: childId,
           })
           get().pushNotification({
             role: 'parent',
             title: 'Report card updated',
             body: `${childFirstName(get().linkedStudent)}'s marks and teacher comments were updated.`,
+            studentId: childId,
           })
           get().triggerToast('Marks saved and synced to Student + Parent portals.')
         })
@@ -659,10 +678,10 @@ export const useOrbitStore = create<OrbitState>()(
         const role = get().role
         const classLinked = await resolveClassLinked(sessionEmail, role)
         const linkedStudent = await fetchLinkedStudent(sessionEmail, role)
-        const timetableClass =
-          linkedStudent?.className && linkedStudent.section
-            ? `${linkedStudent.className}-${linkedStudent.section}`
-            : 'Grade 8-A'
+        const timetableClass = resolveClassLabel({
+          linkedClassName: linkedStudent?.className,
+          linkedSection: linkedStudent?.section,
+        })
         const [ops, roster, attendanceRecords, studentGrades, remoteSyllabus, timetableByDay, teachers] =
           await Promise.all([
             loadSchoolOpsSnapshot(linkedStudent?.id),
@@ -674,6 +693,12 @@ export const useOrbitStore = create<OrbitState>()(
             fetchStaffDirectory(),
             get().loadPaymentWorkspace(),
           ])
+        startAttendanceQueueSync((result) => {
+          if (result.flushed > 0) {
+            get().triggerToast(`Synced ${result.flushed} offline attendance mark(s).`)
+            void get().hydrateFromSupabase()
+          }
+        })
         await get().refreshNotifications()
         set((s) => {
           const tasks = withSample(ops.tasks, s.tasks.length ? s.tasks : initialTasks)

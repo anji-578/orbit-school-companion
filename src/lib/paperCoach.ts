@@ -1,10 +1,12 @@
 import { remediationTemplates } from '../data/demo'
 import type { PaperCoachInsight, ScanTarget } from '../types'
+import { PAPER_COACH_GUARDRAILS } from './aiGuardrails'
 import { askOrbitAiVision } from './gemini'
 
 const COACH_SYSTEM = [
   'You are Orbit AI, a patient school paper coach for Class 9–12 students in India.',
   'You receive a photo of a student answer sheet. There is NO official answer key.',
+  PAPER_COACH_GUARDRAILS,
   'Coach mode only: judge answer quality, clarity, method, and likely misconceptions.',
   'Never invent exact marks out of 50 unless clearly written on the paper.',
   'If handwriting is unreadable, say so in summary and lower confidence.',
@@ -25,7 +27,7 @@ const COACH_SYSTEM = [
   '}',
   'workingWell / needsImprovement / nextSteps: 2–4 short bullets each.',
   'checkOptions: exactly 4 options. checkAnswerIndex is 0-based.',
-  'confidence: 0–100 integer.',
+  'confidence: 0–100 integer. Prefer under-confident over overconfident.',
 ].join(' ')
 
 const SUBJECT_LABEL: Record<ScanTarget, string> = {

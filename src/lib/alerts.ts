@@ -167,6 +167,7 @@ export function dispatchRemoteAlert(input: {
   body: string
   role?: NotificationItem['role']
   smsPhone?: string
+  studentId?: string
 }) {
   void (async () => {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' }
@@ -189,6 +190,7 @@ export function dispatchRemoteAlert(input: {
         body: input.body,
         role: input.role ?? 'all',
         smsPhone: input.smsPhone,
+        studentId: input.studentId,
       }),
     })
   })().catch(() => {

@@ -8,10 +8,10 @@ import {
   type TimetableSlot,
 } from '../../lib/timetableApi'
 import { isSupabaseConfigured } from '../../lib/supabaseConfig'
+import { readSchoolPolicy, writeSchoolPolicy } from '../../lib/schoolPolicy'
 import { Panel, Card, Eyebrow } from '../../components/ui/primitives'
 
 const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI'] as const
-const CLASS_NAME = 'Grade 8-A'
 
 function cloneWeek(week: TimetableByDay): TimetableByDay {
   const next: TimetableByDay = {}
@@ -34,6 +34,7 @@ export function SchoolTimetable() {
 
   const [draft, setDraft] = useState<TimetableByDay>(() => cloneWeek(timetableByDay))
   const [saving, setSaving] = useState(false)
+  const [className, setClassName] = useState(() => readSchoolPolicy().classLabel)
   const t = (key: string) => translate(lang, key)
   const dayCode = DAYS.includes(selectedGanttDay as (typeof DAYS)[number])
     ? (selectedGanttDay as (typeof DAYS)[number])
@@ -88,7 +89,8 @@ export function SchoolTimetable() {
 
   const onSave = async () => {
     setSaving(true)
-    await saveTimetable(CLASS_NAME, draft)
+    writeSchoolPolicy({ classLabel: className })
+    await saveTimetable(className.trim() || readSchoolPolicy().classLabel, draft)
     setSaving(false)
   }
 
@@ -186,7 +188,7 @@ export function SchoolTimetable() {
   return (
     <Panel
       title={t('schoolTimetableTitle')}
-      subtitle={t('schoolTimetableDesc').replace('{class}', CLASS_NAME)}
+      subtitle={t('schoolTimetableDesc').replace('{class}', className)}
       action={
         <button
           type="button"
@@ -202,6 +204,18 @@ export function SchoolTimetable() {
       {!isSupabaseConfigured() ? (
         <p className="text-xs text-amber-300/90 mb-3">{t('timetableNeedsCloud')}</p>
       ) : null}
+
+      <label className="block mb-3 max-w-xs space-y-1">
+        <span className="text-[10px] font-bold text-slate-400 uppercase">{t('activeClassLabel')}</span>
+        <input
+          type="text"
+          value={className}
+          onChange={(e) => setClassName(e.target.value)}
+          onBlur={() => writeSchoolPolicy({ classLabel: className })}
+          className="field w-full rounded-lg px-3 py-2 text-sm"
+          placeholder="e.g. Grade 8-A"
+        />
+      </label>
 
       <div className="flex flex-wrap gap-2" role="tablist" aria-label="Weekday">
         {DAYS.map((d) => (

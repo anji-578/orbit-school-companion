@@ -1,16 +1,10 @@
 import { getSupabase, isSupabaseConfigured } from './supabase'
+import { resolveClassLabel, resolveSchoolId } from './schoolPolicy'
 import type { SyllabusChapter } from '../types'
 import { initialCurriculum } from '../data/demo'
 
-const CLASS_NAME = 'Grade 8-A'
 const BUCKET = 'syllabus-notes'
 
-async function sunriseSchoolId(): Promise<string | null> {
-  const supabase = getSupabase()
-  if (!supabase) return null
-  const { data } = await supabase.from('schools').select('id').eq('code', 'SUNRISE').maybeSingle()
-  return (data?.id as string | undefined) ?? null
-}
 
 function isRemoteNoteUrl(url?: string) {
   return Boolean(url && (url.startsWith('http://') || url.startsWith('https://')))
@@ -68,13 +62,13 @@ export async function fetchSyllabusState(): Promise<SyllabusChapter[] | null> {
   if (!isSupabaseConfigured()) return null
   const supabase = getSupabase()
   if (!supabase) return null
-  const schoolId = await sunriseSchoolId()
+  const schoolId = await resolveSchoolId()
   if (!schoolId) return null
   const { data, error } = await supabase
     .from('syllabus_state')
     .select('curriculum')
     .eq('school_id', schoolId)
-    .eq('class_name', CLASS_NAME)
+    .eq('class_name', resolveClassLabel())
     .maybeSingle()
   if (error || !data) return null
   const curriculum = data.curriculum as SyllabusChapter[]
@@ -85,14 +79,14 @@ export async function saveSyllabusState(chapters: SyllabusChapter[]): Promise<{ 
   if (!isSupabaseConfigured()) return { ok: true }
   const supabase = getSupabase()
   if (!supabase) return { ok: false, error: 'Supabase unavailable' }
-  const schoolId = await sunriseSchoolId()
+  const schoolId = await resolveSchoolId()
   if (!schoolId) return { ok: false, error: 'School not found — run seed.sql' }
   const {
     data: { user },
   } = await supabase.auth.getUser()
   const { error } = await supabase.from('syllabus_state').upsert({
     school_id: schoolId,
-    class_name: CLASS_NAME,
+    class_name: resolveClassLabel(),
     curriculum: curriculumForCloud(chapters),
     updated_at: new Date().toISOString(),
     updated_by: user?.id ?? null,
@@ -116,7 +110,7 @@ export async function uploadSyllabusNoteFile(
   }
   const supabase = getSupabase()
   if (!supabase) return { ok: false, error: 'Supabase unavailable', localOnly: true }
-  const schoolId = await sunriseSchoolId()
+  const schoolId = await resolveSchoolId()
   if (!schoolId) return { ok: false, error: 'School not found — run seed.sql', localOnly: true }
 
   const path = storagePath(schoolId, chapterId, subtopicId, file.name)

@@ -1,4 +1,5 @@
 import { getSupabase, isSupabaseConfigured } from './supabase'
+import { resolveSchoolId } from './schoolPolicy'
 import type { AttendanceRecord, AttendanceStatus, RosterStudent } from '../types'
 
 /** Stable demo student IDs (seeded in Supabase for Sunrise). */
@@ -9,12 +10,6 @@ export const DEMO_STUDENT_IDS = {
   pranitha: 'a1111111-1111-4111-8111-111111111104',
 } as const
 
-async function sunriseSchoolId(): Promise<string | null> {
-  const supabase = getSupabase()
-  if (!supabase) return null
-  const { data } = await supabase.from('schools').select('id').eq('code', 'SUNRISE').maybeSingle()
-  return (data?.id as string | undefined) ?? null
-}
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10)
@@ -38,7 +33,7 @@ export async function claimDemoLinks(): Promise<void> {
   } = await supabase.auth.getUser()
   if (!user?.id) return
 
-  const schoolId = await sunriseSchoolId()
+  const schoolId = await resolveSchoolId()
   if (schoolId) {
     await supabase.from('profiles').update({ school_id: schoolId }).eq('id', user.id).is('school_id', null)
   }
@@ -65,7 +60,7 @@ export async function fetchRosterWithTodayAttendance(): Promise<RosterStudent[]>
   if (!isSupabaseConfigured()) return []
   const supabase = getSupabase()
   if (!supabase) return []
-  const schoolId = await sunriseSchoolId()
+  const schoolId = await resolveSchoolId()
   if (!schoolId) return []
 
   const [{ data: students }, { data: marks }] = await Promise.all([
@@ -108,7 +103,7 @@ export async function upsertAttendanceMark(
   if (!isSupabaseConfigured()) return { ok: true }
   const supabase = getSupabase()
   if (!supabase) return { ok: true }
-  const schoolId = await sunriseSchoolId()
+  const schoolId = await resolveSchoolId()
   if (!schoolId) return { ok: false, error: 'School not found' }
 
   const {

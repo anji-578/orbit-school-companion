@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { Download, Upload, Users } from 'lucide-react'
 import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
+import { exportAttendanceCsv, exportGradesCsv } from '../../lib/dataExport'
 import { importRosterCsv, ROSTER_CSV_TEMPLATE } from '../../lib/rosterImport'
 import { Panel, Card, Eyebrow, StatTile } from '../../components/ui/primitives'
 import { EmptyState } from '../../components/ui/EmptyState'
@@ -29,6 +30,20 @@ export function SchoolRoster() {
     a.click()
     URL.revokeObjectURL(url)
     triggerToast(t('rosterTemplateDownloaded'))
+  }
+
+  const onExport = async (kind: 'attendance' | 'grades') => {
+    const result = kind === 'attendance' ? await exportAttendanceCsv() : await exportGradesCsv()
+    if (!result.ok) {
+      triggerToast(result.error)
+      return
+    }
+    triggerToast(
+      t(kind === 'attendance' ? 'exportAttendanceDone' : 'exportGradesDone').replace(
+        '{count}',
+        String(result.count),
+      ),
+    )
   }
 
   const onFile = async (file: File | null) => {
@@ -60,6 +75,22 @@ export function SchoolRoster() {
       subtitle={t('schoolRosterDesc')}
       action={
         <div className="flex flex-wrap gap-2 justify-end">
+          <button
+            type="button"
+            onClick={() => void onExport('attendance')}
+            className="btn-ghost flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-white"
+          >
+            <Download className="h-3.5 w-3.5" aria-hidden />
+            {t('exportAttendanceCsv')}
+          </button>
+          <button
+            type="button"
+            onClick={() => void onExport('grades')}
+            className="btn-ghost flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-white"
+          >
+            <Download className="h-3.5 w-3.5" aria-hidden />
+            {t('exportGradesCsv')}
+          </button>
           <button
             type="button"
             onClick={downloadTemplate}

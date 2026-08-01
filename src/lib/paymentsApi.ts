@@ -1,6 +1,7 @@
 import { getSupabase, isSupabaseConfigured } from './supabase'
 import { resolveLinkedStudentId } from './linkedStudent'
 import type { PaymentSubmission, SchoolPaymentSettings } from '../types'
+import { resolveSchoolId } from './schoolPolicy'
 
 const DEFAULT_SETTINGS: SchoolPaymentSettings = {
   upiId: 'sunrise.school@oksbi',
@@ -10,12 +11,6 @@ const DEFAULT_SETTINGS: SchoolPaymentSettings = {
   instructions: 'Pay the exact outstanding amount via UPI, then submit the UTR here. ₹0 gateway fee.',
 }
 
-async function defaultSchoolId(): Promise<string | null> {
-  const supabase = getSupabase()
-  if (!supabase) return null
-  const { data } = await supabase.from('schools').select('id').eq('code', 'SUNRISE').maybeSingle()
-  return (data?.id as string | undefined) ?? null
-}
 
 function mapSubmission(row: {
   id: string
@@ -49,7 +44,7 @@ export async function fetchSchoolPaymentSettings(): Promise<SchoolPaymentSetting
   if (!isSupabaseConfigured()) return DEFAULT_SETTINGS
   const supabase = getSupabase()
   if (!supabase) return DEFAULT_SETTINGS
-  const schoolId = await defaultSchoolId()
+  const schoolId = await resolveSchoolId()
   if (!schoolId) return DEFAULT_SETTINGS
   const { data } = await supabase
     .from('school_payment_settings')
@@ -72,7 +67,7 @@ export async function saveSchoolPaymentSettings(settings: SchoolPaymentSettings)
   }
   const supabase = getSupabase()
   if (!supabase) return { ok: false, error: 'Supabase client unavailable.' }
-  const schoolId = await defaultSchoolId()
+  const schoolId = await resolveSchoolId()
   if (!schoolId) return { ok: false, error: 'School not found in Supabase.' }
   const { error } = await supabase.from('school_payment_settings').upsert({
     school_id: schoolId,
@@ -129,7 +124,7 @@ export async function createPaymentSubmission(input: {
   }
   const supabase = getSupabase()
   if (!supabase) return { ok: false, error: 'Supabase client unavailable.' }
-  const schoolId = await defaultSchoolId()
+  const schoolId = await resolveSchoolId()
   if (!schoolId) return { ok: false, error: 'School not found. Ask admin to finish school setup.' }
 
   const studentId = await resolveLinkedStudentId()

@@ -18,7 +18,7 @@ export async function fetchAppNotifications(limit = 40): Promise<NotificationIte
   if (!supabase) return []
   const { data, error } = await supabase
     .from('app_notifications')
-    .select('id, role, title, body, read_at, created_at')
+    .select('id, role, title, body, read_at, created_at, student_id')
     .order('created_at', { ascending: false })
     .limit(limit)
   if (error || !data) return []
@@ -29,6 +29,7 @@ export async function fetchAppNotifications(limit = 40): Promise<NotificationIte
     body: row.body as string,
     time: relativeTime(row.created_at as string),
     unread: row.read_at == null,
+    studentId: (row.student_id as string | null) || undefined,
   }))
 }
 
@@ -38,6 +39,7 @@ export async function insertAppNotification(input: {
   role?: NotificationItem['role']
   eventType: string
   userId?: string | null
+  studentId?: string | null
 }): Promise<number | null> {
   if (!isSupabaseConfigured()) return null
   const supabase = getSupabase()
@@ -51,7 +53,8 @@ export async function insertAppNotification(input: {
       event_type: input.eventType,
       title: input.title,
       body: input.body,
-      data: { role: input.role ?? 'all' },
+      student_id: input.studentId ?? null,
+      data: { role: input.role ?? 'all', studentId: input.studentId ?? null },
     })
     .select('id')
     .maybeSingle()

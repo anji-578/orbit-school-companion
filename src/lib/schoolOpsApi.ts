@@ -1,13 +1,8 @@
 import { getSupabase, isSupabaseConfigured } from './supabase'
+import { resolveSchoolId } from './schoolPolicy'
 import { resolveLinkedStudentId } from './linkedStudent'
 import type { BroadcastMessage, CalendarEvent, HomeworkTask, LeaveRequest, LeaveStatus } from '../types'
 
-async function sunriseSchoolId(): Promise<string | null> {
-  const supabase = getSupabase()
-  if (!supabase) return null
-  const { data } = await supabase.from('schools').select('id').eq('code', 'SUNRISE').maybeSingle()
-  return (data?.id as string | undefined) ?? null
-}
 
 async function currentRole(): Promise<string | null> {
   const supabase = getSupabase()
@@ -24,7 +19,7 @@ export async function syncAssignHomework(input: HomeworkTask & { userId?: string
   if (!isSupabaseConfigured()) return null
   const supabase = getSupabase()
   if (!supabase) return null
-  const schoolId = await sunriseSchoolId()
+  const schoolId = await resolveSchoolId()
   const { data } = await supabase
     .from('homework_tasks')
     .insert({
@@ -126,7 +121,7 @@ export async function fetchHomeworkClassOverview(
   if (!isSupabaseConfigured() || homeworkIds.length === 0) return {}
   const supabase = getSupabase()
   if (!supabase) return {}
-  const schoolId = await sunriseSchoolId()
+  const schoolId = await resolveSchoolId()
   if (!schoolId) return {}
 
   const [{ data: students }, { data: completions }] = await Promise.all([
@@ -174,7 +169,7 @@ export async function syncSubmitLeave(input: {
   if (!isSupabaseConfigured()) return null
   const supabase = getSupabase()
   if (!supabase) return null
-  const schoolId = await sunriseSchoolId()
+  const schoolId = await resolveSchoolId()
   const { data } = await supabase
     .from('leave_requests')
     .insert({
@@ -218,7 +213,7 @@ export async function syncBroadcast(input: BroadcastMessage & { userId?: string 
   if (!isSupabaseConfigured()) return
   const supabase = getSupabase()
   if (!supabase) return
-  const schoolId = await sunriseSchoolId()
+  const schoolId = await resolveSchoolId()
   await supabase.from('broadcasts').insert({
     school_id: schoolId,
     target: input.target,
@@ -251,7 +246,7 @@ export async function syncCalendarEvent(input: CalendarEvent & { userId?: string
   if (!isSupabaseConfigured()) return
   const supabase = getSupabase()
   if (!supabase) return
-  const schoolId = await sunriseSchoolId()
+  const schoolId = await resolveSchoolId()
   await supabase.from('calendar_events').insert({
     school_id: schoolId,
     title: input.title,

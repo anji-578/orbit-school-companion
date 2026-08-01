@@ -1,5 +1,13 @@
 import { FALLBACK_QUIZ, offlineAiAnswers } from '../data/demo'
-import type { QuizPayload } from '../types'
+import type { QuizPayload, SyllabusChapter } from '../types'
+import {
+  TUTOR_SYSTEM_BASE,
+  buildSyllabusContext,
+  offlineTutorAnswer,
+  parseTutorAnswer,
+  tutorAnswerToMarkdown,
+  type TutorAnswer,
+} from './aiGuardrails'
 
 /**
  * Model fallbacks for new AI Studio accounts (AQ. auth keys).
@@ -71,6 +79,7 @@ async function callViaProxy(
   system: string,
   jsonMode: boolean,
   image?: { base64: string; mimeType: string },
+  temperature?: number,
 ): Promise<{ ok: true; text: string; model?: string } | { ok: false; error: string }> {
   try {
     const response = await fetch('/api/gemini', {
@@ -80,6 +89,7 @@ async function callViaProxy(
         prompt,
         system,
         jsonMode,
+        temperature,
         ...(image
           ? {
               imageBase64: image.base64,
@@ -108,9 +118,10 @@ async function callGemini(
   system: string,
   jsonMode = false,
   image?: { base64: string; mimeType: string },
+  temperature?: number,
 ): Promise<{ ok: true; text: string; model?: string } | { ok: false; error: string }> {
   // Prefer server proxy so the API key is not required in the browser bundle.
-  const proxied = await callViaProxy(prompt, system, jsonMode, image)
+  const proxied = await callViaProxy(prompt, system, jsonMode, image, temperature)
   if (proxied.ok) return proxied
 
   const key = getApiKey()
@@ -132,7 +143,7 @@ async function callGemini(
     systemInstruction: { parts: [{ text: system }] },
     contents: [{ role: 'user', parts }],
     generationConfig: {
-      temperature: jsonMode ? 0.3 : 0.6,
+      temperature: temperature ?? (jsonMode ? 0.2 : 0.45),
       maxOutputTokens: 2048,
       ...(jsonMode ? { responseMimeType: 'application/json' } : {}),
     },
@@ -228,6 +239,76 @@ export async function askOrbitAi(prompt: string, system: string): Promise<AiText
     return { text: pickOfflineAnswer(prompt), source: 'offline', error: result.error }
   }
   return { text: result.text, source: 'live' }
+}
+
+export type AiTutorResult = AiTextResult & {
+  answer: TutorAnswer
+  model?: string
+}
+
+/** Grounded, structured tutor reply for students (JSON schema + syllabus context). */
+export async function askOrbitTutor(
+  question: string,
+  curriculum: SyllabusChapter[] = [],
+): Promise<AiTutorResult> {
+  const context = buildSyllabusContext(question, curriculum)
+  const prompt = [
+    context ? `${context}\n\n---` : 'SYLLABUS CONTEXT: (none matched — keep confidence low unless the topic is general school knowledge)',
+    '',
+    `Student question: ${question.trim()}`,
+    '',
+    'Return the JSON tutor schema. If the question is unsafe or out of scope, set refuse=true.',
+  ].join('\n')
+
+  if (!isAiConfigured()) {
+    const answer = offlineTutorAnswer(question)
+    return {
+      text: tutorAnswerToMarkdown(answer),
+      source: 'offline',
+      error: 'API key not configured',
+      answer,
+    }
+  }
+
+  const result = await callGemini(prompt, TUTOR_SYSTEM_BASE, true, undefined, 0.15)
+  if (!result.ok) {
+    const answer = offlineTutorAnswer(question)
+    return {
+      text: tutorAnswerToMarkdown(answer),
+      source: 'offline',
+      error: result.error,
+      answer,
+    }
+  }
+
+  const parsed = parseTutorAnswer(result.text)
+  if (!parsed) {
+    const answer = offlineTutorAnswer(question)
+    return {
+      text: tutorAnswerToMarkdown(answer),
+      source: 'offline',
+      error: 'Could not parse structured tutor JSON',
+      answer,
+    }
+  }
+
+  // Honesty clamp: no syllabus match ⇒ cannot claim grounded high confidence
+  if (!context) {
+    parsed.groundedInSyllabus = false
+    if (parsed.confidence === 'high') parsed.confidence = 'medium'
+    if (!parsed.caveats.some((c) => /textbook|teacher|verify/i.test(c))) {
+      parsed.caveats = [...parsed.caveats, 'Not matched to your class syllabus — verify with textbook/teacher.']
+    }
+  } else if (parsed.groundedInSyllabus && parsed.confidence === 'high') {
+    // keep high only when model claims grounding and we actually had context
+  }
+
+  return {
+    text: tutorAnswerToMarkdown(parsed),
+    source: 'live',
+    answer: parsed,
+    model: result.model,
+  }
 }
 
 export async function askOrbitAiVision(

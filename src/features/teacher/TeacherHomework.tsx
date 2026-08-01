@@ -10,6 +10,40 @@ import type { HomeworkTask } from '../../types'
 
 const DIFFICULTIES: HomeworkTask['difficulty'][] = ['Easy', 'Medium', 'Hard']
 
+const QUICK_HOMEWORK: Array<{
+  label: string
+  subject: string
+  task: string
+  due: string
+  xp: number
+  difficulty: HomeworkTask['difficulty']
+}> = [
+  {
+    label: 'Math practice',
+    subject: 'Mathematics',
+    task: 'Complete textbook exercise — odd questions only',
+    due: 'Tomorrow',
+    xp: 40,
+    difficulty: 'Medium',
+  },
+  {
+    label: 'Science worksheet',
+    subject: 'Science',
+    task: 'Finish the class worksheet and revise key terms',
+    due: 'Friday',
+    xp: 30,
+    difficulty: 'Easy',
+  },
+  {
+    label: 'Reading log',
+    subject: 'English',
+    task: 'Read 4 pages and write 5-line summary',
+    due: 'Tomorrow',
+    xp: 25,
+    difficulty: 'Easy',
+  },
+]
+
 export function TeacherHomework() {
   const lang = useOrbitStore((s) => s.lang)
   const tasks = useOrbitStore((s) => s.tasks)
@@ -48,6 +82,21 @@ export function TeacherHomework() {
     setTask('')
   }
 
+  const assignQuick = (preset: (typeof QUICK_HOMEWORK)[number]) => {
+    assignHomework({
+      subject: preset.subject,
+      task: preset.task,
+      due: preset.due,
+      xp: preset.xp,
+      difficulty: preset.difficulty,
+    })
+    setSubject(preset.subject)
+    setDue(preset.due)
+    setXp(preset.xp)
+    setDifficulty(preset.difficulty)
+    setTask('')
+  }
+
   const localFallback = (item: HomeworkTask): HomeworkClassOverview => {
     const students = roster.map((r) => ({
       studentId: r.id,
@@ -65,6 +114,23 @@ export function TeacherHomework() {
   return (
     <div className="space-y-6">
       <Panel title={t('teacherHomeworkTitle')} subtitle={t('teacherHomeworkDesc')}>
+        <div className="mb-3">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
+            {t('homeworkQuickDefaults')}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {QUICK_HOMEWORK.map((preset) => (
+              <button
+                key={preset.label}
+                type="button"
+                onClick={() => assignQuick(preset)}
+                className="btn-ghost px-3 py-1.5 rounded-lg text-[11px] font-bold text-white"
+              >
+                {preset.label} · {preset.due}
+              </button>
+            ))}
+          </div>
+        </div>
         <form onSubmit={handleSubmit} className="grid sm:grid-cols-2 gap-3">
           <label className="space-y-1 block">
             <span className="text-[10px] font-bold text-slate-400 uppercase">{t('subject')}</span>
