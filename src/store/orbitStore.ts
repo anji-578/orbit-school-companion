@@ -202,6 +202,7 @@ interface OrbitState {
   markAllNotificationsRead: () => void
 
   toggleRosterPresent: (id: string) => void
+  markAllRosterPresent: () => void
   broadcastAbsentees: () => void
   toggleTask: (id: number) => void
   assignHomework: (input: {
@@ -481,6 +482,26 @@ export const useOrbitStore = create<OrbitState>()(
         })
         get().triggerToast(
           `${student.name} marked ${nextPresent ? 'Present' : 'Absent'} — students and parents see view-only.`,
+        )
+      },
+
+      markAllRosterPresent: () => {
+        const state = get()
+        if (!state.roster.length) {
+          get().triggerToast('Roster is empty.')
+          return
+        }
+        const needsMark = state.roster.filter((r) => !r.present)
+        set({
+          roster: state.roster.map((r) => ({ ...r, present: true })),
+        })
+        needsMark.forEach((s) => {
+          void upsertAttendanceMark(s.id, true)
+        })
+        get().triggerToast(
+          needsMark.length
+            ? `Marked all ${state.roster.length} present (1 tap).`
+            : 'Everyone already present.',
         )
       },
 
@@ -1216,36 +1237,23 @@ export const useOrbitStore = create<OrbitState>()(
           set({ validationSubmitted: false })
           return
         }
-        const gradeField =
-          scanTarget === 'chemistry' ? 'chem' : scanTarget === 'science' || scanTarget === 'physics' ? 'science' : 'math'
-        set((s) => ({
-          scanStep: 'validated',
-          studentGrades: s.studentGrades.map((g) =>
-            g.id === 'g1' || g.id === s.studentGrades[0]?.id
-              ? {
-                  ...g,
-                  ...(scanTarget === 'english'
-                    ? {}
-                    : { [gradeField]: '48/50' }),
-                  comment: `Growth after paper coach (${insight.subject}): ${insight.flaggedWeakness}`,
-                }
-              : g,
-          ),
-        }))
+        // Practice only — never write official report-card grades from AI
+        set({ scanStep: 'validated' })
         get().addXp(100)
         get().unlockBadge('Concept Master')
         get().unlockBadge('Rising Scholar')
         get().pushNotification({
           role: 'student',
           title: 'Concept practiced',
-          body: insight.flaggedWeakness,
+          body: `${insight.flaggedWeakness} (practice — not an official mark)`,
         })
         get().pushNotification({
           role: 'parent',
-          title: 'Paper coach update',
-          body: `${childFirstName(get().linkedStudent)} practiced ${insight.subject}: ${insight.flaggedWeakness}`,
+          title: 'Paper coach practice',
+          body: `${childFirstName(get().linkedStudent)} practiced ${insight.subject}. Official marks stay with the teacher.`,
         })
-        get().triggerToast('Check passed · Concept Master unlocked.')
+        get().triggerToast('Practice check passed · XP earned (report card unchanged).')
+        void scanTarget
       },
 
       resetScanner: () => {

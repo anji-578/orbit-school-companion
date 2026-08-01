@@ -19,9 +19,10 @@ npm run dev
 6. `supabase/fees_ledger.sql`
 7. `supabase/timetable.sql`
 8. `supabase/sample_catalog.sql`
-9. `supabase/alerts.sql`
-10. `supabase/storage.sql`
-11. Optional: `supabase/notifications_rls.sql`
+9. `supabase/students_insert_policy.sql` (school CSV roster import)
+10. `supabase/alerts.sql`
+11. `supabase/storage.sql`
+12. Optional: `supabase/notifications_rls.sql`
 
 Pilot invite codes (after seed): `SUNRISE-STU-8A`, `SUNRISE-PAR-8A`, `SUNRISE-TCH-8A`, `SUNRISE-ADM`
 

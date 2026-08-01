@@ -1,8 +1,9 @@
-import { ArrowRight, Bus, CreditCard, MapPin, Sparkles } from 'lucide-react'
+import { ArrowRight, Bus, CheckCircle, CreditCard, MapPin, Sparkles } from 'lucide-react'
 import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
 import { childDisplayName, childFirstName } from '../../lib/linkedStudent'
 import { Card, Panel, StatTile } from '../../components/ui/primitives'
+import { DemoNotice } from '../../components/ui/DemoNotice'
 import { InviteRedeemCard } from '../../components/ui/InviteRedeemCard'
 import { LifecycleChart } from '../shared/LifecycleChart'
 
@@ -54,14 +55,14 @@ export function ParentDashboard() {
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatTile
           label={t('busTracker')}
-          value={busReachedSchool ? t('childReached') : 'En route'}
+          value={busReachedSchool ? t('childReached') : t('enRoute')}
           hint={bus ? bus.route : undefined}
           accent={busReachedSchool ? '#22C55E' : undefined}
           onClick={() => setActiveTab('transport')}
         />
         <StatTile
           label={t('billingOutstanding')}
-          value={outstandingFees > 0 ? `₹${outstandingFees.toLocaleString()}` : 'Cleared'}
+          value={outstandingFees > 0 ? `₹${outstandingFees.toLocaleString()}` : t('cleared')}
           accent={outstandingFees > 0 ? '#FF6B8B' : '#22C55E'}
           onClick={() => setActiveTab('payments')}
         />
@@ -94,7 +95,8 @@ export function ParentDashboard() {
         </Card>
       ) : (
         <Panel title={t('liveTransit')} subtitle={bus?.route}>
-          <div className="relative h-10 flex items-center px-1">
+          <DemoNotice detailKey="demoTransportHint" />
+          <div className="relative h-10 flex items-center px-1 mt-3">
             <div className="absolute left-0 right-0 h-1.5 bg-white/10 rounded-full" />
             <div className="absolute h-1.5 bg-[#22C55E] rounded-full transition-all duration-700" style={{ width: `${busPosition}%` }} />
             <div
@@ -106,9 +108,9 @@ export function ParentDashboard() {
           </div>
           <div className="flex items-center justify-between text-[10px] text-slate-400">
             <span className="flex items-center gap-1">
-              <MapPin className="h-3 w-3" aria-hidden /> Home
+              <MapPin className="h-3 w-3" aria-hidden /> {t('homeStop')}
             </span>
-            <span>School</span>
+            <span>{t('schoolStop')}</span>
           </div>
         </Panel>
       )}
@@ -137,10 +139,11 @@ export function ParentDashboard() {
             </button>
             <button
               type="button"
-              onClick={() => setActiveTab('scanner')}
+              onClick={() => setActiveTab('attendance')}
               className="btn-accent flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold"
             >
-              {t('scannerTitle')}
+              <CheckCircle className="h-3.5 w-3.5" aria-hidden />
+              {t('parentAttendanceTitle')}
               <ArrowRight className="h-3.5 w-3.5" aria-hidden />
             </button>
           </div>

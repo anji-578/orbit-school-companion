@@ -123,7 +123,7 @@ export function ScannerPanel() {
   return (
     <Panel
       title={t('scannerTitle')}
-      subtitle="Coach mode: upload a real answer-sheet photo. AI reads it and explains what’s working vs what to improve."
+      subtitle={t('scannerCoachSubtitle')}
       action={
         <button
           type="button"
@@ -140,6 +140,9 @@ export function ScannerPanel() {
         </button>
       }
     >
+      <p className="text-[11px] text-amber-100/90 bg-amber-500/10 border border-amber-500/25 rounded-xl px-3 py-2">
+        {t('aiGuardrailBanner')}
+      </p>
       <div className="flex items-center gap-2" aria-hidden>
         {[t('step1Select'), t('step2Analogy'), t('step3Validate')].map((label, idx) => (
           <div key={label} className="flex items-center gap-2 flex-1">
@@ -424,7 +427,7 @@ export function ScannerPanel() {
           </div>
           <h3 className="text-lg font-black text-white">{t('conceptMastered')}</h3>
           <p className="text-xs text-slate-300 max-w-sm">
-            Practiced: {insight.flaggedWeakness}. Next lifecycle step will use these coach notes.
+            {t('aiPracticeOnlyHint').replace('{topic}', insight.flaggedWeakness)}
           </p>
           <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[var(--accent2)]">
             <BadgeCheck className="h-4 w-4" aria-hidden /> Concept Master badge unlocked · +100 XP

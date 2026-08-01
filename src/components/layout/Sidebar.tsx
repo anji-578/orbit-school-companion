@@ -23,7 +23,10 @@ import {
   Users,
   X,
   BrainCircuit,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react'
+import { useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { translate } from '../../i18n'
 import { useAuthStore } from '../../auth/authStore'
@@ -79,9 +82,15 @@ export function getRoleMeta(role: Role) {
   return ROLE_META[role]
 }
 
-export function getTabsForRole(role: Role, lang: 'en' | 'te') {
+export type OrbitTab = { id: string; label: string; icon: LucideIcon }
+
+/** Primary tabs stay visible; “more” collapses secondary surfaces (parent simplicity). */
+export function getTabsForRole(
+  role: Role,
+  lang: 'en' | 'te',
+): { primary: OrbitTab[]; more: OrbitTab[] } {
   const t = (key: string) => translate(lang, key)
-  const map: Record<Role, { id: string; label: string; icon: LucideIcon }[]> = {
+  const all: Record<Role, OrbitTab[]> = {
     student: [
       { id: 'dashboard', label: t('studentDashboard'), icon: Sliders },
       { id: 'alerts', label: t('alertsTitle'), icon: BellRing },
@@ -99,24 +108,24 @@ export function getTabsForRole(role: Role, lang: 'en' | 'te') {
     parent: [
       { id: 'dashboard', label: t('parentDashboard'), icon: Sliders },
       { id: 'alerts', label: t('alertsTitle'), icon: BellRing },
-      { id: 'scanner', label: t('parentScanner'), icon: Clipboard },
-      { id: 'academics', label: t('parentReportCard'), icon: FileText },
       { id: 'homework', label: t('parentHomeworkTitle'), icon: CheckSquare },
       { id: 'attendance', label: t('parentAttendanceTitle'), icon: CheckCircle },
-      { id: 'calendar', label: t('sharedCalendarTitle'), icon: CalendarDays },
-      { id: 'teachers', label: t('parentTeachers'), icon: Users },
       { id: 'payments', label: t('parentPayments'), icon: CreditCard },
+      { id: 'academics', label: t('parentReportCard'), icon: FileText },
+      { id: 'teachers', label: t('parentTeachers'), icon: Users },
       { id: 'transport', label: t('parentTransport'), icon: Truck },
+      { id: 'calendar', label: t('sharedCalendarTitle'), icon: CalendarDays },
+      { id: 'scanner', label: t('parentScanner'), icon: Clipboard },
       { id: 'extracurriculars', label: t('parentExtracurriculars'), icon: Target },
     ],
     teacher: [
       { id: 'dashboard', label: t('teacherDashboard'), icon: Sliders },
       { id: 'alerts', label: t('alertsTitle'), icon: BellRing },
-      { id: 'scanner', label: t('teacherScanner'), icon: Clipboard },
       { id: 'teacher-attendance', label: t('teacherAttendanceTitle'), icon: UserCheck },
-      { id: 'teacher-marks', label: t('teacherMarksTitle'), icon: Clipboard },
       { id: 'teacher-homework', label: t('teacherHomeworkTitle'), icon: CheckSquare },
+      { id: 'teacher-marks', label: t('teacherMarksTitle'), icon: Clipboard },
       { id: 'teacher-syllabus', label: t('teacherSyllabusTitle'), icon: BookOpen },
+      { id: 'scanner', label: t('teacherScanner'), icon: Clipboard },
       { id: 'teacher-leaves', label: t('teacherLeavesTitle'), icon: CalendarDays },
       { id: 'teacher-jobs', label: t('teacherJobsTitle'), icon: Briefcase },
     ],
@@ -126,14 +135,25 @@ export function getTabsForRole(role: Role, lang: 'en' | 'te') {
       { id: 'school-fees', label: t('schoolFeeAuditorTitle'), icon: CreditCard },
       { id: 'school-roster', label: t('schoolRosterTitle'), icon: Users },
       { id: 'school-timetable', label: t('schoolTimetableTitle'), icon: Calendar },
-      { id: 'school-leaves', label: t('schoolLeavesTitle'), icon: CalendarDays },
-      { id: 'school-hiring', label: t('schoolHiringTitle'), icon: Briefcase },
-      { id: 'school-calendar', label: t('schoolCalendarTitle'), icon: CalendarDays },
       { id: 'school-broadcast', label: t('schoolBroadcastingTitle'), icon: Bell },
+      { id: 'school-leaves', label: t('schoolLeavesTitle'), icon: CalendarDays },
+      { id: 'school-calendar', label: t('schoolCalendarTitle'), icon: CalendarDays },
+      { id: 'school-hiring', label: t('schoolHiringTitle'), icon: Briefcase },
       { id: 'school-fleet', label: t('schoolFleetTitle'), icon: Truck },
     ],
   }
-  return map[role]
+
+  const tabs = all[role]
+  if (role === 'parent') {
+    return { primary: tabs.slice(0, 5), more: tabs.slice(5) }
+  }
+  if (role === 'teacher') {
+    return { primary: tabs.slice(0, 5), more: tabs.slice(5) }
+  }
+  if (role === 'school') {
+    return { primary: tabs.slice(0, 6), more: tabs.slice(6) }
+  }
+  return { primary: tabs.slice(0, 6), more: tabs.slice(6) }
 }
 
 export function Sidebar() {
@@ -148,7 +168,8 @@ export function Sidebar() {
   const logout = useAuthStore((s) => s.logout)
   const resetDemoData = useOrbitStore((s) => s.resetDemoData)
   const t = (key: string) => translate(lang, key)
-  const tabs = getTabsForRole(role, lang)
+  const { primary, more } = getTabsForRole(role, lang)
+  const [moreOpen, setMoreOpen] = useState(() => more.some((tab) => tab.id === activeTab))
   const meta = getRoleMeta(role)
   const profileName =
     session?.displayName ??
@@ -218,7 +239,7 @@ export function Sidebar() {
           </div>
 
           <nav className="space-y-1" aria-label={`${role} sections`}>
-            {tabs.map((item) => {
+            {primary.map((item) => {
               const Icon = item.icon
               const selected = activeTab === item.id
               return (
@@ -240,6 +261,43 @@ export function Sidebar() {
                 </button>
               )
             })}
+            {more.length > 0 ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setMoreOpen((v) => !v)}
+                  className="w-full flex items-center gap-2 px-3 py-2 mt-1 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-300"
+                  aria-expanded={moreOpen}
+                >
+                  {moreOpen ? <ChevronDown className="h-3.5 w-3.5" aria-hidden /> : <ChevronRight className="h-3.5 w-3.5" aria-hidden />}
+                  {t('navMore')}
+                </button>
+                {moreOpen
+                  ? more.map((item) => {
+                      const Icon = item.icon
+                      const selected = activeTab === item.id
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setActiveTab(item.id)}
+                          className={`nav-node w-full flex items-start gap-3.5 px-3 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all duration-300 relative text-left ${
+                            selected
+                              ? 'active font-bold border border-white/10'
+                              : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
+                          }`}
+                          aria-current={selected ? 'page' : undefined}
+                        >
+                          <span className="w-5 h-5 flex items-center justify-center shrink-0 mt-0.5">
+                            <Icon className={`h-4 w-4 ${selected ? 'text-[var(--accent2)]' : ''}`} aria-hidden />
+                          </span>
+                          <span className="leading-normal">{item.label}</span>
+                        </button>
+                      )
+                    })
+                  : null}
+              </>
+            ) : null}
           </nav>
         </div>
 
