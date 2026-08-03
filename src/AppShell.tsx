@@ -68,10 +68,10 @@ export function AppShell() {
       ? `${linkedStudent.className}${linkedStudent.section ? `-${linkedStudent.section}` : ''}`
       : null)
   const greetKey = role === 'student' ? studentGreetingKey() : meta.greetKey
-  const greetName = role === 'student' ? studentFullName : displayName.split(' ')[0]
+  const greetName = role === 'student' ? studentFullName.split(' ')[0] : displayName.split(' ')[0]
   const subtitle = useMemo(() => {
     if (role === 'student') {
-      return linkedClassLabel || session?.subtitle || t(meta.subKey)
+      return t('studentEncourageSub')
     }
     if (role === 'parent' && linkedClassLabel) return linkedClassLabel
     return session?.subtitle ?? t(meta.subKey)
@@ -88,14 +88,16 @@ export function AppShell() {
         <Header />
         <main className="flex-1 p-4 sm:p-6 space-y-5 overflow-y-auto orbit-scroll">
           <div className="fade-up">
-            <div className="flex items-center gap-2 uppercase tracking-widest text-slate-400 mb-1.5 text-[11px]">
-              <span aria-hidden>{meta.emoji}</span>
-              <span>{t(meta.labelKey)}</span>
-            </div>
+            {role !== 'student' ? (
+              <div className="flex items-center gap-2 uppercase tracking-widest text-slate-400 mb-1.5 text-[11px]">
+                <span aria-hidden>{meta.emoji}</span>
+                <span>{t(meta.labelKey)}</span>
+              </div>
+            ) : null}
             <h1 className="font-display text-2xl lg:text-3xl font-bold tracking-tight text-white">
               {role === 'student' ? (
                 <>
-                  {t(greetKey)} <span aria-hidden>👋</span>
+                  {t(greetKey)}, {greetName}! <span aria-hidden>👋</span>
                 </>
               ) : (
                 <>
@@ -103,16 +105,10 @@ export function AppShell() {
                 </>
               )}
             </h1>
-            {role === 'student' ? (
-              <>
-                <p className="text-base sm:text-lg font-semibold text-white/95 mt-1 tracking-tight">
-                  {greetName}
-                </p>
-                <p className="text-sm text-slate-400 mt-0.5">{subtitle}</p>
-              </>
-            ) : (
-              <p className="text-sm text-slate-400 mt-1">{subtitle}</p>
-            )}
+            <p className="text-sm text-slate-400 mt-1">{subtitle}</p>
+            {role === 'student' && linkedClassLabel ? (
+              <p className="text-[11px] text-slate-500 mt-0.5">{linkedClassLabel}</p>
+            ) : null}
             {session?.provider === 'local-demo' ? (
               <p className="text-[10px] text-amber-300/90 mt-2 font-semibold">{t('authDemoHint')}</p>
             ) : null}

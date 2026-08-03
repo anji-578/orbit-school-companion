@@ -1,4 +1,4 @@
-import { Bell, Languages, LogOut, Smartphone } from 'lucide-react'
+import { Bell, Languages, LogOut, Smartphone, Sparkles } from 'lucide-react'
 import { useAuthStore } from '../../auth/authStore'
 import { ThemeToggle } from '../brand/ThemeToggle'
 import { languagesList, translate } from '../../i18n'
@@ -16,6 +16,7 @@ export function Header() {
   const setLang = useOrbitStore((s) => s.setLang)
   const setNotifOpen = useOrbitStore((s) => s.setNotifOpen)
   const setMobileSimulator = useOrbitStore((s) => s.setMobileSimulator)
+  const setActiveTab = useOrbitStore((s) => s.setActiveTab)
   const markAllNotificationsRead = useOrbitStore((s) => s.markAllNotificationsRead)
   const markNotificationRead = useOrbitStore((s) => s.markNotificationRead)
   const refreshNotifications = useOrbitStore((s) => s.refreshNotifications)
@@ -59,6 +60,17 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+        {role === 'student' ? (
+          <button
+            type="button"
+            onClick={() => setActiveTab('study-assistant')}
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold text-white shrink-0"
+            style={{ background: 'linear-gradient(135deg, #7c3aed, #6366f1)' }}
+          >
+            <Sparkles className="h-3.5 w-3.5" aria-hidden />
+            {t('askOrbitAi')}
+          </button>
+        ) : null}
         <ThemeToggle />
         <label className="flex items-center gap-1.5 bg-white/5 px-2 py-1.5 sm:px-2.5 rounded-xl border border-white/10">
           <Languages className="h-3.5 w-3.5 text-[#4DA6FF] shrink-0" aria-hidden />

@@ -89,6 +89,25 @@ html[data-theme='light'] .orbit-root {
   -webkit-backdrop-filter: blur(24px);
 }
 
+.orbit-glance {
+  background: #0b1020;
+}
+
+html[data-theme='light'] .orbit-glance {
+  background: #0f172a;
+}
+
+html[data-theme='light'] .orbit-glance h2,
+html[data-theme='light'] .orbit-glance .font-extrabold {
+  color: #fff;
+}
+
+@media (max-width: 639px) {
+  .orbit-glance .orbit-sunviz-fade {
+    opacity: 0.35;
+  }
+}
+
 /* Mobile drawer: fully opaque so nav stays readable over dashboard content */
 @media (max-width: 767px) {
   .orbit-mobile-nav {
