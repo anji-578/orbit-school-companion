@@ -1,0 +1,52 @@
+---
+description: Always commit and push completed changes to origin
+alwaysApply: true
+---
+
+# Always Commit and Push
+
+After completing any code, asset, or content changes in this repo, **commit them and push to GitHub**. Do not leave uncommitted or unpushed work.
+
+This overrides the default preference to only commit when explicitly asked.
+
+## Required workflow
+
+1. When your changes are done, stage relevant files and commit.
+2. Push to `origin` on the **current branch** (usually `main`).
+3. Confirm with `git status` that the working tree is clean and the branch is up to date with remote.
+
+## Commit messages
+
+Always pass the commit message via a HEREDOC:
+
+```bash
+git commit -m "$(cat <<'EOF'
+Concise message focusing on why.
+
+EOF
+)"
+```
+
+## Author / committer identity
+
+Do **not** update git config. If identity is needed, set env vars for that command only:
+
+```bash
+GIT_AUTHOR_NAME=anji-578 \
+GIT_AUTHOR_EMAIL=anjijanyavula578@gmail.com \
+GIT_COMMITTER_NAME=anji-578 \
+GIT_COMMITTER_EMAIL=anjijanyavula578@gmail.com \
+git commit -m "$(cat <<'EOF'
+Commit message here.
+
+EOF
+)"
+```
+
+## Safety
+
+- Never force-push to `main` or `master`.
+- Never commit secrets (`.env`, `credentials.json`, API keys, tokens, etc.).
+- Never update git config.
+- Never skip hooks unless the user explicitly requests it.
+- Do not create empty commits when there is nothing to commit.
