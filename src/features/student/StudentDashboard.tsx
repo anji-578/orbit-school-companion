@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import {
   ArrowRight,
+  Bell,
   BookOpen,
   BrainCircuit,
   Bus,
@@ -8,28 +9,19 @@ import {
   Circle,
   Clock,
   Sparkles,
-  Target,
+  Trophy,
 } from 'lucide-react'
 import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
 import { currentDayCode, deriveTodayTimeline } from '../../lib/timetableApi'
-import { subjectSyllabusDatabase } from '../../data/demo'
-import { Card, Eyebrow, Panel, ProgressBar, StatTile } from '../../components/ui/primitives'
+import { Card, Eyebrow, Panel } from '../../components/ui/primitives'
 import { InviteRedeemCard } from '../../components/ui/InviteRedeemCard'
-import { LifecycleChart } from '../shared/LifecycleChart'
 
-const FOCUS_SUBJECTS = ['chemLabSubject', 'mathSubject', 'scienceSubject'] as const
 const ATTENDANCE_GOAL = 90
 
 function healthStatusKey(score: number): 'healthExcellent' | 'healthGood' | 'healthNeedsAttention' {
   if (score >= 85) return 'healthExcellent'
   if (score >= 70) return 'healthGood'
-  return 'healthNeedsAttention'
-}
-
-function attendanceStatusKey(pct: number): 'healthExcellent' | 'healthGood' | 'healthNeedsAttention' {
-  if (pct >= 90) return 'healthExcellent'
-  if (pct >= 80) return 'healthGood'
   return 'healthNeedsAttention'
 }
 
@@ -39,7 +31,6 @@ function isDueToday(due: string): boolean {
   return d === 'today' || d.includes('due today') || d.startsWith('today')
 }
 
-/** Rough ETA from animated route progress — only when bus is actively en route. */
 function estimateBusEtaMinutes(busPosition: number, busReachedSchool: boolean): number | null {
   if (busReachedSchool) return null
   const remaining = Math.max(0, 88 - busPosition)
@@ -47,245 +38,136 @@ function estimateBusEtaMinutes(busPosition: number, busReachedSchool: boolean): 
   return Math.max(1, Math.round(remaining / 2.4))
 }
 
+function presentStreak(records: { status: string }[]): number {
+  let streak = 0
+  for (let i = records.length - 1; i >= 0; i--) {
+    if (records[i]?.status === 'Present') streak += 1
+    else break
+  }
+  return streak
+}
+
+/**
+ * Student home answers: “What should I do today?”
+ * Five cards only — action over raw ERP metrics.
+ */
 export function StudentDashboard() {
   const lang = useOrbitStore((s) => s.lang)
   const classLinked = useOrbitStore((s) => s.classLinked)
   const studyScore = useOrbitStore((s) => s.studyScore)
   const timetableByDay = useOrbitStore((s) => s.timetableByDay)
   const getAttendancePercent = useOrbitStore((s) => s.getAttendancePercent)
+  const attendanceRecords = useOrbitStore((s) => s.attendanceRecords)
   const tasks = useOrbitStore((s) => s.tasks)
-  const toggleTask = useOrbitStore((s) => s.toggleTask)
+  const unlockedBadges = useOrbitStore((s) => s.unlockedBadges)
+  const totalXp = useOrbitStore((s) => s.totalXp)
+  const notifications = useOrbitStore((s) => s.notifications)
   const setActiveTab = useOrbitStore((s) => s.setActiveTab)
   const fleet = useOrbitStore((s) => s.fleet)
   const busPosition = useOrbitStore((s) => s.busPosition)
   const busReachedSchool = useOrbitStore((s) => s.busReachedSchool)
-  const curriculum = useOrbitStore((s) => s.curriculum)
 
   const t = (key: string) => translate(lang, key)
   const attendancePercent = getAttendancePercent()
   const pendingTasks = tasks.filter((task) => !task.completed)
   const dueTodayTasks = pendingTasks.filter((task) => isDueToday(task.due))
   const homeworkFocus = dueTodayTasks.length > 0 ? dueTodayTasks : pendingTasks
-  const homeworkPercent = tasks.length
-    ? Math.round((tasks.filter((task) => task.completed).length / tasks.length) * 100)
-    : 100
-  const homeworkSubjects = [...new Set(homeworkFocus.map((task) => task.subject))].slice(0, 4)
 
   const todayTimeline = useMemo(
     () => deriveTodayTimeline(timetableByDay[currentDayCode()]),
     [timetableByDay],
   )
   const nextClasses = todayTimeline.filter((item) => item.status !== 'Completed').slice(0, 3)
+  const nextLive = nextClasses[0]
 
   const activeBus = fleet.find((b) => b.active) ?? fleet[0]
   const busEta =
     activeBus && activeBus.active ? estimateBusEtaMinutes(busPosition, busReachedSchool) : null
 
-  const focusAreas = FOCUS_SUBJECTS.flatMap((key) => subjectSyllabusDatabase[key] ?? [])
-    .filter((topic) => topic.strength === 'Needs Practice')
-    .slice(0, 3)
-
-  const syllabusPending = curriculum.some((ch) => ch.subtopics.some((st) => !st.done))
+  const streak = presentStreak(attendanceRecords)
   const academicStatus = healthStatusKey(studyScore)
-  const attendanceStatus = attendanceStatusKey(attendancePercent)
   const academicAccent =
     academicStatus === 'healthExcellent'
       ? 'var(--health-good)'
       : academicStatus === 'healthNeedsAttention'
         ? 'var(--health-warn)'
         : 'var(--accent2)'
-  const attendanceAccent =
-    attendanceStatus === 'healthExcellent'
-      ? 'var(--health-good)'
-      : attendanceStatus === 'healthNeedsAttention'
-        ? 'var(--health-warn)'
-        : 'var(--accent2)'
 
-  const missionItems = useMemo(() => {
-    const items: { id: string; label: string }[] = []
-    if (nextClasses.length > 0) {
-      items.push({ id: 'attend', label: t('missionAttendClasses') })
-    }
-    if (pendingTasks.length > 0) {
-      items.push({
-        id: 'homework',
-        label:
-          dueTodayTasks.length > 0
-            ? t('missionHomeworkToday').replace('{count}', String(dueTodayTasks.length))
-            : t('missionHomeworkPending').replace('{count}', String(pendingTasks.length)),
-      })
-    }
-    if (syllabusPending || focusAreas.length > 0) {
-      items.push({ id: 'revise', label: t('missionRevise') })
-    }
-    if (classLinked) {
-      items.push({ id: 'scan', label: t('missionPaperScan') })
-    }
-    return items.slice(0, 4)
-  }, [
-    nextClasses.length,
-    pendingTasks.length,
-    dueTodayTasks.length,
-    syllabusPending,
-    focusAreas.length,
-    classLinked,
-    lang,
-  ])
+  const daysToGoal = useMemo(() => {
+    if (attendancePercent >= ATTENDANCE_GOAL) return 0
+    const need = ATTENDANCE_GOAL - attendancePercent
+    return Math.max(1, Math.ceil(need / 2))
+  }, [attendancePercent])
 
   const [missionChecked, setMissionChecked] = useState<Record<string, boolean>>({})
 
-  const nextSubjectForAi = nextClasses[0]?.name
-  const aiNudge =
-    nextSubjectForAi
-      ? t('studyNudgeRevision').replace('{subject}', nextSubjectForAi)
-      : t('copilotDesc')
+  const missionLines = useMemo(() => {
+    const lines: { id: string; label: string; done?: boolean }[] = []
+    for (const hw of homeworkFocus.slice(0, 2)) {
+      lines.push({ id: `hw-${hw.id}`, label: hw.task || hw.subject })
+    }
+    if (nextLive) {
+      lines.push({
+        id: 'class',
+        label: t('missionClassSoon').replace('{subject}', nextLive.name).replace('{time}', nextLive.time),
+      })
+    }
+    if (busEta != null) {
+      lines.push({
+        id: 'bus',
+        label: t('busArrivesIn').replace('{min}', String(busEta)),
+      })
+    }
+    if (lines.length < 2 && streak > 0) {
+      lines.push({ id: 'streak', label: t('missionKeepStreak').replace('{days}', String(streak)) })
+    }
+    return lines.slice(0, 4)
+  }, [homeworkFocus, nextLive, busEta, streak, lang])
 
-  const homeworkHeadline =
-    homeworkFocus.length === 0
-      ? t('homeworkAllDone')
-      : dueTodayTasks.length > 0
-        ? t('homeworkDueTodayCount').replace('{count}', String(dueTodayTasks.length))
-        : t('homeworkPendingCount').replace('{count}', String(pendingTasks.length))
+  const studyMinutes = Math.max(15, pendingTasks.length * 15 + (nextClasses.length > 0 ? 15 : 0))
+  const aiNudge = nextLive
+    ? t('studyNudgeRevision').replace('{subject}', nextLive.name)
+    : homeworkFocus[0]
+      ? t('aiCoachHomework').replace('{subject}', homeworkFocus[0].subject)
+      : t('aiCoachDefault')
+
+  const importantAlerts = notifications
+    .filter((n) => n.unread && (n.role === 'student' || n.role === 'all'))
+    .slice(0, 3)
+
+  const progressBadges = unlockedBadges.slice(0, 4)
 
   return (
-    <div className="space-y-6">
-      {classLinked ? (
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={() => setActiveTab('scanner')}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold border border-violet-500/35"
-            style={{
-              background: 'color-mix(in srgb, var(--ai-hint) 16%, transparent)',
-              color: 'var(--ai-hint)',
-            }}
-          >
-            <Sparkles className="h-4 w-4" aria-hidden />
-            {t('scannerTitle')}
-          </button>
-        </div>
-      ) : null}
-
+    <div className="space-y-5">
       {!classLinked ? <InviteRedeemCard /> : null}
 
-      {/* Primary: Today's Journey */}
-      <Card className="p-5 sm:p-6 space-y-4 border-[var(--accent)]/20">
+      {/* 0 / Today's Focus — personal, motivating */}
+      <Card className="p-5 space-y-3 border-[var(--accent)]/25">
+        <Eyebrow>{t('todaysFocusEyebrow')}</Eyebrow>
+        <h2 className="text-lg font-extrabold text-white font-display">{t('todaysFocus')}</h2>
+        <p className="text-xs text-slate-300 leading-relaxed">
+          {t('todaysFocusSummary')
+            .replace('{classes}', String(todayTimeline.length || nextClasses.length))
+            .replace('{assignments}', String(pendingTasks.length))
+            .replace('{minutes}', String(studyMinutes))}
+        </p>
+        <p className="text-xs font-bold text-[var(--health-good)]">{t('todaysFocusEncourage')}</p>
+      </Card>
+
+      {/* 1. Today's Journey / Mission */}
+      <Card className="p-5 space-y-4 border-white/10">
         <div className="flex items-start justify-between gap-3">
           <div>
             <Eyebrow>{t('todaysJourneyEyebrow')}</Eyebrow>
-            <h2 className="text-lg font-extrabold text-white font-display mt-1">{t('todaysJourney')}</h2>
-            <p className="text-xs text-slate-400 mt-1">{t('todaysJourneySub')}</p>
+            <h2 className="text-base font-extrabold text-white font-display mt-1">{t('todaysMission')}</h2>
           </div>
-          <div className="h-10 w-10 rounded-xl accent-soft flex items-center justify-center shrink-0">
-            <Target className="h-5 w-5 text-[var(--accent2)]" aria-hidden />
-          </div>
+          <TargetIcon />
         </div>
-
-        <div className="space-y-3">
-          <div>
-            <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-2">
-              {t('nextClasses')}
-            </p>
-            {nextClasses.length === 0 ? (
-              <p className="text-xs text-slate-400">{t('timetableEmpty')}</p>
-            ) : (
-              <div className="space-y-2">
-                {nextClasses.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10"
-                  >
-                    <Clock className="h-4 w-4 text-slate-500 shrink-0" aria-hidden />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-bold text-white truncate">{item.name}</p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">{item.time}</p>
-                    </div>
-                    <span
-                      className={`text-[9px] font-black uppercase px-2 py-1 rounded-full shrink-0 ${
-                        item.status === 'Live'
-                          ? 'bg-rose-500/15 text-rose-300 border border-rose-500/25'
-                          : 'bg-white/10 text-slate-300 border border-white/10'
-                      }`}
-                    >
-                      {item.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/25">
-            <BookOpen className="h-4 w-4 text-[var(--health-warn)] shrink-0" aria-hidden />
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-white">{homeworkHeadline}</p>
-              {homeworkSubjects.length > 0 ? (
-                <p className="text-[10px] text-slate-400 mt-0.5">{homeworkSubjects.join(' · ')}</p>
-              ) : null}
-            </div>
-            {pendingTasks.length > 0 ? (
-              <button
-                type="button"
-                onClick={() => setActiveTab('assignments')}
-                className="text-[10px] font-bold text-[var(--health-warn)] shrink-0"
-              >
-                {t('viewHomework')}
-              </button>
-            ) : null}
-          </div>
-
-          {busEta != null ? (
-            <div className="flex items-center gap-2 p-3 rounded-xl bg-white/5 border border-white/10">
-              <Bus className="h-4 w-4 text-[var(--accent2)] shrink-0" aria-hidden />
-              <p className="text-xs font-bold text-white">
-                {t('busArrivesIn').replace('{min}', String(busEta))}
-              </p>
-            </div>
-          ) : null}
-        </div>
-      </Card>
-
-      {/* Health / Attendance / Homework — secondary, not stressful hero */}
-      <div className="grid sm:grid-cols-3 gap-4">
-        <StatTile
-          label={t('academicHealth')}
-          value={String(studyScore)}
-          hint={t(academicStatus)}
-          accent={academicAccent}
-          onClick={() => setActiveTab('academics')}
-        />
-        <StatTile
-          label={t('studentAttendance')}
-          value={`${attendancePercent}%`}
-          hint={`${t(attendanceStatus)} · ${t('attendanceGoal').replace('{goal}', String(ATTENDANCE_GOAL))}`}
-          accent={attendanceAccent}
-          onClick={() => setActiveTab('attendance')}
-        />
-        <Card
-          className="p-5 min-h-[125px] flex flex-col justify-between"
-          onClick={() => setActiveTab('assignments')}
-        >
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-            {t('studentAssignments')}
-          </span>
-          <div>
-            <p className="text-lg font-black text-white" style={{ color: 'var(--health-warn)' }}>
-              {homeworkHeadline}
-            </p>
-            {homeworkSubjects.length > 0 ? (
-              <p className="text-[10px] text-slate-300 mt-1">{homeworkSubjects.join(', ')}</p>
-            ) : null}
-            <p className="text-[10px] text-slate-400 mt-1">
-              {t('homeworkCompletion')}: {homeworkPercent}%
-            </p>
-          </div>
-        </Card>
-      </div>
-
-      {missionItems.length > 0 ? (
-        <Panel title={t('todaysMission')} subtitle={t('todaysMissionSub')}>
-          <div className="space-y-2">
-            {missionItems.map((item) => {
+        <div className="space-y-2">
+          {missionLines.length === 0 ? (
+            <p className="text-xs text-slate-400">{t('todaysMissionClear')}</p>
+          ) : (
+            missionLines.map((item) => {
               const checked = Boolean(missionChecked[item.id])
               return (
                 <button
@@ -294,121 +176,74 @@ export function StudentDashboard() {
                   onClick={() =>
                     setMissionChecked((prev) => ({ ...prev, [item.id]: !prev[item.id] }))
                   }
-                  className="w-full flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 text-left hover:border-white/20 transition"
+                  className="w-full flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 text-left"
                 >
                   {checked ? (
                     <CheckCircle2 className="h-5 w-5 text-[var(--health-good)] shrink-0" aria-hidden />
+                  ) : item.id.startsWith('hw') ? (
+                    <BookOpen className="h-4 w-4 text-[var(--health-warn)] shrink-0" aria-hidden />
+                  ) : item.id === 'bus' ? (
+                    <Bus className="h-4 w-4 text-[var(--accent2)] shrink-0" aria-hidden />
+                  ) : item.id === 'class' ? (
+                    <Clock className="h-4 w-4 text-slate-400 shrink-0" aria-hidden />
                   ) : (
                     <Circle className="h-5 w-5 text-slate-500 shrink-0" aria-hidden />
                   )}
                   <span
-                    className={`text-xs font-bold ${checked ? 'text-slate-400 line-through' : 'text-white'}`}
+                    className={`text-xs font-bold ${checked ? 'text-slate-500 line-through' : 'text-white'}`}
                   >
                     {item.label}
                   </span>
                 </button>
               )
-            })}
-          </div>
-        </Panel>
-      ) : null}
-
-      <div className="grid lg:grid-cols-2 gap-4">
-        <Panel title={t('pendingTasks')} subtitle={t('taskDesc')}>
-          <div className="space-y-2.5">
-            {pendingTasks.length === 0 ? (
-              <p className="text-xs text-slate-400 text-center py-6">{t('homeworkAllDone')}</p>
-            ) : (
-              pendingTasks.map((task) => (
-                <div
-                  key={task.id}
-                  className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10"
-                >
-                  <button
-                    type="button"
-                    aria-label={`Mark ${task.task} complete`}
-                    onClick={() => toggleTask(task.id)}
-                    className="shrink-0 text-slate-500 hover:text-[var(--health-good)] transition"
-                  >
-                    <Circle className="h-5 w-5" aria-hidden />
-                  </button>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold text-white truncate">{task.task}</p>
-                    <p className="text-[10px] text-slate-400 mt-0.5">
-                      {task.subject} · {task.due}
-                    </p>
-                  </div>
-                  <span className="text-[9px] font-black uppercase px-2 py-1 rounded-full accent-soft text-[var(--accent2)] shrink-0">
-                    +{task.xp} XP
-                  </span>
-                </div>
-              ))
-            )}
-          </div>
-        </Panel>
-
-        <Panel title={t('todaysSchedule')}>
-          <div className="space-y-2.5">
-            {todayTimeline.length === 0 ? (
-              <p className="text-xs text-slate-400 text-center py-6">{t('timetableEmpty')}</p>
-            ) : (
-              todayTimeline.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10"
-                >
-                  <Clock className="h-4 w-4 text-slate-500 shrink-0" aria-hidden />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold text-white truncate">{item.name}</p>
-                    <p className="text-[10px] text-slate-400 mt-0.5">
-                      {item.time} · {item.room}
-                    </p>
-                  </div>
-                  <span
-                    className={`text-[9px] font-black uppercase px-2 py-1 rounded-full shrink-0 ${
-                      item.status === 'Live'
-                        ? 'bg-rose-500/15 text-rose-300 border border-rose-500/25'
-                        : item.status === 'Completed'
-                          ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/25'
-                          : 'bg-white/10 text-slate-300 border border-white/10'
-                    }`}
-                  >
-                    {item.status}
-                  </span>
-                </div>
-              ))
-            )}
-          </div>
-        </Panel>
-      </div>
-
-      <LifecycleChart />
-
-      <Panel title={t('focusAreas')} subtitle={t('focusAreasSub')}>
-        <div className="grid sm:grid-cols-3 gap-4">
-          {focusAreas.map((topic) => (
-            <Card key={topic.name} className="p-4 space-y-2">
-              <span className="text-[9px] font-black uppercase px-2 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/25 inline-block">
-                {t('needsPolish')}
-              </span>
-              <h4 className="text-xs font-bold text-white">{topic.name}</h4>
-              <ProgressBar value={topic.scoring} />
-              <p className="text-[10px] text-slate-400 leading-relaxed">{topic.mistakeText}</p>
-            </Card>
-          ))}
+            })
+          )}
         </div>
-      </Panel>
-
-      <Card className="p-5 flex flex-col sm:flex-row items-center justify-between gap-4 border-violet-500/25">
-        <div className="flex items-center gap-3">
-          <div
-            className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0 bg-violet-500/15"
+        {pendingTasks.length > 0 ? (
+          <button
+            type="button"
+            onClick={() => setActiveTab('assignments')}
+            className="text-[11px] font-bold text-[var(--health-warn)]"
           >
+            {t('viewHomework')} →
+          </button>
+        ) : null}
+      </Card>
+
+      {/* 2. Academic Health — trend framing; attendance as input not hero */}
+      <Card className="p-5 space-y-3" onClick={() => setActiveTab('academics')}>
+        <div className="flex items-center justify-between gap-2">
+          <Eyebrow>{t('academicHealth')}</Eyebrow>
+          <span className="text-[10px] font-bold" style={{ color: academicAccent }}>
+            {t(academicStatus)}
+          </span>
+        </div>
+        <div className="flex items-end gap-3">
+          <p className="text-4xl font-black text-white" style={{ color: academicAccent }}>
+            {studyScore}
+          </p>
+          <p className="text-xs font-bold text-[var(--health-good)] pb-1.5">{t('healthImproving')}</p>
+        </div>
+        <p className="text-[11px] text-slate-400 leading-relaxed">
+          {attendancePercent >= ATTENDANCE_GOAL
+            ? t('attendanceGoalMet').replace('{pct}', String(attendancePercent))
+            : t('attendanceActionable')
+                .replace('{days}', String(daysToGoal))
+                .replace('{goal}', String(ATTENDANCE_GOAL))
+                .replace('{pct}', String(attendancePercent))}
+        </p>
+      </Card>
+
+      {/* 3. AI Coach — proactive, not chatbot CTA */}
+      <Card className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-violet-500/30">
+        <div className="flex items-start gap-3 min-w-0">
+          <div className="h-11 w-11 rounded-xl bg-violet-500/15 flex items-center justify-center shrink-0">
             <BrainCircuit className="h-5 w-5 text-[var(--ai-hint)]" aria-hidden />
           </div>
-          <div>
-            <h3 className="text-sm font-bold text-white">{t('askAi')}</h3>
-            <p className="text-[11px] text-slate-400">{aiNudge}</p>
+          <div className="min-w-0">
+            <Eyebrow>{t('aiCoachEyebrow')}</Eyebrow>
+            <h3 className="text-sm font-bold text-white mt-0.5">{t('aiCoachTitle')}</h3>
+            <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">{aiNudge}</p>
           </div>
         </div>
         <button
@@ -416,10 +251,90 @@ export function StudentDashboard() {
           onClick={() => setActiveTab('study-assistant')}
           className="btn-accent flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold shrink-0"
         >
-          {t('studentStudyCopilot')}
+          {t('aiCoachCta')}
           <ArrowRight className="h-3.5 w-3.5" aria-hidden />
         </button>
       </Card>
+
+      {/* 4. Progress — identity / streaks */}
+      <Panel title={t('progressTitle')} subtitle={t('progressSub')}>
+        <div className="flex flex-wrap gap-2 mb-3">
+          {streak >= 3 ? (
+            <span className="text-[10px] font-black uppercase px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
+              {t('badgeAttendanceStreak').replace('{days}', String(streak))}
+            </span>
+          ) : null}
+          {tasks.length > 0 && pendingTasks.length === 0 ? (
+            <span className="text-[10px] font-black uppercase px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
+              {t('badgeHomeworkHero')}
+            </span>
+          ) : null}
+          {progressBadges.map((name) => (
+            <span
+              key={name}
+              className="text-[10px] font-black uppercase px-2.5 py-1 rounded-full bg-white/10 text-slate-200 border border-white/10"
+            >
+              {name}
+            </span>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 text-xs text-slate-400">
+          <Trophy className="h-4 w-4 text-[var(--health-good)]" aria-hidden />
+          {t('xpTotal').replace('{xp}', String(totalXp))}
+        </div>
+        <button
+          type="button"
+          onClick={() => setActiveTab('achievements')}
+          className="mt-3 text-[11px] font-bold text-[var(--accent2)]"
+        >
+          {t('studentAchievements')} →
+        </button>
+      </Panel>
+
+      {/* 5. Alerts — only important */}
+      <Panel title={t('homeAlertsTitle')} subtitle={t('homeAlertsSub')}>
+        {importantAlerts.length === 0 ? (
+          <p className="text-xs text-slate-400 py-2">{t('homeAlertsClear')}</p>
+        ) : (
+          <div className="space-y-2">
+            {importantAlerts.map((n) => (
+              <button
+                key={n.id}
+                type="button"
+                onClick={() => setActiveTab('alerts')}
+                className="w-full flex items-start gap-3 p-3 rounded-xl bg-white/5 border border-white/10 text-left"
+              >
+                <Bell className="h-4 w-4 text-[var(--health-warn)] shrink-0 mt-0.5" aria-hidden />
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-white truncate">{n.title}</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-2">{n.body}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </Panel>
+
+      <button
+        type="button"
+        onClick={() => setActiveTab('scanner')}
+        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-bold border border-violet-500/35"
+        style={{
+          background: 'color-mix(in srgb, var(--ai-hint) 14%, transparent)',
+          color: 'var(--ai-hint)',
+        }}
+      >
+        <Sparkles className="h-4 w-4" aria-hidden />
+        {t('scannerTitle')}
+      </button>
+    </div>
+  )
+}
+
+function TargetIcon() {
+  return (
+    <div className="h-10 w-10 rounded-xl accent-soft flex items-center justify-center shrink-0">
+      <CheckCircle2 className="h-5 w-5 text-[var(--accent2)]" aria-hidden />
     </div>
   )
 }

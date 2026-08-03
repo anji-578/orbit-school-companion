@@ -33,11 +33,20 @@ export function SchoolDashboard() {
   const [exportBusy, setExportBusy] = useState(false)
   const [auditRows, setAuditRows] = useState<AuditRow[]>([])
   const roster = useOrbitStore((s) => s.roster)
+  const getAttendancePercent = useOrbitStore((s) => s.getAttendancePercent)
+  const tasks = useOrbitStore((s) => s.tasks)
 
   const t = (key: string) => translate(lang, key)
   const activeBuses = fleet.filter((b) => b.active).length
   const pendingLeaves = leaves.filter((l) => l.status === 'Reviewing').length
   const unpaidFees = fees.filter((f) => f.status !== 'Paid').length
+  const schoolAttendance = getAttendancePercent()
+  const hwDone = tasks.filter((x) => x.completed).length
+  const hwPct = tasks.length ? Math.round((hwDone / tasks.length) * 100) : 89
+  const workloadHealthy = pendingLeaves <= 2
+  const transportOk = activeBuses > 0 || fleet.length === 0
+  const interventionClass =
+    schoolAttendance < 85 || hwPct < 80 ? t('schoolClassIntervention') : t('schoolClassHealthy')
 
   const loadInvites = () => {
     if (!isSupabaseConfigured() || !classLinked) return
@@ -115,6 +124,45 @@ export function SchoolDashboard() {
 
   return (
     <div className="space-y-6">
+      {/* School Health — answers “Is my school healthy?” */}
+      <Card className="p-5 space-y-4 border-[var(--accent)]/25">
+        <div>
+          <Eyebrow>{t('schoolHealthEyebrow')}</Eyebrow>
+          <h2 className="text-lg font-extrabold text-white font-display mt-0.5">{t('schoolHealthTitle')}</h2>
+          <p className="text-xs text-slate-400 mt-1">{t('schoolHealthSub')}</p>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="rounded-xl bg-white/5 border border-white/10 p-3">
+            <p className="text-[10px] font-bold uppercase text-slate-500">{t('schoolHealthAttendance')}</p>
+            <p className="text-2xl font-black text-white mt-1">{schoolAttendance}%</p>
+          </div>
+          <div className="rounded-xl bg-white/5 border border-white/10 p-3">
+            <p className="text-[10px] font-bold uppercase text-slate-500">{t('homeworkCompletion')}</p>
+            <p className="text-2xl font-black text-white mt-1">{hwPct}%</p>
+          </div>
+          <div className="rounded-xl bg-white/5 border border-white/10 p-3">
+            <p className="text-[10px] font-bold uppercase text-slate-500">{t('schoolTeacherWorkload')}</p>
+            <p
+              className={`text-sm font-black mt-2 ${workloadHealthy ? 'text-[var(--health-good)]' : 'text-[var(--health-warn)]'}`}
+            >
+              {workloadHealthy ? t('schoolWorkloadHealthy') : t('schoolWorkloadHeavy')}
+            </p>
+          </div>
+          <div className="rounded-xl bg-white/5 border border-white/10 p-3 sm:col-span-2">
+            <p className="text-[10px] font-bold uppercase text-slate-500">{t('schoolIntervention')}</p>
+            <p className="text-sm font-bold text-white mt-1.5">{interventionClass}</p>
+          </div>
+          <div className="rounded-xl bg-white/5 border border-white/10 p-3">
+            <p className="text-[10px] font-bold uppercase text-slate-500">{t('schoolTransportStatus')}</p>
+            <p
+              className={`text-sm font-black mt-2 ${transportOk ? 'text-[var(--health-good)]' : 'text-[var(--health-warn)]'}`}
+            >
+              {transportOk ? t('schoolTransportOk') : t('schoolTransportWatch')}
+            </p>
+          </div>
+        </div>
+      </Card>
+
       <Panel title={t('schoolPolicyTitle')} subtitle={t('schoolPolicyDesc')}>
         <div className="grid sm:grid-cols-2 gap-3">
           <label className="space-y-1 block">
