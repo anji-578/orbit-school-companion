@@ -501,7 +501,7 @@ export function StudentDashboard() {
         </section>
       </div>
 
-      {/* Motivation + XP — artwork banner with live XP overlay */}
+      {/* Motivation + XP — atmospheric art with live HTML quote + XP */}
       <section
         className="orbit-motivation relative overflow-hidden rounded-[1.75rem] border"
         aria-label={`${t('motivationQuote')} ${t('xpEarnedLabel')} ${totalXp} XP`}
@@ -512,11 +512,22 @@ export function StudentDashboard() {
           className="orbit-motivation-art absolute inset-0 h-full w-full object-cover object-left pointer-events-none select-none"
           draggable={false}
         />
-        {/* Soft veil so live XP card covers the static XP in the art */}
-        <div className="orbit-motivation-veil pointer-events-none absolute inset-y-0 right-0 w-[48%] sm:w-[42%] lg:w-[38%]" aria-hidden />
+        <div className="orbit-motivation-veil pointer-events-none absolute inset-0" aria-hidden />
 
-        <div className="orbit-motivation-body relative z-10 min-h-[168px] sm:min-h-[200px] lg:min-h-[220px] p-4 sm:p-5 lg:p-6 flex items-stretch justify-end">
-          <div className="orbit-motivation-xp w-full max-w-[240px] sm:max-w-[260px] rounded-2xl border p-4 sm:p-5 flex flex-col justify-center gap-2.5 self-center">
+        <div className="orbit-motivation-body relative z-10 flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-5 lg:min-h-[220px] lg:p-6">
+          <blockquote className="orbit-motivation-quote min-w-0 flex-1 sm:max-w-[28rem] lg:max-w-[34rem]">
+            <span className="orbit-motivation-mark" aria-hidden>
+              “
+            </span>
+            <p className="orbit-motivation-quote-text text-[1.05rem] font-semibold leading-snug tracking-tight sm:text-xl lg:text-[1.35rem]">
+              {t('motivationQuote')}
+            </p>
+            <footer className="orbit-motivation-credit mt-2 text-xs font-medium sm:text-sm">
+              — {t('motivationCredit')}
+            </footer>
+          </blockquote>
+
+          <div className="orbit-motivation-xp w-full shrink-0 rounded-2xl border p-4 sm:w-[240px] sm:p-5 lg:w-[260px] flex flex-col justify-center gap-2.5">
             <p className="orbit-motivation-xp-label text-[11px] font-semibold">{t('xpEarnedLabel')}</p>
             <div className="flex items-center gap-2">
               <p className="orbit-motivation-xp-value text-3xl font-black tracking-tight leading-none">

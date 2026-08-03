@@ -215,12 +215,15 @@ html[data-theme='light'] .orbit-root .orbit-glance .border-white\/25 {
   }
 }
 
-/* Motivation banner — always-dark art island so the mock sinks in both themes */
+/* Motivation banner — always-dark art island; quote + XP are live HTML */
 .orbit-motivation {
   --motivation-xp-bg: rgba(12, 16, 36, 0.78);
   --motivation-xp-border: rgba(255, 255, 255, 0.16);
   --motivation-bar: linear-gradient(90deg, #8b5cf6 0%, #60a5fa 100%);
   --motivation-border: rgba(129, 140, 248, 0.28);
+  --motivation-quote: #f8fafc;
+  --motivation-credit: rgba(203, 213, 225, 0.92);
+  --motivation-mark: rgba(165, 180, 252, 0.88);
   background: #0b1024;
   border-color: var(--motivation-border);
   box-shadow: 0 18px 40px -28px rgba(15, 23, 42, 0.85);
@@ -243,11 +246,39 @@ html[data-theme='light'] .orbit-motivation {
   z-index: 1;
   background: linear-gradient(
     90deg,
-    transparent 0%,
-    rgba(8, 10, 28, 0.35) 28%,
-    rgba(8, 10, 28, 0.78) 70%,
-    rgba(8, 10, 28, 0.92) 100%
+    rgba(8, 10, 28, 0.18) 0%,
+    rgba(8, 10, 28, 0.42) 38%,
+    rgba(8, 10, 28, 0.72) 72%,
+    rgba(8, 10, 28, 0.88) 100%
   );
+}
+
+.orbit-motivation-quote {
+  z-index: 2;
+  position: relative;
+  padding-top: 0.35rem;
+}
+
+.orbit-motivation-mark {
+  display: block;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 2.75rem;
+  line-height: 0.7;
+  color: var(--motivation-mark);
+  text-shadow: 0 0 18px rgba(129, 140, 248, 0.45);
+  margin-bottom: 0.35rem;
+  user-select: none;
+}
+
+.orbit-motivation-quote-text {
+  color: var(--motivation-quote);
+  text-wrap: pretty;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.45);
+}
+
+.orbit-motivation-credit {
+  color: var(--motivation-credit);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.4);
 }
 
 .orbit-motivation-xp {
@@ -273,44 +304,50 @@ html[data-theme='light'] .orbit-motivation {
   background: var(--motivation-bar);
 }
 
-/* Keep XP text light even when global light-mode remaps .text-white */
+/* Keep banner text light even when global light-mode remaps .text-white */
 html[data-theme='light'] .orbit-root .orbit-motivation .orbit-motivation-xp-value,
 html[data-theme='light'] .orbit-root .orbit-motivation .orbit-motivation-xp-level,
+html[data-theme='light'] .orbit-root .orbit-motivation .orbit-motivation-quote-text,
 html[data-theme='light'] .orbit-root .orbit-motivation .font-black {
   color: #f8fafc;
 }
 
 html[data-theme='light'] .orbit-root .orbit-motivation .orbit-motivation-xp-label,
-html[data-theme='light'] .orbit-root .orbit-motivation .orbit-motivation-xp-next {
+html[data-theme='light'] .orbit-root .orbit-motivation .orbit-motivation-xp-next,
+html[data-theme='light'] .orbit-root .orbit-motivation .orbit-motivation-credit {
   color: rgba(203, 213, 225, 0.9);
 }
 
 @media (max-width: 639px) {
   .orbit-motivation {
-    min-height: 280px;
+    min-height: 0;
   }
 
   .orbit-motivation-art {
-    object-position: 18% center;
+    object-position: left center;
   }
 
+  /* Stack: art peeks at top, readable copy + XP below */
   .orbit-motivation-veil {
-    width: 100%;
     background: linear-gradient(
       180deg,
-      transparent 0%,
-      rgba(8, 10, 28, 0.15) 35%,
-      rgba(8, 10, 28, 0.82) 68%,
-      rgba(8, 10, 28, 0.94) 100%
+      rgba(8, 10, 28, 0.2) 0%,
+      rgba(8, 10, 28, 0.55) 32%,
+      rgba(8, 10, 28, 0.88) 58%,
+      rgba(8, 10, 28, 0.96) 100%
     );
   }
 
   .orbit-motivation-body {
-    align-items: flex-end;
+    padding-top: 4.75rem;
+  }
+
+  .orbit-motivation-mark {
+    font-size: 2.25rem;
   }
 
   .orbit-motivation-xp {
-    max-width: 100%;
+    max-width: none;
   }
 }
 
