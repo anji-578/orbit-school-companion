@@ -162,6 +162,11 @@ export interface SyllabusSubtopic {
   noteDataUrl?: string
   noteMime?: string
   noteUploadedAt?: string
+  /** Optional curated or teacher-set YouTube lesson URL. */
+  youtubeUrl?: string
+  /** Optional summary / revision sheet URL (http or data URL). */
+  revisionNotesUrl?: string
+  revisionNotesName?: string
 }
 
 export interface SyllabusChapter {

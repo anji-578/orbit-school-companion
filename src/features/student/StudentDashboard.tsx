@@ -7,7 +7,6 @@ import {
   CalendarDays,
   Check,
   Flame,
-  Sparkles,
   Star,
   Trophy,
   Zap,
@@ -203,37 +202,30 @@ export function StudentDashboard() {
       {!classLinked ? <InviteRedeemCard /> : null}
 
       {/* Today at a Glance */}
-      <section className="orbit-glance relative overflow-hidden rounded-3xl border border-white/10 min-h-[220px]">
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-full sm:w-[58%] lg:w-[52%] opacity-70 sm:opacity-100">
+      <section className="orbit-glance relative overflow-hidden rounded-3xl border min-h-[220px]">
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-full sm:w-[58%] lg:w-[52%]">
           <SunViz className="h-full w-full" />
         </div>
-        <div
-          className="pointer-events-none absolute inset-0 sm:hidden"
-          style={{
-            background:
-              'linear-gradient(180deg, rgba(11,16,32,0.88) 0%, rgba(11,16,32,0.55) 55%, rgba(11,16,32,0.75) 100%)',
-          }}
-          aria-hidden
-        />
+        <div className="pointer-events-none absolute inset-0 sm:hidden orbit-glance-scrim" aria-hidden />
         <div className="relative z-10 p-5 sm:p-6 lg:p-7 flex flex-col justify-center max-w-xl lg:max-w-[52%] gap-5">
           <div className="space-y-2">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-sky-300/90">
+            <p className="orbit-glance-eyebrow text-[10px] font-black uppercase tracking-[0.2em]">
               {t('todayAtGlance')}
             </p>
-            <h2 className="text-2xl sm:text-[1.65rem] font-extrabold text-white font-display leading-tight">
+            <h2 className="orbit-glance-title text-2xl sm:text-[1.65rem] font-extrabold font-display leading-tight">
               {t('glanceClasses').replace('{count}', String(todayTimeline.length || nextClasses.length))}
             </h2>
           </div>
 
           <div className="flex flex-wrap gap-x-8 gap-y-4">
             <GlanceStat
-              icon={<Calendar className="h-4 w-4 text-sky-400" aria-hidden />}
+              icon={<Calendar className="h-4 w-4 text-sky-500" aria-hidden />}
               label={t('glanceNextClass')}
               value={nextLive?.name ?? t('glanceNoClass')}
               detail={nextLive ? classCountdown : undefined}
             />
             <GlanceStat
-              icon={<Bus className="h-4 w-4 text-amber-300" aria-hidden />}
+              icon={<Bus className="h-4 w-4 text-amber-500" aria-hidden />}
               label={t('glanceBusArrives')}
               value={
                 busReachedSchool
@@ -251,7 +243,7 @@ export function StudentDashboard() {
               }
             />
             <GlanceStat
-              icon={<Zap className="h-4 w-4 text-violet-300" aria-hidden />}
+              icon={<Zap className="h-4 w-4 text-violet-500" aria-hidden />}
               label={t('glanceStudyTime')}
               value={`${studyMinutes} min`}
               detail={t('glanceEstimated')}
@@ -261,7 +253,7 @@ export function StudentDashboard() {
           <button
             type="button"
             onClick={() => setActiveTab('schedule')}
-            className="inline-flex w-fit items-center gap-2 rounded-xl border border-white/25 bg-black/25 px-4 py-2.5 text-xs font-bold text-white hover:bg-white/10 hover:border-white/40 transition"
+            className="orbit-glance-btn inline-flex w-fit items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition"
           >
             {t('viewTodaysSchedule')}
             <ArrowRight className="h-3.5 w-3.5" aria-hidden />
@@ -509,45 +501,44 @@ export function StudentDashboard() {
         </section>
       </div>
 
-      {/* Quote + XP */}
-      <div className="grid lg:grid-cols-12 gap-4">
-        <section className="lg:col-span-8 glass rounded-3xl border border-white/10 p-5 flex gap-4 items-center overflow-hidden">
-          <div
-            className="hidden sm:block w-28 h-24 rounded-2xl bg-cover bg-center shrink-0 border border-white/10"
-            style={{
-              backgroundImage:
-                'url(https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=240&auto=format&fit=crop&q=70)',
-            }}
-            aria-hidden
-          />
-          <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">
-              {t('motivationEyebrow')}
-            </p>
-            <p className="text-sm font-semibold text-white leading-relaxed">{t('motivationQuote')}</p>
-            <p className="text-[11px] text-slate-400 mt-1.5">{t('motivationCredit')}</p>
-          </div>
-        </section>
+      {/* Motivation + XP — artwork banner with live XP overlay */}
+      <section
+        className="orbit-motivation relative overflow-hidden rounded-[1.75rem] border"
+        aria-label={`${t('motivationQuote')} ${t('xpEarnedLabel')} ${totalXp} XP`}
+      >
+        <img
+          src="/brand/student-motivation-banner.png"
+          alt=""
+          className="orbit-motivation-art absolute inset-0 h-full w-full object-cover object-left pointer-events-none select-none"
+          draggable={false}
+        />
+        {/* Soft veil so live XP card covers the static XP in the art */}
+        <div className="orbit-motivation-veil pointer-events-none absolute inset-y-0 right-0 w-[48%] sm:w-[42%] lg:w-[38%]" aria-hidden />
 
-        <section className="lg:col-span-4 glass rounded-3xl border border-white/10 p-5 space-y-3">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-amber-300" aria-hidden />
-            <h3 className="text-xs font-extrabold text-white">{t('xpCardTitle')}</h3>
+        <div className="orbit-motivation-body relative z-10 min-h-[168px] sm:min-h-[200px] lg:min-h-[220px] p-4 sm:p-5 lg:p-6 flex items-stretch justify-end">
+          <div className="orbit-motivation-xp w-full max-w-[240px] sm:max-w-[260px] rounded-2xl border p-4 sm:p-5 flex flex-col justify-center gap-2.5 self-center">
+            <p className="orbit-motivation-xp-label text-[11px] font-semibold">{t('xpEarnedLabel')}</p>
+            <div className="flex items-center gap-2">
+              <p className="orbit-motivation-xp-value text-3xl font-black tracking-tight leading-none">
+                {totalXp} <span className="text-lg font-bold opacity-90">XP</span>
+              </p>
+              <Star className="h-5 w-5 text-amber-300 fill-amber-300 drop-shadow-[0_0_8px_rgba(252,211,77,0.65)]" aria-hidden />
+            </div>
+            <p className="orbit-motivation-xp-level text-sm font-bold">
+              {t('xpLevelOnly').replace('{level}', String(level))}
+            </p>
+            <div className="h-2.5 rounded-full bg-black/35 overflow-hidden mt-0.5">
+              <div
+                className="orbit-motivation-xp-bar h-full rounded-full"
+                style={{ width: `${Math.max(6, (xpIntoLevel / XP_PER_LEVEL) * 100)}%` }}
+              />
+            </div>
+            <p className="orbit-motivation-xp-next text-[11px]">
+              {t('xpNextLevel').replace('{xp}', String(xpToNext))}
+            </p>
           </div>
-          <p className="text-2xl font-black text-white">
-            {totalXp} <span className="text-sm font-bold text-slate-400">XP</span>
-          </p>
-          <p className="text-[11px] text-slate-400">
-            {t('xpLevelLine').replace('{level}', String(level)).replace('{xp}', String(xpToNext))}
-          </p>
-          <div className="h-2 rounded-full bg-white/10 overflow-hidden">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-violet-500 to-sky-400"
-              style={{ width: `${(xpIntoLevel / XP_PER_LEVEL) * 100}%` }}
-            />
-          </div>
-        </section>
-      </div>
+        </div>
+      </section>
     </div>
   )
 }
@@ -567,9 +558,9 @@ function GlanceStat({
     <div className="flex items-start gap-2.5 min-w-[7.5rem]">
       <span className="mt-0.5 shrink-0">{icon}</span>
       <div className="min-w-0">
-        <p className="text-[10px] font-bold text-slate-400">{label}</p>
-        <p className="text-sm font-extrabold text-white leading-snug truncate">{value}</p>
-        {detail ? <p className="text-[11px] text-slate-400 mt-0.5">{detail}</p> : null}
+        <p className="orbit-glance-label text-[10px] font-bold">{label}</p>
+        <p className="orbit-glance-value text-sm font-extrabold leading-snug truncate">{value}</p>
+        {detail ? <p className="orbit-glance-detail text-[11px] mt-0.5">{detail}</p> : null}
       </div>
     </div>
   )

@@ -15,6 +15,7 @@ import type {
   SoftSkill,
   StudentGrade,
   SyllabusChapter,
+  SyllabusSubtopic,
   SyllabusTopic,
   TeacherProfile,
 } from '../types'
@@ -281,6 +282,40 @@ function demoNote(title: string) {
   }
 }
 
+function demoRevision(title: string, subject: string) {
+  const body = [
+    `Summary revision · ${title}`,
+    `Subject: ${subject}`,
+    '',
+    'Quick checklist',
+    '• Definition / formula in your own words',
+    '• One worked example',
+    '• Two practice questions',
+    '• One common mistake to avoid',
+  ].join('\n')
+  return {
+    revisionNotesName: `${title.replace(/[/\\?%*:|"<>]/g, '-').slice(0, 36)}-revision.txt`,
+    revisionNotesUrl: `data:text/plain;charset=utf-8,${encodeURIComponent(body)}`,
+  }
+}
+
+function withLearningLinks(
+  id: string,
+  title: string,
+  subject: string,
+  youtubeUrl: string,
+  extra: Partial<SyllabusSubtopic> = {},
+): SyllabusSubtopic {
+  return {
+    id,
+    title,
+    done: false,
+    youtubeUrl,
+    ...demoRevision(title, subject),
+    ...extra,
+  }
+}
+
 /** Shared Class 11 curriculum — teacher marks progress; students see the same truth. */
 export const initialCurriculum: SyllabusChapter[] = [
   {
@@ -291,10 +326,42 @@ export const initialCurriculum: SyllabusChapter[] = [
     plannedDate: '2026-06-15',
     quizQuery: 'Solve equations transposition algebra',
     subtopics: [
-      { id: 'st_m1', title: 'Negative variables shifting', done: true, completedAt: '2026-06-10', ...demoNote('Negative variables shifting') },
-      { id: 'st_m2', title: 'Cross multiplication of fractions', done: true, completedAt: '2026-06-12', ...demoNote('Cross multiplication') },
-      { id: 'st_m3', title: 'Coefficient balancing', done: false },
-      { id: 'st_m4', title: 'Word problems → equations', done: false },
+      {
+        ...withLearningLinks(
+          'st_m1',
+          'Negative variables shifting',
+          'Mathematics',
+          'https://www.youtube.com/watch?v=Wv6Yc6mYj9A',
+          { done: true, completedAt: '2026-06-10', ...demoNote('Negative variables shifting') },
+        ),
+      },
+      {
+        ...withLearningLinks(
+          'st_m2',
+          'Cross multiplication of fractions',
+          'Mathematics',
+          'https://www.youtube.com/watch?v=Rp6r8jQb5kE',
+          { done: true, completedAt: '2026-06-12', ...demoNote('Cross multiplication') },
+        ),
+      },
+      {
+        ...withLearningLinks(
+          'st_m3',
+          'Coefficient balancing',
+          'Mathematics',
+          'https://www.youtube.com/watch?v=1c5HY3z4k8I',
+          { done: false },
+        ),
+      },
+      {
+        ...withLearningLinks(
+          'st_m4',
+          'Word problems → equations',
+          'Mathematics',
+          'https://www.youtube.com/watch?v=Urc31S2LmAk',
+          { done: false },
+        ),
+      },
     ],
   },
   {
@@ -305,9 +372,33 @@ export const initialCurriculum: SyllabusChapter[] = [
     plannedDate: '2026-06-22',
     quizQuery: 'fractions calculations multiplication',
     subtopics: [
-      { id: 'st_m5', title: 'Numerator / denominator alignment', done: true, completedAt: '2026-06-18', ...demoNote('Numerator denominator alignment') },
-      { id: 'st_m6', title: 'Simplifying before multiplying', done: true, completedAt: '2026-06-20', ...demoNote('Simplifying before multiplying') },
-      { id: 'st_m7', title: 'Mixed numbers conversion', done: true, completedAt: '2026-06-22', ...demoNote('Mixed numbers conversion') },
+      {
+        ...withLearningLinks(
+          'st_m5',
+          'Numerator / denominator alignment',
+          'Mathematics',
+          'https://www.youtube.com/watch?v=uE-1RPDqJAY',
+          { done: true, completedAt: '2026-06-18', ...demoNote('Numerator denominator alignment') },
+        ),
+      },
+      {
+        ...withLearningLinks(
+          'st_m6',
+          'Simplifying before multiplying',
+          'Mathematics',
+          'https://www.youtube.com/watch?v=emR0g1Wb2XQ',
+          { done: true, completedAt: '2026-06-20', ...demoNote('Simplifying before multiplying') },
+        ),
+      },
+      {
+        ...withLearningLinks(
+          'st_m7',
+          'Mixed numbers conversion',
+          'Mathematics',
+          'https://www.youtube.com/watch?v=hT0aewykFr0',
+          { done: true, completedAt: '2026-06-22', ...demoNote('Mixed numbers conversion') },
+        ),
+      },
     ],
   },
   {
@@ -318,10 +409,42 @@ export const initialCurriculum: SyllabusChapter[] = [
     plannedDate: '2026-06-25',
     quizQuery: 'photosynthesis cycles botany',
     subtopics: [
-      { id: 'st_s1', title: 'Chloroplast structure', done: true, completedAt: '2026-06-20', ...demoNote('Chloroplast structure') },
-      { id: 'st_s2', title: 'Light vs dark reactions', done: true, completedAt: '2026-06-22', ...demoNote('Light vs dark reactions') },
-      { id: 'st_s3', title: 'Gas exchange & stomata', done: false },
-      { id: 'st_s4', title: 'Balancing photosynthesis equation', done: false },
+      {
+        ...withLearningLinks(
+          'st_s1',
+          'Chloroplast structure',
+          'Science',
+          'https://www.youtube.com/watch?v=uIxAhdtrXJY',
+          { done: true, completedAt: '2026-06-20', ...demoNote('Chloroplast structure') },
+        ),
+      },
+      {
+        ...withLearningLinks(
+          'st_s2',
+          'Light vs dark reactions',
+          'Science',
+          'https://www.youtube.com/watch?v=sQK3Yr4SkEk',
+          { done: true, completedAt: '2026-06-22', ...demoNote('Light vs dark reactions') },
+        ),
+      },
+      {
+        ...withLearningLinks(
+          'st_s3',
+          'Gas exchange & stomata',
+          'Science',
+          'https://www.youtube.com/watch?v=D1Ymc311XS8',
+          { done: false },
+        ),
+      },
+      {
+        ...withLearningLinks(
+          'st_s4',
+          'Balancing photosynthesis equation',
+          'Science',
+          'https://www.youtube.com/watch?v=g78utcLQrNg',
+          { done: false },
+        ),
+      },
     ],
   },
   {
@@ -332,10 +455,42 @@ export const initialCurriculum: SyllabusChapter[] = [
     plannedDate: '2026-06-30',
     quizQuery: 'balancing chemical equations coefficient chemistry',
     subtopics: [
-      { id: 'st_c1', title: 'Law of conservation of mass', done: true, completedAt: '2026-06-24', ...demoNote('Conservation of mass') },
-      { id: 'st_c2', title: 'Stoichiometry multipliers', done: false },
-      { id: 'st_c3', title: 'Redox skeleton equations', done: false },
-      { id: 'st_c4', title: 'Lab: balance 5 practice sheets', done: false },
+      {
+        ...withLearningLinks(
+          'st_c1',
+          'Law of conservation of mass',
+          'Chemistry Lab',
+          'https://www.youtube.com/watch?v=i-Ct4q5QZ4w',
+          { done: true, completedAt: '2026-06-24', ...demoNote('Conservation of mass') },
+        ),
+      },
+      {
+        ...withLearningLinks(
+          'st_c2',
+          'Stoichiometry multipliers',
+          'Chemistry Lab',
+          'https://www.youtube.com/watch?v=UL1jmJaUkaQ',
+          { done: false },
+        ),
+      },
+      {
+        ...withLearningLinks(
+          'st_c3',
+          'Redox skeleton equations',
+          'Chemistry Lab',
+          'https://www.youtube.com/watch?v=lQ6Fkf0OW1c',
+          { done: false },
+        ),
+      },
+      {
+        ...withLearningLinks(
+          'st_c4',
+          'Lab: balance 5 practice sheets',
+          'Chemistry Lab',
+          'https://www.youtube.com/watch?v=eNsVaUCzvLA',
+          { done: false },
+        ),
+      },
     ],
   },
   {
@@ -346,9 +501,33 @@ export const initialCurriculum: SyllabusChapter[] = [
     plannedDate: '2026-07-05',
     quizQuery: 'English tenses active passive voice',
     subtopics: [
-      { id: 'st_e1', title: 'Present perfect vs past simple', done: false },
-      { id: 'st_e2', title: 'Active → passive conversion', done: false },
-      { id: 'st_e3', title: 'Common exam traps', done: false },
+      {
+        ...withLearningLinks(
+          'st_e1',
+          'Present perfect vs past simple',
+          'English',
+          'https://www.youtube.com/watch?v=nwIKGqg1z9E',
+          { done: false },
+        ),
+      },
+      {
+        ...withLearningLinks(
+          'st_e2',
+          'Active → passive conversion',
+          'English',
+          'https://www.youtube.com/watch?v=4jGGxJ5mPbg',
+          { done: false },
+        ),
+      },
+      {
+        ...withLearningLinks(
+          'st_e3',
+          'Common exam traps',
+          'English',
+          'https://www.youtube.com/watch?v=7E_1oH1wL8E',
+          { done: false },
+        ),
+      },
     ],
   },
 ]

@@ -48,6 +48,7 @@ import { startAttendanceQueueSync } from '../lib/attendanceQueue'
 import { fetchSchoolPolicy, resolveClassLabel } from '../lib/schoolPolicy'
 import { fetchStudentGrades, saveStudentGrades } from '../lib/gradesApi'
 import { deleteSyllabusNoteFile, fetchSyllabusState, mergeCurriculum, saveSyllabusState, uploadSyllabusNoteFile } from '../lib/syllabusApi'
+import { withSyllabusLearningLinks } from '../lib/syllabusLinks'
 import { friendlyError } from '../lib/errors'
 import { attendancePercent, homeworkPercent } from './orbitHelpers'
 import { createAttendanceActions } from './attendanceActions'
@@ -225,6 +226,11 @@ interface OrbitState {
   toggleSyllabusSubtopic: (chapterId: string, subtopicId: string) => void
   uploadSyllabusNote: (chapterId: string, subtopicId: string, file: File) => Promise<void>
   clearSyllabusNote: (chapterId: string, subtopicId: string) => void
+  updateSyllabusLinks: (
+    chapterId: string,
+    subtopicId: string,
+    links: { youtubeUrl?: string; revisionNotesUrl?: string },
+  ) => void
   submitBroadcast: (title: string, target: string, content: string) => void
   addCalendarEvent: (title: string, category: CalendarEvent['category'], date: string) => void
   scheduleInterview: (id: string | number) => void
@@ -301,7 +307,7 @@ export const useOrbitStore = create<OrbitState>()(
       broadcasts: initialBroadcasts,
       calendarEvents: initialCalendar,
       leaves: initialLeaves,
-      curriculum: initialCurriculum,
+      curriculum: withSyllabusLearningLinks(initialCurriculum),
       timetableByDay: getLocalTimetable(),
       teachers: schoolTeachers,
       candidates: initialCandidates,
@@ -538,9 +544,11 @@ export const useOrbitStore = create<OrbitState>()(
             : cloud
               ? timetableByDay
               : getLocalTimetable()
-          const curriculum = mergeCurriculum(
-            remoteSyllabus,
-            cloud ? s.curriculum : s.curriculum.length ? s.curriculum : initialCurriculum,
+          const curriculum = withSyllabusLearningLinks(
+            mergeCurriculum(
+              remoteSyllabus,
+              cloud ? s.curriculum : s.curriculum.length ? s.curriculum : initialCurriculum,
+            ),
           )
 
           const usedSample = !cloud && (
@@ -719,6 +727,37 @@ export const useOrbitStore = create<OrbitState>()(
         get().triggerToast('Notes removed.')
       },
 
+      updateSyllabusLinks: (chapterId, subtopicId, links) => {
+        const prev = get().curriculum
+        set((s) => ({
+          curriculum: s.curriculum.map((ch) => {
+            if (ch.id !== chapterId) return ch
+            return {
+              ...ch,
+              subtopics: ch.subtopics.map((st) => {
+                if (st.id !== subtopicId) return st
+                return {
+                  ...st,
+                  youtubeUrl: links.youtubeUrl?.trim() || undefined,
+                  revisionNotesUrl: links.revisionNotesUrl?.trim() || st.revisionNotesUrl,
+                  revisionNotesName: links.revisionNotesUrl?.trim()
+                    ? st.revisionNotesName || `${st.title}-revision`
+                    : st.revisionNotesName,
+                }
+              }),
+            }
+          }),
+        }))
+        void saveSyllabusState(get().curriculum).then((result) => {
+          if (!result.ok) {
+            set({ curriculum: prev })
+            get().triggerToast(friendlyError(result.error ?? 'Could not save links.'))
+            return
+          }
+          get().triggerToast('Topic links saved.')
+        })
+      },
+
       scheduleInterview: (id) => {
         const prev = get().candidates.find((c) => c.id === id)?.status
         set((s) => ({
@@ -790,7 +829,7 @@ export const useOrbitStore = create<OrbitState>()(
           broadcasts: initialBroadcasts,
           calendarEvents: initialCalendar,
           leaves: initialLeaves,
-          curriculum: initialCurriculum,
+          curriculum: withSyllabusLearningLinks(initialCurriculum),
           timetableByDay: getLocalTimetable(),
           teachers: schoolTeachers,
           candidates: initialCandidates,

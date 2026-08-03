@@ -14,6 +14,7 @@ export function TeacherSyllabus() {
   const toggleSyllabusSubtopic = useOrbitStore((s) => s.toggleSyllabusSubtopic)
   const uploadSyllabusNote = useOrbitStore((s) => s.uploadSyllabusNote)
   const clearSyllabusNote = useOrbitStore((s) => s.clearSyllabusNote)
+  const updateSyllabusLinks = useOrbitStore((s) => s.updateSyllabusLinks)
 
   const [filter, setFilter] = useState<string>('all')
   const [preview, setPreview] = useState<{ name?: string; dataUrl?: string; mime?: string } | null>(null)
@@ -197,6 +198,54 @@ export function TeacherSyllabus() {
                               ) : (
                                 <span className="text-[10px] text-slate-500 self-center">{t('noNotesYet')}</span>
                               )}
+                            </div>
+
+                            <div className="grid sm:grid-cols-2 gap-2 pt-1">
+                              <label className="space-y-1 block">
+                                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
+                                  {t('linkYoutube')}
+                                </span>
+                                <input
+                                  type="url"
+                                  defaultValue={sub.youtubeUrl || ''}
+                                  key={`yt-${chapter.id}-${sub.id}-${sub.youtubeUrl || ''}`}
+                                  placeholder="https://youtube.com/watch?v=…"
+                                  className="field w-full rounded-lg px-2.5 py-2 text-[11px]"
+                                  onBlur={(e) => {
+                                    const next = e.target.value.trim()
+                                    if (next === (sub.youtubeUrl || '')) return
+                                    updateSyllabusLinks(chapter.id, sub.id, {
+                                      youtubeUrl: next,
+                                      revisionNotesUrl: sub.revisionNotesUrl,
+                                    })
+                                  }}
+                                />
+                              </label>
+                              <label className="space-y-1 block">
+                                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
+                                  {t('linkRevisionNotes')}
+                                </span>
+                                <input
+                                  type="url"
+                                  defaultValue={
+                                    sub.revisionNotesUrl?.startsWith('http') ? sub.revisionNotesUrl : ''
+                                  }
+                                  key={`rev-${chapter.id}-${sub.id}-${sub.revisionNotesUrl || ''}`}
+                                  placeholder="https://… (optional external sheet)"
+                                  className="field w-full rounded-lg px-2.5 py-2 text-[11px]"
+                                  onBlur={(e) => {
+                                    const next = e.target.value.trim()
+                                    const current = sub.revisionNotesUrl?.startsWith('http')
+                                      ? sub.revisionNotesUrl
+                                      : ''
+                                    if (next === current) return
+                                    updateSyllabusLinks(chapter.id, sub.id, {
+                                      youtubeUrl: sub.youtubeUrl,
+                                      revisionNotesUrl: next || undefined,
+                                    })
+                                  }}
+                                />
+                              </label>
                             </div>
                           </div>
                         </div>

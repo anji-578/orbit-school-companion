@@ -90,21 +90,227 @@ html[data-theme='light'] .orbit-root {
 }
 
 .orbit-glance {
-  background: #0b1020;
+  /* Dark: evening navy + sunset viz */
+  --glance-bg: #0b1020;
+  --glance-fg: #f8fafc;
+  --glance-muted: #94a3b8;
+  --glance-eyebrow: #7dd3fc;
+  --glance-border: rgba(148, 163, 184, 0.22);
+  --glance-btn-bg: rgba(15, 23, 42, 0.55);
+  --glance-btn-border: rgba(248, 250, 252, 0.35);
+  --glance-btn-fg: #f8fafc;
+  --glance-scrim: linear-gradient(
+    180deg,
+    rgba(11, 16, 32, 0.92) 0%,
+    rgba(11, 16, 32, 0.62) 55%,
+    rgba(11, 16, 32, 0.82) 100%
+  );
+  --glance-sky-1: #1e1b4b;
+  --glance-sky-2: #4c1d95;
+  --glance-sky-3: #7c3aed;
+  --glance-sky-4: #f472b6;
+  --glance-sky-5: #fb923c;
+  --glance-sun-core: #fef9c3;
+  --glance-sun-glow: #fde047;
+  --glance-sun-mid: #fb923c;
+  --glance-mt-far: #5b21b6;
+  --glance-mt-far-deep: #2e1065;
+  --glance-mt-mid: #4c1d95;
+  --glance-mt-mid-deep: #1e1b4b;
+  --glance-mt-near: #312e81;
+  --glance-mt-near-deep: #0f172a;
+  --glance-bird: #1e1b4b;
+
+  background: var(--glance-bg);
+  border-color: var(--glance-border);
+  color: var(--glance-fg);
 }
 
 html[data-theme='light'] .orbit-glance {
-  background: #0f172a;
+  /* Light: soft daylight card + morning sky viz */
+  --glance-bg: #fff8f1;
+  --glance-fg: #0f172a;
+  --glance-muted: #475569;
+  --glance-eyebrow: #0369a1;
+  --glance-border: rgba(15, 23, 42, 0.1);
+  --glance-btn-bg: #ffffff;
+  --glance-btn-border: rgba(15, 23, 42, 0.18);
+  --glance-btn-fg: #0f172a;
+  --glance-scrim: linear-gradient(
+    180deg,
+    rgba(255, 248, 241, 0.96) 0%,
+    rgba(255, 248, 241, 0.78) 50%,
+    rgba(255, 248, 241, 0.9) 100%
+  );
+  --glance-sky-1: #bae6fd;
+  --glance-sky-2: #7dd3fc;
+  --glance-sky-3: #38bdf8;
+  --glance-sky-4: #fdba74;
+  --glance-sky-5: #fb923c;
+  --glance-sun-core: #fffbeb;
+  --glance-sun-glow: #facc15;
+  --glance-sun-mid: #f59e0b;
+  --glance-mt-far: #93c5fd;
+  --glance-mt-far-deep: #60a5fa;
+  --glance-mt-mid: #64748b;
+  --glance-mt-mid-deep: #475569;
+  --glance-mt-near: #334155;
+  --glance-mt-near-deep: #1e293b;
+  --glance-bird: #334155;
 }
 
-html[data-theme='light'] .orbit-glance h2,
-html[data-theme='light'] .orbit-glance .font-extrabold {
-  color: #fff;
+.orbit-glance-eyebrow {
+  color: var(--glance-eyebrow);
+}
+
+.orbit-glance-title {
+  color: var(--glance-fg);
+}
+
+.orbit-glance-label {
+  color: var(--glance-muted);
+}
+
+.orbit-glance-value {
+  color: var(--glance-fg);
+}
+
+.orbit-glance-detail {
+  color: var(--glance-muted);
+}
+
+.orbit-glance-btn {
+  background: var(--glance-btn-bg);
+  border: 1px solid var(--glance-btn-border);
+  color: var(--glance-btn-fg);
+}
+
+.orbit-glance-btn:hover {
+  filter: brightness(1.06);
+}
+
+.orbit-glance-scrim {
+  background: var(--glance-scrim);
+}
+
+/* Beat global light-mode .text-white → navy remap inside this card */
+html[data-theme='light'] .orbit-root .orbit-glance .text-white,
+html[data-theme='light'] .orbit-root .orbit-glance .font-extrabold {
+  color: var(--glance-fg);
+}
+
+html[data-theme='light'] .orbit-root .orbit-glance .text-slate-400,
+html[data-theme='light'] .orbit-root .orbit-glance .text-slate-500 {
+  color: var(--glance-muted);
+}
+
+html[data-theme='light'] .orbit-root .orbit-glance .border-white\/10,
+html[data-theme='light'] .orbit-root .orbit-glance .border-white\/25 {
+  border-color: var(--glance-border);
 }
 
 @media (max-width: 639px) {
   .orbit-glance .orbit-sunviz-fade {
-    opacity: 0.35;
+    opacity: 0.25;
+  }
+}
+
+/* Motivation banner — always-dark art island so the mock sinks in both themes */
+.orbit-motivation {
+  --motivation-xp-bg: rgba(12, 16, 36, 0.78);
+  --motivation-xp-border: rgba(255, 255, 255, 0.16);
+  --motivation-bar: linear-gradient(90deg, #8b5cf6 0%, #60a5fa 100%);
+  --motivation-border: rgba(129, 140, 248, 0.28);
+  background: #0b1024;
+  border-color: var(--motivation-border);
+  box-shadow: 0 18px 40px -28px rgba(15, 23, 42, 0.85);
+  color: #f8fafc;
+  isolation: isolate;
+}
+
+html[data-theme='light'] .orbit-motivation {
+  --motivation-xp-bg: rgba(15, 23, 42, 0.82);
+  --motivation-xp-border: rgba(255, 255, 255, 0.18);
+  --motivation-border: rgba(99, 102, 241, 0.22);
+  box-shadow: 0 16px 36px -24px rgba(15, 23, 42, 0.35);
+}
+
+.orbit-motivation-art {
+  z-index: 0;
+}
+
+.orbit-motivation-veil {
+  z-index: 1;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(8, 10, 28, 0.35) 28%,
+    rgba(8, 10, 28, 0.78) 70%,
+    rgba(8, 10, 28, 0.92) 100%
+  );
+}
+
+.orbit-motivation-xp {
+  z-index: 2;
+  background: var(--motivation-xp-bg);
+  border-color: var(--motivation-xp-border);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 10px 28px -18px rgba(0, 0, 0, 0.55);
+}
+
+.orbit-motivation-xp-label,
+.orbit-motivation-xp-next {
+  color: rgba(203, 213, 225, 0.9);
+}
+
+.orbit-motivation-xp-value,
+.orbit-motivation-xp-level {
+  color: #f8fafc;
+}
+
+.orbit-motivation-xp-bar {
+  background: var(--motivation-bar);
+}
+
+/* Keep XP text light even when global light-mode remaps .text-white */
+html[data-theme='light'] .orbit-root .orbit-motivation .orbit-motivation-xp-value,
+html[data-theme='light'] .orbit-root .orbit-motivation .orbit-motivation-xp-level,
+html[data-theme='light'] .orbit-root .orbit-motivation .font-black {
+  color: #f8fafc;
+}
+
+html[data-theme='light'] .orbit-root .orbit-motivation .orbit-motivation-xp-label,
+html[data-theme='light'] .orbit-root .orbit-motivation .orbit-motivation-xp-next {
+  color: rgba(203, 213, 225, 0.9);
+}
+
+@media (max-width: 639px) {
+  .orbit-motivation {
+    min-height: 280px;
+  }
+
+  .orbit-motivation-art {
+    object-position: 18% center;
+  }
+
+  .orbit-motivation-veil {
+    width: 100%;
+    background: linear-gradient(
+      180deg,
+      transparent 0%,
+      rgba(8, 10, 28, 0.15) 35%,
+      rgba(8, 10, 28, 0.82) 68%,
+      rgba(8, 10, 28, 0.94) 100%
+    );
+  }
+
+  .orbit-motivation-body {
+    align-items: flex-end;
+  }
+
+  .orbit-motivation-xp {
+    max-width: 100%;
   }
 }
 

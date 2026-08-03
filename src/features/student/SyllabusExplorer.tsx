@@ -1,10 +1,20 @@
 import { useMemo, useState } from 'react'
-import { BrainCircuit, CheckCircle2, ClipboardList, Eye, FileText } from 'lucide-react'
+import {
+  BookOpen,
+  BrainCircuit,
+  CheckCircle2,
+  ClipboardList,
+  Eye,
+  FileText,
+  PlayCircle,
+  ScrollText,
+} from 'lucide-react'
 import { chapterProgress, curriculumProgress, useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
 import { Panel, Card, Eyebrow, ProgressBar, StatTile } from '../../components/ui/primitives'
 import { InviteRedeemCard } from '../../components/ui/InviteRedeemCard'
 import { NotePreview } from '../../components/ui/NotePreview'
+import { resolveRevisionNotes, resolveYoutubeUrl } from '../../lib/syllabusLinks'
 
 export function SyllabusExplorer() {
   const lang = useOrbitStore((s) => s.lang)
@@ -93,70 +103,125 @@ export function SyllabusExplorer() {
                 </div>
                 <ProgressBar value={progress} />
 
-                <ul className="space-y-2">
-                  {chapter.subtopics.map((sub) => (
-                    <li
-                      key={sub.id}
-                      className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-xl border px-3 py-2.5 ${
-                        sub.done ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-white/10 bg-white/[0.03]'
-                      }`}
-                    >
-                      <div className="flex items-start gap-2.5 min-w-0">
-                        <CheckCircle2
-                          className={`h-4 w-4 mt-0.5 shrink-0 ${sub.done ? 'text-emerald-400' : 'text-slate-600'}`}
-                          aria-hidden
-                        />
-                        <div className="min-w-0">
-                          <p className={`text-xs font-semibold ${sub.done ? 'text-slate-300 line-through' : 'text-white'}`}>
-                            {sub.title}
-                          </p>
-                          {sub.completedAt ? (
-                            <p className="text-[10px] text-emerald-300/80 mt-0.5">
-                              {t('finished')} {sub.completedAt}
+                <ul className="space-y-2.5">
+                  {chapter.subtopics.map((sub) => {
+                    const yt = resolveYoutubeUrl(sub, chapter.subject)
+                    const revision = resolveRevisionNotes(sub, chapter.subject)
+                    return (
+                      <li
+                        key={sub.id}
+                        className={`rounded-xl border px-3 py-3 space-y-2.5 ${
+                          sub.done ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-white/10 bg-white/[0.03]'
+                        }`}
+                      >
+                        <div className="flex items-start gap-2.5 min-w-0">
+                          <CheckCircle2
+                            className={`h-4 w-4 mt-0.5 shrink-0 ${sub.done ? 'text-emerald-400' : 'text-slate-600'}`}
+                            aria-hidden
+                          />
+                          <div className="min-w-0">
+                            <p
+                              className={`text-xs font-semibold ${sub.done ? 'text-slate-300 line-through' : 'text-white'}`}
+                            >
+                              {sub.title}
                             </p>
-                          ) : (
-                            <p className="text-[10px] text-slate-500 mt-0.5">{t('awaitingTeacher')}</p>
-                          )}
-                          {sub.noteDataUrl ? (
-                            <p className="text-[10px] text-[var(--accent2)] mt-0.5 truncate">
-                              {sub.noteName || t('teacherNotes')}
-                            </p>
-                          ) : null}
+                            {sub.completedAt ? (
+                              <p className="text-[10px] text-emerald-300/80 mt-0.5">
+                                {t('finished')} {sub.completedAt}
+                              </p>
+                            ) : (
+                              <p className="text-[10px] text-slate-500 mt-0.5">{t('awaitingTeacher')}</p>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex flex-wrap gap-2 pl-6 sm:pl-0">
-                        {sub.noteDataUrl ? (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setPreview({ name: sub.noteName, dataUrl: sub.noteDataUrl, mime: sub.noteMime })
-                              }
-                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-bold text-[var(--accent2)] bg-white/5 border border-white/10"
-                            >
-                              <Eye className="h-3 w-3" aria-hidden />
-                              {t('previewNotes')}
-                            </button>
-                            <a
-                              href={sub.noteDataUrl}
-                              download={sub.noteName || 'teacher-notes'}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-bold text-slate-300 bg-white/5 border border-white/10"
-                            >
-                              <FileText className="h-3 w-3" aria-hidden />
-                              {t('openNotes')}
-                            </a>
-                          </>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-bold text-slate-500 border border-dashed border-white/10">
-                            <FileText className="h-3 w-3" aria-hidden />
-                            {t('noNotesYet')}
-                          </span>
-                        )}
-                      </div>
-                    </li>
-                  ))}
+
+                        <div className="flex flex-wrap gap-2 pl-6 sm:pl-0">
+                          {sub.noteDataUrl ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setPreview({
+                                    name: sub.noteName,
+                                    dataUrl: sub.noteDataUrl,
+                                    mime: sub.noteMime,
+                                  })
+                                }
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-bold text-[var(--accent2)] bg-white/5 border border-white/10"
+                              >
+                                <BookOpen className="h-3 w-3" aria-hidden />
+                                {t('linkTeacherNotes')}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setPreview({
+                                    name: sub.noteName,
+                                    dataUrl: sub.noteDataUrl,
+                                    mime: sub.noteMime,
+                                  })
+                                }
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-bold text-slate-300 bg-white/5 border border-white/10"
+                              >
+                                <Eye className="h-3 w-3" aria-hidden />
+                                {t('previewNotes')}
+                              </button>
+                              <a
+                                href={sub.noteDataUrl}
+                                download={sub.noteName || 'teacher-notes'}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-bold text-slate-300 bg-white/5 border border-white/10"
+                              >
+                                <FileText className="h-3 w-3" aria-hidden />
+                                {t('openNotes')}
+                              </a>
+                            </>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-bold text-slate-500 border border-dashed border-white/10">
+                              <BookOpen className="h-3 w-3" aria-hidden />
+                              {t('noTeacherNotes')}
+                            </span>
+                          )}
+
+                          <a
+                            href={yt}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-bold text-rose-200 bg-rose-500/10 border border-rose-500/25 hover:bg-rose-500/15"
+                          >
+                            <PlayCircle className="h-3 w-3" aria-hidden />
+                            {t('linkYoutube')}
+                          </a>
+
+                          <a
+                            href={revision.url}
+                            download={revision.name}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-bold text-violet-200 bg-violet-500/10 border border-violet-500/25 hover:bg-violet-500/15"
+                          >
+                            <ScrollText className="h-3 w-3" aria-hidden />
+                            {t('linkRevisionNotes')}
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setPreview({
+                                name: revision.name,
+                                dataUrl: revision.url,
+                                mime: 'text/plain',
+                              })
+                            }
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-bold text-violet-200/90 bg-white/5 border border-white/10"
+                          >
+                            <Eye className="h-3 w-3" aria-hidden />
+                            {t('previewRevision')}
+                          </button>
+                        </div>
+                      </li>
+                    )
+                  })}
                 </ul>
 
                 <div className="flex flex-col sm:flex-row flex-wrap gap-2 pt-1">
