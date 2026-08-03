@@ -115,11 +115,6 @@ export function SchoolDashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-black text-white font-display">{t('goodDayAdmin')}</h1>
-        <p className="text-xs text-slate-400 mt-1">{t('adminSub')}</p>
-      </div>
-
       <Panel title={t('schoolPolicyTitle')} subtitle={t('schoolPolicyDesc')}>
         <div className="grid sm:grid-cols-2 gap-3">
           <label className="space-y-1 block">

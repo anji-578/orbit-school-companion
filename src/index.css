@@ -15,6 +15,9 @@
   --header-bg: rgba(6, 9, 19, 0.85);
   --panel: #0d1120;
   --muted: #94a3b8;
+  --health-good: #22c55e;
+  --health-warn: #f59e0b;
+  --ai-hint: #a78bfa;
 }
 
 html[data-theme='light'] {
@@ -84,6 +87,20 @@ html[data-theme='light'] .orbit-root {
   border: 1px solid var(--border-strong);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
+}
+
+/* Mobile drawer: fully opaque so nav stays readable over dashboard content */
+@media (max-width: 767px) {
+  .orbit-mobile-nav {
+    background: var(--panel) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: 8px 0 32px -12px rgba(0, 0, 0, 0.65);
+  }
+
+  .orbit-header {
+    background: color-mix(in srgb, var(--panel) 94%, transparent);
+  }
 }
 
 html[data-theme='light'] .glass {

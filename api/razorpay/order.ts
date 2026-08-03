@@ -1,4 +1,5 @@
-import { getAdmin, loadProfile, requireUser } from '../_lib/supabaseAdmin'
+import { env, envFirst } from '../_lib/env.js'
+import { getAdmin, loadProfile, requireUser } from '../_lib/supabaseAdmin.js'
 
 export const config = { runtime: 'nodejs' }
 
@@ -18,8 +19,8 @@ export default async function handler(req: Request) {
   if (req.method === 'OPTIONS') return cors(new Response(null, { status: 204 }))
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
 
-  const keyId = (process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID || '').trim()
-  const keySecret = (process.env.RAZORPAY_KEY_SECRET || '').trim()
+  const keyId = envFirst('RAZORPAY_KEY_ID', 'VITE_RAZORPAY_KEY_ID')
+  const keySecret = env('RAZORPAY_KEY_SECRET')
   if (!keyId || !keySecret) {
     return json({ error: 'Razorpay not configured on server (RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET).' }, 503)
   }
@@ -54,10 +55,19 @@ export default async function handler(req: Request) {
     return json({ error: 'One or more invoices not found for this school' }, 400)
   }
 
-  const unpaid = fees.filter((f) => f.status !== 'Paid')
+  type FeeRow = {
+    id: string
+    student_id: string
+    amount_paise: number | null
+    status: string
+    school_id: string
+  }
+  const feeRows = (fees ?? []) as FeeRow[]
+
+  const unpaid = feeRows.filter((f) => f.status !== 'Paid')
   if (!unpaid.length) return json({ error: 'Selected invoices are already paid' }, 400)
 
-  const studentIds = [...new Set(unpaid.map((f) => f.student_id as string).filter(Boolean))]
+  const studentIds = [...new Set(unpaid.map((f) => f.student_id).filter(Boolean))]
   if (studentIds.length !== 1) {
     return json({ error: 'Pay invoices for one student at a time' }, 400)
   }

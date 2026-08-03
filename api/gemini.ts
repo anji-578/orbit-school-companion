@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
+import { envFirst } from './_lib/env.js'
 
-export const config = { runtime: 'edge' }
+export const config = { runtime: 'nodejs' }
 
 const MODELS = [
   'gemini-flash-latest',
@@ -22,18 +23,21 @@ const cors = {
 }
 
 function getKey() {
-  return (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '').trim()
+  return envFirst('GEMINI_API_KEY', 'VITE_GEMINI_API_KEY')
 }
 
 type ImagePart = { mimeType: string; data: string }
 
-async function requireAuthedUser(req: Request): Promise<{ ok: true; userId: string } | { ok: false; status: number; error: string }> {
+type AuthOk = { ok: true; userId: string }
+type AuthFail = { ok: false; status: number; error: string }
+
+async function requireAuthedUser(req: Request): Promise<AuthOk | AuthFail> {
   const authHeader = req.headers.get('Authorization') || ''
   const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : ''
   if (!bearer) return { ok: false, status: 401, error: 'Sign in required for Orbit AI' }
 
-  const url = (process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '').trim()
-  const anon = (process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '').trim()
+  const url = envFirst('VITE_SUPABASE_URL', 'SUPABASE_URL')
+  const anon = envFirst('VITE_SUPABASE_ANON_KEY', 'SUPABASE_ANON_KEY')
   if (!url || !anon) return { ok: false, status: 503, error: 'Auth not configured' }
 
   const supabase = createClient(url, anon, {
@@ -111,7 +115,7 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   const authed = await requireAuthedUser(req)
-  if (!authed.ok) {
+  if (authed.ok === false) {
     return Response.json({ error: authed.error }, { status: authed.status, headers: cors })
   }
 

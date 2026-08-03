@@ -32,8 +32,8 @@ export function Header() {
     session?.provider === 'local-demo' || isPilotDemoEmail(session?.email ?? '')
 
   return (
-    <header className="orbit-header px-4 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-20">
-      <div className="flex items-center gap-3 pl-12 md:pl-0 min-w-0">
+    <header className="orbit-header px-3 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-20 gap-2">
+      <div className="flex items-center gap-2 sm:gap-3 pl-12 md:pl-0 min-w-0 flex-1 overflow-hidden">
         <div className="hidden sm:flex items-center gap-2 min-w-0">
           <span
             className="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-extrabold tracking-wide uppercase shrink-0"
@@ -44,7 +44,7 @@ export function Header() {
           <span className="text-xs font-bold text-white truncate">{session?.displayName}</span>
         </div>
         {showDemoChrome ? (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wide bg-amber-500/15 text-amber-300 border border-amber-500/25 shrink-0">
+          <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wide bg-amber-500/15 text-amber-300 border border-amber-500/25 shrink-0">
             {t('demoMode')}
           </span>
         ) : null}
@@ -58,10 +58,10 @@ export function Header() {
         ) : null}
       </div>
 
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
         <ThemeToggle />
-        <label className="flex items-center gap-1.5 bg-white/5 px-2.5 py-1.5 rounded-xl border border-white/10">
-          <Languages className="h-3.5 w-3.5 text-[#4DA6FF]" aria-hidden />
+        <label className="flex items-center gap-1.5 bg-white/5 px-2 py-1.5 sm:px-2.5 rounded-xl border border-white/10">
+          <Languages className="h-3.5 w-3.5 text-[#4DA6FF] shrink-0" aria-hidden />
           <span className="sr-only">{t('language')}</span>
           <select
             value={lang}
@@ -70,7 +70,7 @@ export function Header() {
               setLang(next)
               triggerToast(`Language · ${languagesList.find((l) => l.code === next)?.label}`)
             }}
-            className="bg-transparent text-[11px] font-bold text-slate-300 focus:outline-none cursor-pointer"
+            className="bg-transparent text-[11px] font-bold text-slate-300 focus:outline-none cursor-pointer max-w-[4.5rem] sm:max-w-none"
           >
             {languagesList.map((l) => (
               <option key={l.code} value={l.code} className="bg-[var(--panel)] text-[var(--fg)]">
@@ -152,7 +152,7 @@ export function Header() {
           onClick={() => {
             void logout()
           }}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs font-bold text-slate-300 hover:text-white transition"
+          className="flex items-center gap-1.5 p-2 sm:px-3 sm:py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs font-bold text-slate-300 hover:text-white transition"
           aria-label={t('logOut')}
         >
           <LogOut className="h-3.5 w-3.5" aria-hidden />

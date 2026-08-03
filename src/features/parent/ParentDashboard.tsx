@@ -1,7 +1,7 @@
 import { ArrowRight, Bus, CheckCircle, CreditCard, MapPin, Sparkles } from 'lucide-react'
 import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
-import { childDisplayName, childFirstName } from '../../lib/linkedStudent'
+import { childDisplayName } from '../../lib/linkedStudent'
 import { Card, Panel, StatTile } from '../../components/ui/primitives'
 import { DemoNotice } from '../../components/ui/DemoNotice'
 import { InviteRedeemCard } from '../../components/ui/InviteRedeemCard'
@@ -43,15 +43,9 @@ export function ParentDashboard() {
 
   const homeworkDone = tasks.filter((task) => task.completed).length
   const homeworkRatio = tasks.length ? `${homeworkDone}/${tasks.length}` : '0/0'
-  const firstName = childFirstName(linkedStudent, childName)
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-black text-white font-display">{t('goodEveningParent')}</h1>
-        <p className="text-xs text-slate-400 mt-1">{t('parentSub').replace('{name}', firstName || childName)}</p>
-      </div>
-
       <ChildSwitcher />
       {!linkedStudent ? (
         <p className="text-xs text-amber-200/90 rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2.5">

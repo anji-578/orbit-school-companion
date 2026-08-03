@@ -121,7 +121,18 @@ async function callViaProxy(
       model?: string
     } | null
     if (!response.ok) {
-      return { ok: false, error: payload?.error || `Proxy HTTP ${response.status}` }
+      const statusHint =
+        response.status === 401
+          ? 'Sign in required for Orbit AI'
+          : response.status === 503
+            ? 'Server auth/env not configured'
+            : response.status === 500
+              ? 'Server AI key missing'
+              : null
+      return {
+        ok: false,
+        error: payload?.error || statusHint || `Proxy HTTP ${response.status}`,
+      }
     }
     if (!payload?.text) return { ok: false, error: 'Empty proxy response' }
     return { ok: true, text: payload.text, model: payload.model }

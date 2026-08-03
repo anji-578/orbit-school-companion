@@ -1,5 +1,6 @@
-import { getAdmin, loadProfile, requireUser } from '../_lib/supabaseAdmin'
-import { verifyRazorpayCheckoutSignature } from '../_lib/razorpayCrypto'
+import { env } from '../_lib/env.js'
+import { getAdmin, loadProfile, requireUser } from '../_lib/supabaseAdmin.js'
+import { verifyRazorpayCheckoutSignature } from '../_lib/razorpayCrypto.js'
 
 export const config = { runtime: 'nodejs' }
 
@@ -19,7 +20,7 @@ export default async function handler(req: Request) {
   if (req.method === 'OPTIONS') return cors(new Response(null, { status: 204 }))
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
 
-  const keySecret = (process.env.RAZORPAY_KEY_SECRET || '').trim()
+  const keySecret = env('RAZORPAY_KEY_SECRET')
   if (!keySecret) return json({ error: 'Razorpay not configured' }, 503)
 
   const admin = getAdmin()
@@ -89,7 +90,16 @@ export default async function handler(req: Request) {
     return json({ error: 'Order invoices missing or out of school scope' }, 400)
   }
 
-  const unpaid = fees.filter((f) => f.status !== 'Paid')
+  type FeeRow = {
+    id: string
+    amount_paise: number | null
+    status: string
+    school_id: string
+    student_id: string
+  }
+  const feeRows = (fees ?? []) as FeeRow[]
+
+  const unpaid = feeRows.filter((f) => f.status !== 'Paid')
   const unpaidPaise = unpaid.reduce((sum, f) => sum + Number(f.amount_paise || 0), 0)
   // If some already paid (partial retry), remaining unpaid must not exceed order amount.
   if (unpaid.length && unpaidPaise > Number(order.amount_paise)) {
@@ -129,7 +139,7 @@ export default async function handler(req: Request) {
   }
 
   if (unpaid.length) {
-    const unpaidIds = unpaid.map((f) => f.id as string)
+    const unpaidIds = unpaid.map((f) => f.id)
     const { error: feeUpdateErr } = await admin
       .from('fee_items')
       .update({ status: 'Paid' })

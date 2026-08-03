@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { Header } from './components/layout/Header'
 import { MobileSimulator } from './components/layout/MobileSimulator'
 import { Sidebar, getRoleMeta } from './components/layout/Sidebar'
@@ -7,6 +7,13 @@ import { MainContent } from './features/MainContent'
 import { translate } from './i18n'
 import { useAuthStore } from './auth/authStore'
 import { useOrbitStore } from './store/orbitStore'
+import { childClassLabel, childDisplayName } from './lib/linkedStudent'
+
+function studentGreetingKey(hour = new Date().getHours()): 'goodMorning' | 'goodAfternoon' | 'goodEvening' {
+  if (hour < 12) return 'goodMorning'
+  if (hour < 17) return 'goodAfternoon'
+  return 'goodEvening'
+}
 
 /** Authenticated application chrome (sidebar + header + content). */
 export function AppShell() {
@@ -54,15 +61,21 @@ export function AppShell() {
   }, [notifOpen, setNotifOpen])
 
   const displayName = session?.displayName ?? 'Orbit User'
-  const greetName = displayName.split(' ')[0]
+  const studentFullName = childDisplayName(linkedStudent, displayName)
   const linkedClassLabel =
-    linkedStudent?.className
+    childClassLabel(linkedStudent) ||
+    (linkedStudent?.className
       ? `${linkedStudent.className}${linkedStudent.section ? `-${linkedStudent.section}` : ''}`
-      : null
-  const subtitle =
-    (role === 'student' || role === 'parent') && linkedClassLabel
-      ? linkedClassLabel
-      : (session?.subtitle ?? t(meta.subKey))
+      : null)
+  const greetKey = role === 'student' ? studentGreetingKey() : meta.greetKey
+  const greetName = role === 'student' ? studentFullName : displayName.split(' ')[0]
+  const subtitle = useMemo(() => {
+    if (role === 'student') {
+      return linkedClassLabel || session?.subtitle || t(meta.subKey)
+    }
+    if (role === 'parent' && linkedClassLabel) return linkedClassLabel
+    return session?.subtitle ?? t(meta.subKey)
+  }, [role, linkedClassLabel, session?.subtitle, lang, meta.subKey])
 
   return (
     <div
@@ -80,9 +93,26 @@ export function AppShell() {
               <span>{t(meta.labelKey)}</span>
             </div>
             <h1 className="font-display text-2xl lg:text-3xl font-bold tracking-tight text-white">
-              {t(meta.greetKey)}, {greetName}
+              {role === 'student' ? (
+                <>
+                  {t(greetKey)} <span aria-hidden>👋</span>
+                </>
+              ) : (
+                <>
+                  {t(greetKey)}, {greetName}
+                </>
+              )}
             </h1>
-            <p className="text-sm text-slate-400 mt-1">{subtitle}</p>
+            {role === 'student' ? (
+              <>
+                <p className="text-base sm:text-lg font-semibold text-white/95 mt-1 tracking-tight">
+                  {greetName}
+                </p>
+                <p className="text-sm text-slate-400 mt-0.5">{subtitle}</p>
+              </>
+            ) : (
+              <p className="text-sm text-slate-400 mt-1">{subtitle}</p>
+            )}
             {session?.provider === 'local-demo' ? (
               <p className="text-[10px] text-amber-300/90 mt-2 font-semibold">{t('authDemoHint')}</p>
             ) : null}

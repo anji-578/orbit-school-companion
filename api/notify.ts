@@ -1,5 +1,6 @@
 import webpush from 'web-push'
-import { getAdmin, loadProfile, requireUser } from './_lib/supabaseAdmin'
+import { env, envFirst } from './_lib/env.js'
+import { getAdmin, loadProfile, requireUser } from './_lib/supabaseAdmin.js'
 
 export const config = { runtime: 'nodejs' }
 
@@ -26,18 +27,18 @@ function json(data: unknown, status = 200) {
 }
 
 function configureWebPush() {
-  const publicKey = (process.env.VITE_VAPID_PUBLIC_KEY || process.env.VAPID_PUBLIC_KEY || '').trim()
-  const privateKey = (process.env.VAPID_PRIVATE_KEY || '').trim()
-  const subject = (process.env.VAPID_SUBJECT || 'mailto:alerts@orbit.app').trim()
+  const publicKey = envFirst('VITE_VAPID_PUBLIC_KEY', 'VAPID_PUBLIC_KEY')
+  const privateKey = env('VAPID_PRIVATE_KEY')
+  const subject = env('VAPID_SUBJECT') || 'mailto:alerts@orbit.app'
   if (!publicKey || !privateKey) return null
   webpush.setVapidDetails(subject, publicKey, privateKey)
   return true
 }
 
 async function sendMsg91Sms(to: string, message: string) {
-  const authKey = (process.env.MSG91_AUTH_KEY || '').trim()
-  const sender = (process.env.MSG91_SENDER_ID || 'ORBITA').trim()
-  const templateId = (process.env.MSG91_TEMPLATE_ID || '').trim()
+  const authKey = env('MSG91_AUTH_KEY')
+  const sender = env('MSG91_SENDER_ID') || 'ORBITA'
+  const templateId = env('MSG91_TEMPLATE_ID')
   if (!authKey) {
     return { status: 'skipped' as const, error: 'MSG91_AUTH_KEY not set' }
   }
@@ -67,7 +68,7 @@ export default async function handler(req: Request) {
   const admin = getAdmin()
   if (!admin) return json({ error: 'Server misconfigured' }, 503)
 
-  const internalSecret = (process.env.NOTIFY_INTERNAL_SECRET || '').trim()
+  const internalSecret = env('NOTIFY_INTERNAL_SECRET')
   const providedSecret = (req.headers.get('x-orbit-notify-secret') || '').trim()
   const secretOk = Boolean(internalSecret && providedSecret && providedSecret === internalSecret)
 
@@ -157,7 +158,9 @@ export default async function handler(req: Request) {
     if (recipientIds.size) pushQuery = pushQuery.in('user_id', [...recipientIds])
   } else if (schoolId) {
     const { data: members } = await admin.from('profiles').select('id').eq('school_id', schoolId).limit(500)
-    const ids = (members ?? []).map((m) => m.id as string).filter(Boolean)
+    const ids = (members ?? [])
+      .map((m: { id?: string }) => m.id as string)
+      .filter(Boolean)
     if (ids.length) pushQuery = pushQuery.in('user_id', ids)
   } else {
     return json({ error: 'school or studentId required for fan-out' }, 400)
@@ -166,7 +169,7 @@ export default async function handler(req: Request) {
   const { data: subs } = await pushQuery
   if (pushReady && subs?.length) {
     await Promise.all(
-      subs.map(async (sub) => {
+      subs.map(async (sub: { endpoint: string; p256dh: string; auth: string; user_id: string }) => {
         try {
           const { data: pref } = await admin
             .from('alert_preferences')
@@ -205,7 +208,7 @@ export default async function handler(req: Request) {
     if (payload.smsPhone?.trim() && callerRole === 'school') phones.add(payload.smsPhone.trim())
 
     const { data: schoolMembers } = await admin.from('profiles').select('id').eq('school_id', schoolId)
-    const memberIds = (schoolMembers ?? []).map((m) => m.id as string)
+    const memberIds = (schoolMembers ?? []).map((m: { id?: string }) => m.id as string)
     if (memberIds.length) {
       const { data: prefs } = await admin
         .from('alert_preferences')
@@ -257,7 +260,7 @@ export default async function handler(req: Request) {
     configured: {
       vapid: Boolean(pushReady),
       supabaseAdmin: true,
-      msg91: Boolean((process.env.MSG91_AUTH_KEY || '').trim()),
+      msg91: Boolean(env('MSG91_AUTH_KEY')),
     },
   })
 }

@@ -94,16 +94,16 @@ export function getTabsForRole(
   const all: Record<Role, OrbitTab[]> = {
     student: [
       { id: 'dashboard', label: t('studentDashboard'), icon: Sliders },
-      { id: 'alerts', label: t('alertsTitle'), icon: BellRing },
+      { id: 'schedule', label: t('studentSchedule'), icon: Calendar },
+      { id: 'assignments', label: t('studentAssignments'), icon: CheckSquare },
+      { id: 'academics', label: t('studentAcademics'), icon: FileText },
+      { id: 'attendance', label: t('studentAttendance'), icon: CheckCircle },
       { id: 'study-assistant', label: t('studentStudyCopilot'), icon: BrainCircuit },
       { id: 'scanner', label: t('studentScanner'), icon: Clipboard },
-      { id: 'syllabus-explorer', label: t('studentSyllabus'), icon: BookMarked },
-      { id: 'academics', label: t('studentAcademics'), icon: FileText },
-      { id: 'assignments', label: t('studentAssignments'), icon: CheckSquare },
-      { id: 'schedule', label: t('studentSchedule'), icon: Calendar },
-      { id: 'attendance', label: t('studentAttendance'), icon: CheckCircle },
       { id: 'calendar', label: t('sharedCalendarTitle'), icon: CalendarDays },
       { id: 'achievements', label: t('studentAchievements'), icon: Trophy },
+      { id: 'alerts', label: t('alertsTitle'), icon: BellRing },
+      { id: 'syllabus-explorer', label: t('studentSyllabus'), icon: BookMarked },
       { id: 'extracurriculars', label: t('studentExtracurriculars'), icon: Target },
     ],
     parent: [
@@ -207,7 +207,7 @@ export function Sidebar() {
       ) : null}
 
       <aside
-        className={`fixed md:sticky top-0 left-0 z-50 md:z-30 h-dvh w-72 glass-strong border-r border-white/10 p-5 flex flex-col justify-between transition-transform duration-300 ${
+        className={`orbit-mobile-nav fixed md:sticky top-0 left-0 z-50 md:z-30 h-dvh w-72 glass-strong border-r border-white/10 p-5 flex flex-col justify-between transition-transform duration-300 ${
           mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
         aria-label="Primary navigation"
@@ -334,7 +334,7 @@ export function Sidebar() {
 
       <button
         type="button"
-        className="fixed top-3 left-3 z-30 md:hidden p-2 rounded-xl glass-strong text-white"
+        className="fixed top-3 left-3 z-30 md:hidden p-2 rounded-xl bg-[var(--panel)] border border-white/10 text-white shadow-lg"
         aria-label="Open menu"
         onClick={() => setMobileMenuOpen(true)}
       >
