@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useMemo } from 'react'
 import { CheckCircle2, Info, Loader2, Mic, MicOff, RefreshCw, Send, Volume2, VolumeX, XCircle } from 'lucide-react'
 import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
@@ -8,6 +8,7 @@ import { renderFormattedContent } from '../../lib/markdown'
 import { startVoiceRecognition, speakText } from '../../lib/speech'
 import type { VoiceRecognitionHandle, SpeechHandle } from '../../lib/speech'
 import { Panel, Card, Eyebrow } from '../../components/ui/primitives'
+import { currentDayCode, deriveTodayTimeline } from '../../lib/timetableApi'
 
 export function StudyAssistant() {
   const lang = useOrbitStore((s) => s.lang)
@@ -36,12 +37,20 @@ export function StudyAssistant() {
   const triggerToast = useOrbitStore((s) => s.triggerToast)
   const unlockBadge = useOrbitStore((s) => s.unlockBadge)
   const addXp = useOrbitStore((s) => s.addXp)
+  const timetableByDay = useOrbitStore((s) => s.timetableByDay)
 
   const recognitionRef = useRef<VoiceRecognitionHandle | null>(null)
   const speechRef = useRef<SpeechHandle | null>(null)
   const [quizLoading, setQuizLoading] = useState(false)
 
   const t = (key: string) => translate(lang, key)
+
+  const studyNudge = useMemo(() => {
+    const next = deriveTodayTimeline(timetableByDay[currentDayCode()]).find(
+      (item) => item.status !== 'Completed',
+    )
+    return next ? t('studyNudgeRevision').replace('{subject}', next.name) : null
+  }, [timetableByDay, lang])
 
   const handleAsk = async () => {
     if (!aiPrompt.trim() || aiLoading) return
@@ -141,6 +150,16 @@ export function StudyAssistant() {
           <Info className="h-3.5 w-3.5 shrink-0" aria-hidden />
           Gemini API key not configured — running in offline demo mode.
         </div>
+      ) : null}
+
+      {!aiResponse && !quizMode && studyNudge ? (
+        <button
+          type="button"
+          onClick={() => setAiPrompt(studyNudge)}
+          className="w-full text-left text-[11px] text-[var(--ai-hint)] bg-violet-500/10 border border-violet-500/25 rounded-xl px-3 py-2 hover:border-violet-400/40 transition"
+        >
+          {studyNudge}
+        </button>
       ) : null}
 
       <div className="space-y-3">

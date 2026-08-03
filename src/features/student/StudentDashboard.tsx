@@ -154,7 +154,7 @@ export function StudentDashboard() {
           <button
             type="button"
             onClick={() => setActiveTab('scanner')}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold border border-[color-mix(in_srgb,var(--ai-hint)_35%,transparent)]"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold border border-violet-500/35"
             style={{
               background: 'color-mix(in srgb, var(--ai-hint) 16%, transparent)',
               color: 'var(--ai-hint)',
@@ -215,7 +215,7 @@ export function StudentDashboard() {
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 p-3 rounded-xl bg-[color-mix(in_srgb,var(--health-warn)_10%,transparent)] border border-[color-mix(in_srgb,var(--health-warn)_25%,transparent)]">
+          <div className="flex flex-wrap items-center gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/25">
             <BookOpen className="h-4 w-4 text-[var(--health-warn)] shrink-0" aria-hidden />
             <div className="min-w-0 flex-1">
               <p className="text-xs font-bold text-white">{homeworkHeadline}</p>
@@ -369,7 +369,7 @@ export function StudentDashboard() {
                       item.status === 'Live'
                         ? 'bg-rose-500/15 text-rose-300 border border-rose-500/25'
                         : item.status === 'Completed'
-                          ? 'bg-[color-mix(in_srgb,var(--health-good)_15%,transparent)] text-[var(--health-good)] border border-[color-mix(in_srgb,var(--health-good)_25%,transparent)]'
+                          ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/25'
                           : 'bg-white/10 text-slate-300 border border-white/10'
                     }`}
                   >
@@ -388,7 +388,7 @@ export function StudentDashboard() {
         <div className="grid sm:grid-cols-3 gap-4">
           {focusAreas.map((topic) => (
             <Card key={topic.name} className="p-4 space-y-2">
-              <span className="text-[9px] font-black uppercase px-2 py-1 rounded-full bg-[color-mix(in_srgb,var(--health-warn)_15%,transparent)] text-[var(--health-warn)] border border-[color-mix(in_srgb,var(--health-warn)_25%,transparent)] inline-block">
+              <span className="text-[9px] font-black uppercase px-2 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/25 inline-block">
                 {t('needsPolish')}
               </span>
               <h4 className="text-xs font-bold text-white">{topic.name}</h4>
@@ -399,13 +399,12 @@ export function StudentDashboard() {
         </div>
       </Panel>
 
-      <Card className="p-5 flex flex-col sm:flex-row items-center justify-between gap-4 border-[color-mix(in_srgb,var(--ai-hint)_30%,transparent)]">
+      <Card className="p-5 flex flex-col sm:flex-row items-center justify-between gap-4 border-violet-500/25">
         <div className="flex items-center gap-3">
           <div
-            className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0"
-            style={{ background: 'color-mix(in srgb, var(--ai-hint) 18%, transparent)' }}
+            className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0 bg-violet-500/15"
           >
-            <BrainCircuit className="h-5 w-5" style={{ color: 'var(--ai-hint)' }} aria-hidden />
+            <BrainCircuit className="h-5 w-5 text-[var(--ai-hint)]" aria-hidden />
           </div>
           <div>
             <h3 className="text-sm font-bold text-white">{t('askAi')}</h3>
