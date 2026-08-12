@@ -49,6 +49,10 @@ export function LoginPage({ role }: { role: Role }) {
     if (passwordRecovery) setMode('reset')
   }, [passwordRecovery])
 
+  useEffect(() => {
+    if (mode === 'signin' && !email) setEmail(hint.email)
+  }, [mode, hint.email, email])
+
   const switchMode = (next: Mode) => {
     setMode(next)
     clearAuthError()
@@ -351,12 +355,14 @@ export function LoginPage({ role }: { role: Role }) {
           {mode === 'signin' || mode === 'signup' ? (
             <div className="rounded-2xl bg-white/5 border border-white/10 p-3 space-y-1">
               <p className="text-[9px] font-black uppercase tracking-widest text-amber-300/90">
-                {usingSupabase ? t('credentialsStoredIn') : t('demoCredentials')}
+                {t('demoCredentials')}
               </p>
-              <p className="text-[11px] text-slate-300 leading-relaxed">
-                {usingSupabase ? t('credentialsStoredHint') : `${hint.email} / ${hint.password}`}
+              <p className="text-[11px] text-slate-300 leading-relaxed font-mono">
+                {hint.email} / {hint.password}
               </p>
-              {!usingSupabase ? <p className="text-[10px] text-slate-500">{t('demoCredentialsHint')}</p> : null}
+              <p className="text-[10px] text-slate-500">
+                {usingSupabase ? t('demoCredentialsSupabaseHint') : t('demoCredentialsHint')}
+              </p>
             </div>
           ) : null}
         </div>

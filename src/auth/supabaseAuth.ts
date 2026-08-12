@@ -1,5 +1,5 @@
 import type { Role } from '../types'
-import { DEMO_USERS } from './demoUsers'
+import { DEMO_USERS, findDemoUser } from './demoUsers'
 import { getSupabase } from '../lib/supabase'
 
 export interface OrbitProfile {
@@ -175,29 +175,29 @@ export async function supabaseSignUp(
   return { ok: true, profile }
 }
 
-/** Sign in only — does not auto-create accounts (use Sign up). */
-export async function supabaseLogin(
+/** Align documented demo accounts in Auth (create / reset password via service role). */
+async function ensureDemoAccount(role: Role, email: string, password: string): Promise<boolean> {
+  try {
+    const res = await fetch('/api/ensure-demo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role, email, password }),
+    })
+    if (!res.ok) return false
+    const body = (await res.json()) as { ok?: boolean }
+    return Boolean(body.ok)
+  } catch {
+    return false
+  }
+}
+
+async function completeSupabaseLogin(
   selectedRole: Role,
-  email: string,
-  password: string,
+  user: { id: string; email?: string | null; user_metadata?: Record<string, unknown> },
 ): Promise<{ ok: true; profile: OrbitProfile } | { ok: false; error: string }> {
   const supabase = getSupabase()
   if (!supabase) return { ok: false, error: 'Supabase is not configured.' }
 
-  const normalized = email.trim().toLowerCase()
-  const signedIn = await supabase.auth.signInWithPassword({
-    email: normalized,
-    password,
-  })
-
-  if (signedIn.error || !signedIn.data.user) {
-    return {
-      ok: false,
-      error: authErrorMessage(signedIn.error?.message ?? 'Invalid email or password.'),
-    }
-  }
-
-  const user = signedIn.data.user
   const profileRow = await fetchProfile(user.id)
   const profile = sessionFromAuthUser(user, selectedRole, profileRow)
 
@@ -211,6 +211,69 @@ export async function supabaseLogin(
 
   await upsertProfile(profile)
   return { ok: true, profile }
+}
+
+/**
+ * Sign in. Documented demo credentials (`*@orbit.app`) are auto-provisioned /
+ * password-aligned via `/api/ensure-demo` when the first attempt fails.
+ */
+export async function supabaseLogin(
+  selectedRole: Role,
+  email: string,
+  password: string,
+): Promise<{ ok: true; profile: OrbitProfile } | { ok: false; error: string; demoFallback?: true }> {
+  const supabase = getSupabase()
+  if (!supabase) return { ok: false, error: 'Supabase is not configured.' }
+
+  const normalized = email.trim().toLowerCase()
+  const demo = findDemoUser(selectedRole, normalized, password)
+
+  let signedIn = await supabase.auth.signInWithPassword({
+    email: normalized,
+    password,
+  })
+
+  if ((signedIn.error || !signedIn.data.user) && demo) {
+    const ensured = await ensureDemoAccount(selectedRole, normalized, password)
+    if (ensured) {
+      signedIn = await supabase.auth.signInWithPassword({
+        email: normalized,
+        password,
+      })
+    } else {
+      // Client-only fallback: try sign-up when the user is missing (not wrong password).
+      const created = await supabase.auth.signUp({
+        email: normalized,
+        password,
+        options: {
+          data: {
+            role: selectedRole,
+            display_name: demo.displayName,
+            subtitle: demo.subtitle,
+          },
+        },
+      })
+      if (created.data.session?.user) {
+        return completeSupabaseLogin(selectedRole, created.data.session.user)
+      }
+      // Service role missing / password drifted — allow local demo session.
+      return {
+        ok: false,
+        error: authErrorMessage(signedIn.error?.message ?? 'Invalid email or password.'),
+        demoFallback: true,
+      }
+    }
+  }
+
+  if (signedIn.error || !signedIn.data.user) {
+    return {
+      ok: false,
+      error: authErrorMessage(signedIn.error?.message ?? 'Invalid email or password.'),
+      ...(demo ? { demoFallback: true as const } : {}),
+    }
+  }
+
+  return completeSupabaseLogin(selectedRole, signedIn.data.user)
 }
 
 export async function supabaseLogout(): Promise<void> {

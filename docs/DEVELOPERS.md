@@ -27,8 +27,9 @@ npm run dev
 14. `supabase/storage.sql`
 15. Optional: `supabase/notifications_rls.sql`
 16. `supabase/production_hardening_v9.sql` (profiles lock, `students.active`, `teacher_classes`, `payment_orders`, `claim_demo_links`)
-17. `supabase/audit_log_v9.sql` (school-scoped mutation audit trail)
-18. `supabase/razorpay_verify_hardening.sql` (unique `razorpay_payment_id` for idempotent verify)
+17. `supabase/demo_auth_claim_teacher_v10.sql` (teacher class link in `claim_demo_links`)
+18. `supabase/audit_log_v9.sql` (school-scoped mutation audit trail)
+19. `supabase/razorpay_verify_hardening.sql` (unique `razorpay_payment_id` for idempotent verify)
 
 ## Path-to-9 deploy checklist
 
@@ -56,6 +57,8 @@ Pilot invite codes (after seed): `SUNRISE-STU-8A`, `SUNRISE-PAR-8A`, `SUNRISE-TC
 Connect the GitHub repo to Vercel. Set `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and optional notify/Gemini keys.
 
 Auth: turn **OFF** email confirm for demos. Add redirect URLs for password reset.
+
+Documented demo logins (`student@` / `parent@` / `teacher@` / `admin@orbit.app`) are restored on first sign-in via `/api/ensure-demo` when `SUPABASE_SERVICE_ROLE_KEY` is set. Without the service role, the client falls back to a local demo session for those exact credentials.
 
 ## Alerts (Push + SMS)
 

@@ -77,6 +77,8 @@ export const messages = {
     credentialsStoredIn: 'Where credentials are stored',
     credentialsStoredHint:
       'Your email & password are saved in Supabase Auth for this profile role. Use Sign in next time with the same email.',
+    demoCredentialsSupabaseHint:
+      'Use these demo credentials for a quick walkthrough. Orbit will provision or realign this Auth user on first sign-in.',
     email: 'Email',
     password: 'Password',
     newPassword: 'New password',
@@ -729,6 +731,8 @@ export const messages = {
     credentialsStoredIn: 'క్రెడెన్షియల్స్ ఎక్కడ స్టోర్ అవుతాయి',
     credentialsStoredHint:
       'మీ ఇమెయిల్ & పాస్‌వర్డ్ ఈ ప్రొఫైల్ రోల్‌కు సుపాబేస్ Authలో సేవ్ అవుతాయి. తర్వాత అదే ఇమెయిల్‌తో సైన్ ఇన్ చేయండి.',
+    demoCredentialsSupabaseHint:
+      'త్వరిత వాక్‌త్రూకి ఈ డెమో క్రెడెన్షియల్స్ వాడండి. మొదటి సైన్ ఇన్‌లో Orbit ఈ Auth యూజర్‌ను సృష్టించి/సరిచేస్తుంది.',
     email: 'ఇమెయిల్',
     password: 'పాస్‌వర్డ్',
     newPassword: 'కొత్త పాస్‌వర్డ్',

@@ -127,24 +127,47 @@ export const useAuthStore = create<AuthState>()(
       login: async (role, email, password) => {
         if (isSupabaseConfigured()) {
           const result = await supabaseLogin(role, email, password)
-          if (!result.ok) {
-            set({ authError: result.error, session: null })
-            return false
+          if (result.ok) {
+            set({
+              authError: null,
+              authNotice: null,
+              pendingRole: null,
+              session: {
+                userId: result.profile.id,
+                role: result.profile.role,
+                email: result.profile.email,
+                displayName: result.profile.displayName,
+                subtitle: result.profile.subtitle,
+                provider: 'supabase',
+              },
+            })
+            return true
           }
-          set({
-            authError: null,
-            authNotice: null,
-            pendingRole: null,
-            session: {
-              userId: result.profile.id,
-              role: result.profile.role,
-              email: result.profile.email,
-              displayName: result.profile.displayName,
-              subtitle: result.profile.subtitle,
-              provider: 'supabase',
-            },
-          })
-          return true
+
+          // Documented demo personas must still work on production even if Auth
+          // passwords drifted or /api/ensure-demo is unavailable.
+          if (result.demoFallback) {
+            const demo = findDemoUser(role, email, password)
+            if (demo) {
+              set({
+                authError: null,
+                authNotice: null,
+                pendingRole: null,
+                session: {
+                  userId: demo.id,
+                  role: demo.role,
+                  email: demo.email,
+                  displayName: demo.displayName,
+                  subtitle: demo.subtitle,
+                  provider: 'local-demo',
+                },
+              })
+              return true
+            }
+          }
+
+          set({ authError: result.error, session: null })
+          return false
         }
 
         await new Promise((r) => setTimeout(r, 250))

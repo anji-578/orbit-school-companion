@@ -145,6 +145,10 @@ begin
       (uid, ananya, 'guardian'),
       (uid, sarah, 'guardian')
     on conflict (parent_profile_id, student_id) do nothing;
+  elsif uemail = 'teacher@orbit.app' then
+    insert into public.teacher_classes (school_id, teacher_profile_id, class_name, section)
+    values (sid, uid, 'Grade 8', 'A')
+    on conflict (teacher_profile_id, class_name, section) do nothing;
   end if;
 
   return jsonb_build_object('ok', true, 'school_id', sid);
