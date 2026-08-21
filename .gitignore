@@ -28,3 +28,6 @@ dist-ssr
 ~$*
 
 # Office lock files
+
+# Local PDF generation venv
+.venv-pdf/
