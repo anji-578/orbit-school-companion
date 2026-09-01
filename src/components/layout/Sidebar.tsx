@@ -232,6 +232,7 @@ export function Sidebar() {
   const setActiveTab = useOrbitStore((s) => s.setActiveTab)
   const setMobileMenuOpen = useOrbitStore((s) => s.setMobileMenuOpen)
   const linkedStudent = useOrbitStore((s) => s.linkedStudent)
+  const studentProfile = useOrbitStore((s) => s.studentProfile)
   const session = useAuthStore((s) => s.session)
   const logout = useAuthStore((s) => s.logout)
   const resetDemoData = useOrbitStore((s) => s.resetDemoData)
@@ -298,19 +299,46 @@ export function Sidebar() {
             </button>
           </div>
 
-          <div className="flex items-center gap-3 p-3 bg-white/5 rounded-2xl border border-white/10">
-            <img
-              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
-              alt=""
-              className="w-10 h-10 rounded-full border border-white/20 object-cover shrink-0"
-            />
-            <div className="min-w-0">
-              <h4 className="text-xs font-bold text-white truncate">{profileName}</h4>
-              <span className="text-[9px] font-extrabold mt-1 block truncate" style={{ color: meta.accent }}>
-                {profileSub}
-              </span>
+          {role === 'student' ? (
+            <button
+              type="button"
+              onClick={() => go('profile')}
+              aria-current={activeTab === 'profile' ? 'page' : undefined}
+              aria-label={t('studentProfile')}
+              className={`w-full flex items-center gap-3 p-3 rounded-2xl border text-left transition ${
+                activeTab === 'profile'
+                  ? 'bg-white/10 border-white/20'
+                  : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
+              }`}
+            >
+              <img
+                src={studentProfile.photoUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
+                alt=""
+                className="w-10 h-10 rounded-full border border-white/20 object-cover shrink-0"
+              />
+              <div className="min-w-0 flex-1">
+                <h4 className="text-xs font-bold text-white truncate">{studentProfile.name || profileName}</h4>
+                <span className="text-[9px] font-extrabold mt-1 block truncate" style={{ color: meta.accent }}>
+                  {studentProfile.grade || profileSub}
+                </span>
+                <span className="text-[9px] text-slate-500 mt-0.5 block">{t('studentProfile')} →</span>
+              </div>
+            </button>
+          ) : (
+            <div className="flex items-center gap-3 p-3 bg-white/5 rounded-2xl border border-white/10">
+              <img
+                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
+                alt=""
+                className="w-10 h-10 rounded-full border border-white/20 object-cover shrink-0"
+              />
+              <div className="min-w-0">
+                <h4 className="text-xs font-bold text-white truncate">{profileName}</h4>
+                <span className="text-[9px] font-extrabold mt-1 block truncate" style={{ color: meta.accent }}>
+                  {profileSub}
+                </span>
+              </div>
             </div>
-          </div>
+          )}
 
           <ChildSwitcher />
 
