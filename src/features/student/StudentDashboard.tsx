@@ -83,11 +83,14 @@ export function StudentDashboard() {
   const fleet = useOrbitStore((s) => s.fleet)
   const busPosition = useOrbitStore((s) => s.busPosition)
   const busReachedSchool = useOrbitStore((s) => s.busReachedSchool)
+  const startTask = useOrbitStore((s) => s.startTask)
+  const toggleTask = useOrbitStore((s) => s.toggleTask)
 
   const t = (key: string) => translate(lang, key)
   const attendancePercent = getAttendancePercent()
   const pendingTasks = tasks.filter((task) => !task.completed)
   const doneTasks = tasks.filter((task) => task.completed)
+  const smartReminderTask = pendingTasks.find((t) => !t.completed && !t.started) || pendingTasks.find((t) => !t.completed)
   const streak = presentStreak(attendanceRecords)
 
   const todayTimeline = useMemo(
@@ -260,6 +263,62 @@ export function StudentDashboard() {
           </button>
         </div>
       </section>
+
+      {/* Smart Homework Reminder */}
+      {smartReminderTask ? (
+        <section className="p-5 rounded-3xl border border-rose-500/30 bg-rose-500/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fade-in">
+          <div className="flex items-start gap-3.5">
+            <div className="h-10 w-10 rounded-xl bg-rose-500/10 border border-rose-500/25 flex items-center justify-center shrink-0 mt-0.5">
+              <span className="text-xl">🔔</span>
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-sm font-extrabold text-white font-display flex items-center gap-2">
+                📚 {smartReminderTask.subject} homework {smartReminderTask.due.toLowerCase() === 'completed' ? 'is pending' : `due ${smartReminderTask.due.toLowerCase()}`}
+                {smartReminderTask.started ? (
+                  <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/20 animate-pulse">
+                    In Progress
+                  </span>
+                ) : (
+                  <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/20">
+                    Not Started
+                  </span>
+                )}
+              </h3>
+              <p className="text-xs text-slate-300">
+                {smartReminderTask.task}
+              </p>
+              <p className="text-[10px] text-slate-500">
+                Estimated time: <strong className="text-rose-300">{smartReminderTask.estimatedMinutes || (smartReminderTask.difficulty === 'Hard' ? 45 : smartReminderTask.difficulty === 'Medium' ? 25 : 15)} min</strong>
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2.5 shrink-0">
+            {!smartReminderTask.started ? (
+              <button
+                type="button"
+                onClick={() => {
+                  startTask(smartReminderTask.id)
+                  useOrbitStore.getState().triggerToast('Task started! Keep going!')
+                }}
+                className="px-4 py-2 rounded-xl bg-rose-500 text-white text-xs font-bold hover:bg-rose-400 transition"
+              >
+                Start now?
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  toggleTask(smartReminderTask.id)
+                  useOrbitStore.getState().triggerToast('Task completed! Great job!')
+                }}
+                className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-500 transition"
+              >
+                Mark complete
+              </button>
+            )}
+          </div>
+        </section>
+      ) : null}
 
       {/* Mission + streak + AI */}
       <div className="grid lg:grid-cols-12 gap-4">

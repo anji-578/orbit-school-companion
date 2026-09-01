@@ -43,6 +43,78 @@ export interface HomeworkTask {
   xp: number
   completed: boolean
   difficulty: 'Easy' | 'Medium' | 'Hard'
+  /** Estimated minutes to finish; derived from difficulty when omitted. */
+  estimatedMinutes?: number
+  /** Student has opened / started the task. */
+  started?: boolean
+}
+
+export type CompetitionCategory =
+  | 'Quiz'
+  | 'Spell Bee'
+  | 'Drawing'
+  | 'Coding'
+  | 'Chess'
+  | 'Debate'
+  | 'Public Speaking'
+  | 'Mathematics'
+  | 'Science'
+  | 'Sports'
+  | 'Karate'
+  | 'Music'
+
+export type CompetitionEnrollmentStatus = 'registered' | 'paid' | 'participated' | 'result'
+
+export interface ProfileListItem {
+  id: string
+  title: string
+  subtitle?: string
+  date?: string
+  meta?: string
+  /** When set, this entry was auto-fed from an Orbit competition. */
+  sourceCompetitionId?: string
+}
+
+export interface StudentAcademicProfile {
+  photoUrl: string
+  name: string
+  school: string
+  grade: string
+  interests: string[]
+  subjects: string[]
+  skills: string[]
+  languages: string[]
+  hobbies: string[]
+  sports: string[]
+  certifications: ProfileListItem[]
+  achievements: ProfileListItem[]
+  competitions: ProfileListItem[]
+  projects: ProfileListItem[]
+  clubs: ProfileListItem[]
+  milestones: ProfileListItem[]
+}
+
+export interface OrbitCompetition {
+  id: string
+  title: string
+  category: CompetitionCategory
+  city: string
+  priceInr: number
+  date: string
+  participantCount: number
+  description: string
+  totalSlots: number
+}
+
+export interface CompetitionEnrollment {
+  competitionId: string
+  status: CompetitionEnrollmentStatus
+  registeredAt: string
+  paidAt?: string
+  participatedAt?: string
+  rank?: number
+  totalParticipants?: number
+  resultPostedAt?: string
 }
 
 export interface StudentGrade {

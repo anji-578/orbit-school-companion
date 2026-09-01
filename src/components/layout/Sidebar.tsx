@@ -1,4 +1,5 @@
 import {
+  Award,
   Bell,
   BellRing,
   BookMarked,
@@ -113,6 +114,7 @@ export function getStudentNavGroups(lang: 'en' | 'te'): OrbitNavGroup[] {
           badge: t('navNewBadge'),
         },
         { id: 'syllabus-explorer', label: t('navSubjects'), icon: BookMarked },
+        { id: 'competitions', label: t('studentCompetitions'), icon: Award },
         { id: 'scanner', label: t('studentScanner'), icon: Clipboard },
         { id: 'extracurriculars', label: t('navResources'), icon: Target },
       ],
@@ -120,6 +122,7 @@ export function getStudentNavGroups(lang: 'en' | 'te'): OrbitNavGroup[] {
     {
       label: t('navProgress'),
       tabs: [
+        { id: 'profile', label: t('studentProfile'), icon: GraduationCap },
         { id: 'academics', label: t('navProgressReports'), icon: FileText },
         { id: 'achievements', label: t('studentAchievements'), icon: Trophy },
         { id: 'attendance', label: t('studentAttendance'), icon: CheckCircle },

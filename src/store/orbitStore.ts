@@ -16,6 +16,9 @@ import {
   initialRoster,
   initialTasks,
   schoolTeachers,
+  initialStudentProfile,
+  initialCompetitions,
+  initialCompetitionEnrollments,
 } from '../data/demo'
 import { computeStudyScore } from '../lib/studyScore'
 import { dispatchRemoteAlert, eventTypeFromNotification } from '../lib/alerts'
@@ -90,6 +93,9 @@ import type {
   SyllabusChapter,
   TeacherProfile,
   ThemeMode,
+  StudentAcademicProfile,
+  OrbitCompetition,
+  CompetitionEnrollment,
 } from '../types'
 
 interface OrbitState {
@@ -108,6 +114,10 @@ interface OrbitState {
   roster: RosterStudent[]
   unlockedBadges: string[]
   totalXp: number
+
+  studentProfile: StudentAcademicProfile
+  competitions: OrbitCompetition[]
+  competitionEnrollments: CompetitionEnrollment[]
 
   fees: FeeItem[]
   feesHasMore: boolean
@@ -264,6 +274,12 @@ interface OrbitState {
   setLifecycleMetric: (m: 'marks' | 'ranks') => void
   unlockBadge: (name: string) => void
   addXp: (amount: number) => void
+
+  updateStudentProfile: (profile: Partial<StudentAcademicProfile>) => void
+  registerForCompetition: (competitionId: string) => void
+  payForCompetition: (competitionId: string) => void
+  completeCompetition: (competitionId: string, rank: number) => void
+  startTask: (id: number) => void
 }
 
 let toastTimer: ReturnType<typeof setTimeout> | null = null
@@ -286,6 +302,10 @@ export const useOrbitStore = create<OrbitState>()(
       roster: initialRoster,
       unlockedBadges: ['Streak Keeper', 'Early Bird', 'Curious Mind'],
       totalXp: 430,
+
+      studentProfile: initialStudentProfile,
+      competitions: initialCompetitions,
+      competitionEnrollments: initialCompetitionEnrollments,
 
       fees: initialFees,
       feesHasMore: false,
@@ -1048,6 +1068,74 @@ export const useOrbitStore = create<OrbitState>()(
         )
       },
       addXp: (amount) => set((s) => ({ totalXp: s.totalXp + amount })),
+
+      updateStudentProfile: (profile) => set((s) => ({
+        studentProfile: { ...s.studentProfile, ...profile }
+      })),
+
+      registerForCompetition: (competitionId) => set((s) => {
+        const exists = s.competitionEnrollments.some((e) => e.competitionId === competitionId)
+        if (exists) return s
+        const newEnrollment: CompetitionEnrollment = {
+          competitionId,
+          status: 'registered',
+          registeredAt: new Date().toISOString().slice(0, 10),
+        }
+        return {
+          competitionEnrollments: [...s.competitionEnrollments, newEnrollment]
+        }
+      }),
+
+      payForCompetition: (competitionId) => set((s) => {
+        const enrollments = s.competitionEnrollments.map((e) => {
+          if (e.competitionId !== competitionId) return e
+          return {
+            ...e,
+            status: 'paid' as const,
+            paidAt: new Date().toISOString().slice(0, 10),
+          }
+        })
+        return { competitionEnrollments: enrollments }
+      }),
+
+      completeCompetition: (competitionId, rank) => set((s) => {
+        const comp = s.competitions.find((c) => c.id === competitionId)
+        if (!comp) return s
+        const enrollments = s.competitionEnrollments.map((e) => {
+          if (e.competitionId !== competitionId) return e
+          return {
+            ...e,
+            status: 'result' as const,
+            participatedAt: new Date().toISOString().slice(0, 10),
+            rank,
+            totalParticipants: comp.participantCount,
+            resultPostedAt: new Date().toISOString().slice(0, 10),
+          }
+        })
+        const newProfileComp = {
+          id: `comp_profile_${competitionId}`,
+          title: comp.title,
+          subtitle: comp.city,
+          date: comp.date,
+          meta: `Rank ${rank} / ${comp.participantCount}`,
+          sourceCompetitionId: competitionId,
+        }
+        const updatedProfile = {
+          ...s.studentProfile,
+          competitions: [
+            ...s.studentProfile.competitions.filter((c) => c.sourceCompetitionId !== competitionId),
+            newProfileComp,
+          ],
+        }
+        return {
+          competitionEnrollments: enrollments,
+          studentProfile: updatedProfile,
+        }
+      }),
+
+      startTask: (id) => set((s) => ({
+        tasks: s.tasks.map((t) => t.id === id ? { ...t, started: true } : t)
+      })),
     }),
     {
       name: 'orbit-school-v1',
@@ -1073,6 +1161,9 @@ export const useOrbitStore = create<OrbitState>()(
         candidates: s.candidates,
         notifications: s.notifications,
         studyScore: s.studyScore,
+        studentProfile: s.studentProfile,
+        competitions: s.competitions,
+        competitionEnrollments: s.competitionEnrollments,
       }),
     },
   ),

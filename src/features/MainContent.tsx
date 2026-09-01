@@ -15,6 +15,8 @@ import { SchedulePanel } from './student/SchedulePanel'
 import { AttendancePanel } from './student/AttendancePanel'
 import { AchievementsPanel } from './student/AchievementsPanel'
 import { SyllabusExplorer } from './student/SyllabusExplorer'
+import { AcademicProfile } from './student/AcademicProfile'
+import { CompetitionsPanel } from './student/CompetitionsPanel'
 
 import { ParentDashboard } from './parent/ParentDashboard'
 import { TeachersPanel } from './parent/TeachersPanel'
@@ -55,6 +57,8 @@ const ROLE_ROUTES: Record<Role, Record<string, ComponentType>> = {
     calendar: CalendarView,
     achievements: AchievementsPanel,
     extracurriculars: ExtracurricularPanel,
+    profile: AcademicProfile,
+    competitions: CompetitionsPanel,
   },
   parent: {
     dashboard: ParentDashboard,
