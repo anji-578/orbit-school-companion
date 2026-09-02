@@ -71,7 +71,7 @@ export function AppShell() {
   const greetName = role === 'student' ? studentFullName.split(' ')[0] : displayName.split(' ')[0]
   const subtitle = useMemo(() => {
     if (role === 'student') {
-      return t('studentEncourageSub')
+      return t('homeGreetingMatters')
     }
     if (role === 'parent' && linkedClassLabel) return linkedClassLabel
     return session?.subtitle ?? t(meta.subKey)

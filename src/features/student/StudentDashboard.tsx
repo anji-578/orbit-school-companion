@@ -1,24 +1,57 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useMemo } from 'react'
 import {
   ArrowRight,
-  Bot,
   Bus,
-  Calendar,
   CalendarDays,
-  Check,
+  CheckCircle2,
+  Circle,
   Flame,
   Star,
   Trophy,
-  Zap,
+  AlertTriangle,
 } from 'lucide-react'
 import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
 import { currentDayCode, deriveTodayTimeline } from '../../lib/timetableApi'
 import { InviteRedeemCard } from '../../components/ui/InviteRedeemCard'
 import { SunViz } from './SunViz'
+import type { CalendarEvent, HomeworkTask, StudentGrade } from '../../types'
 
 const ATTENDANCE_GOAL = 90
 const XP_PER_LEVEL = 100
+
+const GRADE_SUBJECTS: { field: 'math' | 'science' | 'chem'; subjectKey: string; feedbackKey: string }[] = [
+  { field: 'math', subjectKey: 'mathSubject', feedbackKey: 'mathFeedback' },
+  { field: 'science', subjectKey: 'scienceSubject', feedbackKey: 'scienceFeedback' },
+  { field: 'chem', subjectKey: 'chemLabSubject', feedbackKey: 'chemFeedback' },
+]
+
+type PriorityKind = 'homework' | 'exam' | 'class' | 'caught_up'
+
+type PriorityAction = {
+  kind: PriorityKind
+  title: string
+  detail: string
+  estimate?: string
+  cta: string
+  onCta: () => void
+  orbitHint?: string
+}
+
+type AttentionItem = {
+  id: string
+  tone: 'warn' | 'info'
+  label: string
+  title: string
+  body: string
+}
+
+type DayTask = {
+  id: string
+  title: string
+  meta: string
+  onOpen: () => void
+}
 
 function presentStreak(records: { status: string }[]): number {
   let streak = 0
@@ -49,25 +82,64 @@ function minutesUntilAmPm(label: string, now = new Date()): number | null {
   return Math.round((target.getTime() - now.getTime()) / 60000)
 }
 
-function healthLabelKey(score: number): 'healthExcellent' | 'healthGood' | 'healthNeedsAttention' {
+function taskMinutes(task: HomeworkTask): number {
+  if (task.estimatedMinutes != null) return task.estimatedMinutes
+  if (task.difficulty === 'Hard') return 45
+  if (task.difficulty === 'Easy') return 15
+  return 25
+}
+
+function dueUrgency(due: string): number {
+  const d = due.toLowerCase()
+  if (d.includes('tomorrow') || d === 'tomorrow') return 0
+  if (d.includes('today') || d.includes('due today')) return 0
+  if (d.includes('2 day') || d.includes('due in 2')) return 1
+  if (d.includes('completed')) return 9
+  return 2
+}
+
+function parseEventDate(raw: string): Date | null {
+  const d = new Date(raw)
+  return Number.isNaN(d.getTime()) ? null : d
+}
+
+function daysUntil(raw: string, now = new Date()): number | null {
+  const d = parseEventDate(raw)
+  if (!d) return null
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const target = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+  return Math.round((target.getTime() - start.getTime()) / 86400000)
+}
+
+function categoryRank(category: CalendarEvent['category']): number {
+  if (category === 'Exams') return 0
+  if (category === 'Extracurricular') return 1
+  if (category === 'PTA Meetings') return 2
+  return 3
+}
+
+function progressLabelKey(score: number): 'healthExcellent' | 'healthGood' | 'healthNeedsAttention' {
   if (score >= 85) return 'healthExcellent'
   if (score >= 70) return 'healthGood'
   return 'healthNeedsAttention'
 }
 
-function minutesForTask(difficulty: string): number {
-  if (difficulty === 'Hard') return 20
-  if (difficulty === 'Easy') return 10
-  return 15
+function parseScorePercent(raw: string): number {
+  const [obtainedRaw, totalRaw] = raw.split('/')
+  const obtained = Number(obtainedRaw) || 0
+  const total = Number(totalRaw) || 50
+  return Math.round((obtained / total) * 100)
 }
 
-function formatClockIn(mins: number): string {
-  const d = new Date()
-  d.setMinutes(d.getMinutes() + mins)
-  return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+function subjectSnapshots(grade: StudentGrade | undefined) {
+  if (!grade) return []
+  return GRADE_SUBJECTS.map((row) => ({
+    ...row,
+    percent: parseScorePercent(grade[row.field]),
+  }))
 }
 
-/** Student home — actionable “what should I do today?” layout. */
+/** Student home — companion hierarchy: Today → Priority → Tasks → Attention → Progress → Wins → Coming up → Discover. */
 export function StudentDashboard() {
   const lang = useOrbitStore((s) => s.lang)
   const classLinked = useOrbitStore((s) => s.classLinked)
@@ -76,22 +148,31 @@ export function StudentDashboard() {
   const getAttendancePercent = useOrbitStore((s) => s.getAttendancePercent)
   const attendanceRecords = useOrbitStore((s) => s.attendanceRecords)
   const tasks = useOrbitStore((s) => s.tasks)
+  const studentGrades = useOrbitStore((s) => s.studentGrades)
   const unlockedBadges = useOrbitStore((s) => s.unlockedBadges)
   const totalXp = useOrbitStore((s) => s.totalXp)
   const calendarEvents = useOrbitStore((s) => s.calendarEvents)
+  const competitions = useOrbitStore((s) => s.competitions)
   const setActiveTab = useOrbitStore((s) => s.setActiveTab)
   const fleet = useOrbitStore((s) => s.fleet)
   const busPosition = useOrbitStore((s) => s.busPosition)
   const busReachedSchool = useOrbitStore((s) => s.busReachedSchool)
   const startTask = useOrbitStore((s) => s.startTask)
   const toggleTask = useOrbitStore((s) => s.toggleTask)
+  const triggerToast = useOrbitStore((s) => s.triggerToast)
 
   const t = (key: string) => translate(lang, key)
   const attendancePercent = getAttendancePercent()
-  const pendingTasks = tasks.filter((task) => !task.completed)
-  const doneTasks = tasks.filter((task) => task.completed)
-  const smartReminderTask = pendingTasks.find((t) => !t.completed && !t.started) || pendingTasks.find((t) => !t.completed)
+  const pendingTasks = useMemo(
+    () =>
+      [...tasks.filter((task) => !task.completed)].sort(
+        (a, b) => dueUrgency(a.due) - dueUrgency(b.due) || taskMinutes(b) - taskMinutes(a),
+      ),
+    [tasks],
+  )
+  const doneCount = tasks.filter((task) => task.completed).length
   const streak = presentStreak(attendanceRecords)
+  const gradeSubjects = useMemo(() => subjectSnapshots(studentGrades[0]), [studentGrades])
 
   const todayTimeline = useMemo(
     () => deriveTodayTimeline(timetableByDay[currentDayCode()]),
@@ -99,11 +180,211 @@ export function StudentDashboard() {
   )
   const nextClasses = todayTimeline.filter((item) => item.status !== 'Completed')
   const nextLive = nextClasses[0]
+  const classCount = todayTimeline.length || nextClasses.length
 
   const activeBus = fleet.find((b) => b.active) ?? fleet[0]
-  const busEta =
-    activeBus && activeBus.active ? estimateBusEtaMinutes(busPosition, busReachedSchool) : null
+  const busRelevant = Boolean(activeBus?.active) && !busReachedSchool
+  const busEta = busRelevant ? estimateBusEtaMinutes(busPosition, busReachedSchool) : null
   const classInMins = nextLive ? minutesUntilAmPm(nextLive.time) : null
+
+  const studyMinutes = pendingTasks.reduce((sum, task) => sum + taskMinutes(task), 0)
+
+  const urgentHomework = pendingTasks.find((task) => dueUrgency(task.due) === 0)
+  const soonExam = useMemo(() => {
+    return calendarEvents
+      .filter((ev) => ev.category === 'Exams')
+      .map((ev) => ({ ev, days: daysUntil(ev.date) }))
+      .filter((row) => row.days != null && row.days >= 0 && row.days <= 3)
+      .sort((a, b) => (a.days ?? 99) - (b.days ?? 99))[0]
+  }, [calendarEvents])
+
+  const priority = useMemo<PriorityAction>(() => {
+    if (urgentHomework) {
+      const mins = taskMinutes(urgentHomework)
+      const status = urgentHomework.started
+        ? t('homePriorityInProgress')
+        : t('homePriorityNotStarted')
+      return {
+        kind: 'homework',
+        title: `${urgentHomework.subject} · ${urgentHomework.task}`,
+        detail: `${urgentHomework.due} · ${status}`,
+        estimate: t('homePriorityEstimate').replace('{mins}', String(mins)),
+        cta: urgentHomework.started ? t('homePriorityMarkDone') : t('homePriorityStartHw'),
+        onCta: () => {
+          if (!urgentHomework.started) {
+            startTask(urgentHomework.id)
+            triggerToast(t('homePriorityStartedToast'))
+            setActiveTab('assignments')
+            return
+          }
+          toggleTask(urgentHomework.id)
+          triggerToast(t('homePriorityDoneToast'))
+        },
+        orbitHint: t('homePriorityOrbitHw').replace('{mins}', String(mins)),
+      }
+    }
+
+    if (soonExam) {
+      const days = soonExam.days ?? 0
+      const when =
+        days === 0
+          ? t('homePriorityExamToday')
+          : days === 1
+            ? t('homePriorityExamTomorrow')
+            : t('homePriorityExamIn').replace('{days}', String(days))
+      return {
+        kind: 'exam',
+        title: soonExam.ev.title,
+        detail: when,
+        estimate: t('homePriorityExamHint'),
+        cta: t('homePriorityStartRevision'),
+        onCta: () => setActiveTab('study-assistant'),
+        orbitHint: t('homePriorityOrbitExam'),
+      }
+    }
+
+    if (nextLive && classInMins != null && classInMins >= 0 && classInMins <= 30) {
+      return {
+        kind: 'class',
+        title: nextLive.name,
+        detail: t('homePriorityClassSoon')
+          .replace('{time}', nextLive.time)
+          .replace('{mins}', String(classInMins)),
+        estimate: t('homePriorityClassPrep'),
+        cta: t('homePriorityPrepClass'),
+        onCta: () => setActiveTab('study-assistant'),
+        orbitHint: t('homePriorityOrbitClass')
+          .replace('{mins}', '10')
+          .replace('{subject}', nextLive.name),
+      }
+    }
+
+    if (pendingTasks[0]) {
+      const hw = pendingTasks[0]
+      const mins = taskMinutes(hw)
+      return {
+        kind: 'homework',
+        title: `${hw.subject} · ${hw.task}`,
+        detail: `${hw.due} · ${hw.started ? t('homePriorityInProgress') : t('homePriorityNotStarted')}`,
+        estimate: t('homePriorityEstimate').replace('{mins}', String(mins)),
+        cta: hw.started ? t('homePriorityMarkDone') : t('homePriorityStartHw'),
+        onCta: () => {
+          if (!hw.started) {
+            startTask(hw.id)
+            setActiveTab('assignments')
+            return
+          }
+          toggleTask(hw.id)
+        },
+        orbitHint: t('homePriorityOrbitHw').replace('{mins}', String(mins)),
+      }
+    }
+
+    return {
+      kind: 'caught_up',
+      title: t('homePriorityCaughtUpTitle'),
+      detail: t('homePriorityCaughtUpBody'),
+      cta: t('homePriorityTryChallenge'),
+      onCta: () => setActiveTab('competitions'),
+      orbitHint: t('homePriorityOrbitExplore'),
+    }
+  }, [
+    urgentHomework,
+    soonExam,
+    nextLive,
+    classInMins,
+    pendingTasks,
+    lang,
+    startTask,
+    toggleTask,
+    setActiveTab,
+    triggerToast,
+  ])
+
+  const dayTasks = useMemo<DayTask[]>(() => {
+    const items: DayTask[] = []
+    for (const hw of pendingTasks.slice(0, 3)) {
+      items.push({
+        id: `hw-${hw.id}`,
+        title: hw.task || hw.subject,
+        meta: `${taskMinutes(hw)} min · ${hw.due}`,
+        onOpen: () => setActiveTab('assignments'),
+      })
+    }
+    if (nextLive && classInMins != null && classInMins > 0 && classInMins <= 90) {
+      items.push({
+        id: 'prep-class',
+        title: t('homeTaskPrepClass').replace('{subject}', nextLive.name),
+        meta: `10 min · ${nextLive.time}`,
+        onOpen: () => setActiveTab('study-assistant'),
+      })
+    }
+    return items.slice(0, 4)
+  }, [pendingTasks, nextLive, classInMins, lang, setActiveTab])
+
+  const attentionItems = useMemo<AttentionItem[]>(() => {
+    const items: AttentionItem[] = []
+    const daysToGoal =
+      attendancePercent >= ATTENDANCE_GOAL
+        ? 0
+        : Math.max(1, Math.ceil((ATTENDANCE_GOAL - attendancePercent) / 2))
+
+    if (attendancePercent < ATTENDANCE_GOAL) {
+      items.push({
+        id: 'attendance',
+        tone: 'warn',
+        label: t('studentAttendance'),
+        title: `${attendancePercent}%`,
+        body: t('attendanceActionable')
+          .replace('{days}', String(daysToGoal))
+          .replace('{goal}', String(ATTENDANCE_GOAL))
+          .replace('{pct}', String(attendancePercent)),
+      })
+    }
+
+    if (urgentHomework && !urgentHomework.started) {
+      items.push({
+        id: 'hw-urgent',
+        tone: 'warn',
+        label: urgentHomework.subject,
+        title: t('homeAttentionHwTitle'),
+        body: t('homeAttentionHwBody').replace('{due}', urgentHomework.due),
+      })
+    }
+
+    const struggle = gradeSubjects.find((s) => s.percent < 75)
+    if (struggle) {
+      items.push({
+        id: `grade-${struggle.field}`,
+        tone: 'info',
+        label: t(struggle.subjectKey),
+        title: t('homeAttentionPracticeTitle'),
+        body: t(struggle.feedbackKey),
+      })
+    }
+
+    return items.slice(0, 3)
+  }, [attendancePercent, urgentHomework, gradeSubjects, lang])
+
+  const upcoming = useMemo(() => {
+    return [...calendarEvents]
+      .map((ev) => ({ ev, days: daysUntil(ev.date), rank: categoryRank(ev.category) }))
+      .filter((row) => row.days == null || row.days >= 0)
+      .sort((a, b) => {
+        if (a.rank !== b.rank) return a.rank - b.rank
+        return (a.days ?? 999) - (b.days ?? 999)
+      })
+      .slice(0, 3)
+  }, [calendarEvents])
+
+  const level = Math.max(1, Math.floor(totalXp / XP_PER_LEVEL) + 1)
+  const xpToNext = XP_PER_LEVEL - (totalXp % XP_PER_LEVEL)
+  const badges = unlockedBadges.slice(0, 3)
+  const improving = gradeSubjects.filter((s) => s.percent >= 75).length
+  const progressTone =
+    studyScore >= 85 ? 'var(--health-good)' : studyScore < 70 ? 'var(--health-warn)' : '#38bdf8'
+  const openCompetitions = competitions.length
+
   const classCountdown =
     classInMins == null
       ? nextLive?.time ?? null
@@ -115,148 +396,60 @@ export function StudentDashboard() {
             ? t('glanceLiveNow')
             : nextLive?.time ?? null
 
-  const studyMinutes = Math.max(
-    15,
-    pendingTasks.reduce((sum, task) => sum + minutesForTask(task.difficulty), 0),
-  )
-
-  const [missionChecked, setMissionChecked] = useState<Record<string, boolean>>({})
-
-  const missionItems = useMemo(() => {
-    const items: { id: string; title: string; mins?: number; done?: boolean }[] = []
-    for (const hw of pendingTasks.slice(0, 3)) {
-      items.push({
-        id: `hw-${hw.id}`,
-        title: hw.task || hw.subject,
-        mins: minutesForTask(hw.difficulty),
-      })
-    }
-    if (nextLive) {
-      items.push({
-        id: 'class',
-        title: t('missionClassSoon').replace('{subject}', nextLive.name).replace('{time}', nextLive.time),
-        mins: 5,
-      })
-    }
-    if (items.length === 0) {
-      items.push({ id: 'ready', title: t('missionReadySchool'), done: true })
-    }
-    return items.slice(0, 4)
-  }, [pendingTasks, nextLive, lang])
-
-  const aiSubject = nextLive?.name || pendingTasks[0]?.subject || t('scienceSubject')
-  const aiNudge = nextLive
-    ? t('aiSuggestRevision').replace('{subject}', nextLive.name).replace('{mins}', '20')
-    : pendingTasks[0]
-      ? t('aiSuggestHomework').replace('{subject}', pendingTasks[0].subject).replace('{mins}', '15')
-      : t('aiSuggestDefault')
-
-  const level = Math.max(1, Math.floor(totalXp / XP_PER_LEVEL) + 1)
-  const xpIntoLevel = totalXp % XP_PER_LEVEL
-  const xpToNext = XP_PER_LEVEL - xpIntoLevel
-
-  const weekDays = useMemo(() => {
-    const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
-    // Map last 7 attendance records onto week strip (honest when history exists)
-    const recent = attendanceRecords.slice(-7)
-    return labels.map((label, i) => {
-      const rec = recent[i]
-      return {
-        label,
-        done: rec ? rec.status === 'Present' : i < Math.min(streak, 5),
-      }
-    })
-  }, [attendanceRecords, streak])
-
-  const healthKey = healthLabelKey(studyScore)
-  const healthTone =
-    healthKey === 'healthExcellent'
-      ? 'var(--health-good)'
-      : healthKey === 'healthNeedsAttention'
-        ? 'var(--health-warn)'
-        : '#38bdf8'
-
-  const sparkPoints = useMemo(() => {
-    const src =
-      attendanceRecords.length >= 4
-        ? attendanceRecords.slice(-8).map((r) => (r.status === 'Present' ? 1 : 0.35))
-        : [0.45, 0.5, 0.55, 0.52, 0.6, 0.58, 0.65, Math.min(1, studyScore / 100)]
-    const w = 120
-    const h = 36
-    return src
-      .map((v, i) => {
-        const x = (i / (src.length - 1)) * w
-        const y = h - v * (h - 4) - 2
-        return `${x},${y}`
-      })
-      .join(' ')
-  }, [attendanceRecords, studyScore])
-
-  const daysToGoal =
-    attendancePercent >= ATTENDANCE_GOAL
-      ? 0
-      : Math.max(1, Math.ceil((ATTENDANCE_GOAL - attendancePercent) / 2))
-
-  const upcoming = calendarEvents.slice(0, 3)
-  const badges = unlockedBadges.slice(0, 3)
-
   return (
-    <div className="space-y-4 pb-4">
+    <div className="space-y-4 pb-6">
       {!classLinked ? <InviteRedeemCard /> : null}
 
-      {/* Today at a Glance */}
-      <section className="orbit-glance relative overflow-hidden rounded-3xl border min-h-[220px]">
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-full sm:w-[58%] lg:w-[52%]">
-          <SunViz className="h-full w-full" />
+      <section className="orbit-glance relative overflow-hidden rounded-3xl border">
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-full sm:w-[48%] lg:w-[42%] opacity-90">
+          <SunViz className="h-full w-full min-h-[160px]" />
         </div>
         <div className="pointer-events-none absolute inset-0 sm:hidden orbit-glance-scrim" aria-hidden />
-        <div className="relative z-10 p-5 sm:p-6 lg:p-7 flex flex-col justify-center max-w-xl lg:max-w-[52%] gap-5">
-          <div className="space-y-2">
+        <div className="relative z-10 p-5 sm:p-6 max-w-xl lg:max-w-[58%] space-y-4">
+          <div>
             <p className="orbit-glance-eyebrow text-[10px] font-black uppercase tracking-[0.2em]">
-              {t('todayAtGlance')}
+              {t('homeTodayEyebrow')}
             </p>
-            <h2 className="orbit-glance-title text-2xl sm:text-[1.65rem] font-extrabold font-display leading-tight">
-              {t('glanceClasses').replace('{count}', String(todayTimeline.length || nextClasses.length))}
-            </h2>
+            <p className="orbit-glance-title mt-1.5 text-lg sm:text-xl font-extrabold font-display leading-snug">
+              {t('homeTodaySummary')
+                .replace('{classes}', String(classCount))
+                .replace('{tasks}', String(pendingTasks.length))
+                .replace('{mins}', String(Math.max(studyMinutes, pendingTasks.length ? studyMinutes : 0)))}
+            </p>
           </div>
 
-          <div className="flex flex-wrap gap-x-8 gap-y-4">
-            <GlanceStat
-              icon={<Calendar className="h-4 w-4 text-sky-500" aria-hidden />}
+          <div className="grid sm:grid-cols-2 gap-3">
+            <DayBlock
               label={t('glanceNextClass')}
               value={nextLive?.name ?? t('glanceNoClass')}
-              detail={nextLive ? classCountdown : undefined}
-            />
-            <GlanceStat
-              icon={<Bus className="h-4 w-4 text-amber-500" aria-hidden />}
-              label={t('glanceBusArrives')}
-              value={
-                busReachedSchool
-                  ? t('glanceBusArrived')
-                  : busEta != null
-                    ? formatClockIn(busEta)
-                    : t('glanceBusUnknown')
-              }
               detail={
-                busReachedSchool
-                  ? undefined
-                  : busEta != null
-                    ? t('glanceInMinutes').replace('{min}', String(busEta))
-                    : undefined
+                nextLive ? `${nextLive.time}${classCountdown ? ` · ${classCountdown}` : ''}` : undefined
               }
             />
-            <GlanceStat
-              icon={<Zap className="h-4 w-4 text-violet-500" aria-hidden />}
-              label={t('glanceStudyTime')}
-              value={`${studyMinutes} min`}
-              detail={t('glanceEstimated')}
+            <DayBlock
+              label={t('homeWorkloadLabel')}
+              value={
+                pendingTasks.length === 0
+                  ? t('homeworkAllDone')
+                  : t('homeWorkloadValue')
+                      .replace('{count}', String(pendingTasks.length))
+                      .replace('{mins}', String(studyMinutes || 15))
+              }
+              detail={pendingTasks.length ? t('glanceEstimated') : undefined}
             />
           </div>
+
+          {busRelevant && busEta != null ? (
+            <p className="orbit-glance-detail text-[11px] flex items-center gap-1.5">
+              <Bus className="h-3.5 w-3.5 text-amber-500" aria-hidden />
+              {t('homeBusContext').replace('{mins}', String(busEta))}
+            </p>
+          ) : null}
 
           <button
             type="button"
             onClick={() => setActiveTab('schedule')}
-            className="orbit-glance-btn inline-flex w-fit items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition"
+            className="orbit-glance-btn inline-flex w-fit items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition"
           >
             {t('viewTodaysSchedule')}
             <ArrowRight className="h-3.5 w-3.5" aria-hidden />
@@ -264,264 +457,185 @@ export function StudentDashboard() {
         </div>
       </section>
 
-      {/* Smart Homework Reminder */}
-      {smartReminderTask ? (
-        <section className="p-5 rounded-3xl border border-rose-500/30 bg-rose-500/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fade-in">
-          <div className="flex items-start gap-3.5">
-            <div className="h-10 w-10 rounded-xl bg-rose-500/10 border border-rose-500/25 flex items-center justify-center shrink-0 mt-0.5">
-              <span className="text-xl">🔔</span>
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-sm font-extrabold text-white font-display flex items-center gap-2">
-                📚 {smartReminderTask.subject} homework {smartReminderTask.due.toLowerCase() === 'completed' ? 'is pending' : `due ${smartReminderTask.due.toLowerCase()}`}
-                {smartReminderTask.started ? (
-                  <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/20 animate-pulse">
-                    In Progress
-                  </span>
-                ) : (
-                  <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/20">
-                    Not Started
-                  </span>
-                )}
-              </h3>
-              <p className="text-xs text-slate-300">
-                {smartReminderTask.task}
-              </p>
-              <p className="text-[10px] text-slate-500">
-                Estimated time: <strong className="text-rose-300">{smartReminderTask.estimatedMinutes || (smartReminderTask.difficulty === 'Hard' ? 45 : smartReminderTask.difficulty === 'Medium' ? 25 : 15)} min</strong>
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2.5 shrink-0">
-            {!smartReminderTask.started ? (
-              <button
-                type="button"
-                onClick={() => {
-                  startTask(smartReminderTask.id)
-                  useOrbitStore.getState().triggerToast('Task started! Keep going!')
-                }}
-                className="px-4 py-2 rounded-xl bg-rose-500 text-white text-xs font-bold hover:bg-rose-400 transition"
-              >
-                Start now?
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  toggleTask(smartReminderTask.id)
-                  useOrbitStore.getState().triggerToast('Task completed! Great job!')
-                }}
-                className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-500 transition"
-              >
-                Mark complete
-              </button>
-            )}
-          </div>
-        </section>
-      ) : null}
+      <section
+        className={`rounded-3xl border p-5 sm:p-6 space-y-4 ${
+          priority.kind === 'caught_up'
+            ? 'border-emerald-500/30 bg-emerald-500/5'
+            : 'border-[var(--accent)]/35 bg-[var(--accent)]/8'
+        }`}
+      >
+        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+          {priority.kind === 'caught_up' ? t('homePriorityCaughtEyebrow') : t('homePriorityEyebrow')}
+        </p>
+        <div className="space-y-1.5">
+          <h2 className="text-xl sm:text-2xl font-extrabold font-display text-white leading-tight">
+            {priority.title}
+          </h2>
+          <p className="text-sm text-slate-300">{priority.detail}</p>
+          {priority.estimate ? <p className="text-xs text-slate-500">{priority.estimate}</p> : null}
+          {priority.orbitHint ? (
+            <p className="text-xs text-[var(--accent2)]/90 pt-1">{priority.orbitHint}</p>
+          ) : null}
+        </div>
+        <button
+          type="button"
+          onClick={priority.onCta}
+          className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold text-black"
+          style={{ background: 'linear-gradient(135deg, var(--accent), var(--accent2))' }}
+        >
+          {priority.cta}
+          <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+        </button>
+      </section>
 
-      {/* Mission + streak + AI */}
-      <div className="grid lg:grid-cols-12 gap-4">
-        <section className="lg:col-span-5 glass rounded-3xl border border-white/10 p-5 space-y-4">
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="text-sm font-extrabold text-white font-display">{t('todaysMission')}</h3>
-            <span className="text-[10px] font-bold text-slate-500">
-              {missionItems.filter((m) => m.done || missionChecked[m.id]).length}/{missionItems.length}
+      <section className="glass rounded-3xl border border-white/10 p-5 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-sm font-extrabold text-white font-display">{t('homeTasksTitle')}</h3>
+          <button
+            type="button"
+            onClick={() => setActiveTab('assignments')}
+            className="text-[10px] font-bold text-[var(--accent2)]"
+          >
+            {t('homeTasksViewAll')} →
+          </button>
+        </div>
+        {dayTasks.length === 0 ? (
+          <p className="text-xs text-emerald-300/90 font-semibold flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4" aria-hidden />
+            {t('homeTasksEmpty')}
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {dayTasks.map((item) => (
+              <li key={item.id}>
+                <button
+                  type="button"
+                  onClick={item.onOpen}
+                  className="w-full flex items-start gap-3 p-3 rounded-2xl bg-white/[0.03] border border-white/10 text-left hover:border-white/20 transition"
+                >
+                  <Circle className="h-4 w-4 text-slate-500 shrink-0 mt-0.5" aria-hidden />
+                  <span className="min-w-0">
+                    <span className="block text-xs font-bold text-white">{item.title}</span>
+                    <span className="text-[10px] text-slate-500">{item.meta}</span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="glass rounded-3xl border border-white/10 p-5 space-y-3">
+        <h3 className="text-sm font-extrabold text-white font-display">{t('homeAttentionTitle')}</h3>
+        {attentionItems.length === 0 ? (
+          <p className="text-xs text-slate-400">{t('homeAttentionClear')}</p>
+        ) : (
+          <ul className="space-y-2.5">
+            {attentionItems.map((item) => (
+              <li
+                key={item.id}
+                className={`rounded-2xl border p-3.5 ${
+                  item.tone === 'warn'
+                    ? 'border-amber-500/25 bg-amber-500/5'
+                    : 'border-violet-500/25 bg-violet-500/5'
+                }`}
+              >
+                <div className="flex items-start gap-2.5">
+                  <AlertTriangle
+                    className={`h-4 w-4 shrink-0 mt-0.5 ${
+                      item.tone === 'warn' ? 'text-amber-400' : 'text-violet-300'
+                    }`}
+                    aria-hidden
+                  />
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                      {item.label}
+                    </p>
+                    <p className="text-xs font-bold text-white mt-0.5">{item.title}</p>
+                    <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">{item.body}</p>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+        {attentionItems.length > 0 ? (
+          <button
+            type="button"
+            onClick={() =>
+              setActiveTab(attendancePercent < ATTENDANCE_GOAL ? 'attendance' : 'academics')
+            }
+            className="text-[10px] font-bold text-[var(--accent2)]"
+          >
+            {t('homeAttentionDetails')} →
+          </button>
+        ) : null}
+      </section>
+
+      <div className="grid lg:grid-cols-2 gap-4">
+        <section className="glass rounded-3xl border border-white/10 p-5 space-y-3">
+          <h3 className="text-sm font-extrabold text-white font-display">{t('homeProgressTitle')}</h3>
+          <div className="flex items-end gap-3">
+            <p className="text-4xl font-black leading-none" style={{ color: progressTone }}>
+              {studyScore}
+            </p>
+            <div className="pb-0.5">
+              <p className="text-xs font-bold" style={{ color: progressTone }}>
+                {t(progressLabelKey(studyScore))}
+              </p>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                {improving > 0
+                  ? t('homeProgressImproving').replace('{count}', String(improving))
+                  : t('homeProgressSteady')}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-3 pt-1 text-[11px] text-slate-400">
+            <span>
+              {t('studentAttendance')}: <strong className="text-white">{attendancePercent}%</strong>
+            </span>
+            <span>
+              {t('homeworkTitle')}:{' '}
+              <strong className="text-white">
+                {doneCount}/{tasks.length || 0}
+              </strong>
             </span>
           </div>
-          <ul className="space-y-2.5">
-            {missionItems.map((item) => {
-              const checked = Boolean(item.done || missionChecked[item.id])
-              return (
-                <li key={item.id}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (item.done) return
-                      if (item.id.startsWith('hw-')) {
-                        setActiveTab('assignments')
-                        return
-                      }
-                      setMissionChecked((prev) => ({ ...prev, [item.id]: !prev[item.id] }))
-                    }}
-                    className="w-full flex items-center gap-3 p-3 rounded-2xl bg-white/[0.04] border border-white/10 text-left hover:border-white/20 transition"
-                  >
-                    <span
-                      className={`h-6 w-6 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                        checked
-                          ? 'bg-emerald-500 border-emerald-400 text-white'
-                          : 'border-slate-500'
-                      }`}
-                    >
-                      {checked ? <Check className="h-3.5 w-3.5" aria-hidden /> : null}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span
-                        className={`block text-xs font-bold ${checked ? 'text-slate-500 line-through' : 'text-white'}`}
-                      >
-                        {item.title}
-                      </span>
-                      {item.mins != null && !checked ? (
-                        <span className="text-[10px] text-slate-500">{item.mins} min</span>
-                      ) : null}
-                    </span>
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
-        </section>
-
-        <div className="lg:col-span-7 grid sm:grid-cols-2 gap-4">
-          <section className="glass rounded-3xl border border-white/10 p-5 space-y-4">
-            <div className="flex items-center gap-2">
-              <Flame className="h-4 w-4 text-orange-400" aria-hidden />
-              <h3 className="text-sm font-extrabold text-white font-display">{t('streakTitle')}</h3>
-            </div>
-            <p className="text-3xl font-black text-white">
-              {streak} <span className="text-sm font-bold text-slate-400">{t('streakDays')}</span>
-            </p>
-            <div className="flex justify-between gap-1">
-              {weekDays.map((d, i) => (
-                <div key={`${d.label}-${i}`} className="flex flex-col items-center gap-1.5">
-                  <span
-                    className={`h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-black ${
-                      d.done
-                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                        : 'bg-white/5 text-slate-500 border border-white/10'
-                    }`}
-                  >
-                    {d.done ? <Check className="h-3 w-3" aria-hidden /> : d.label}
-                  </span>
-                  <span className="text-[9px] text-slate-500 font-bold">{d.label}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="rounded-3xl border border-violet-500/35 bg-violet-500/10 p-5 flex flex-col gap-3 relative overflow-hidden">
-            <div className="flex items-start gap-3">
-              <div className="h-12 w-12 rounded-2xl bg-violet-500/25 border border-violet-400/30 flex items-center justify-center shrink-0">
-                <Bot className="h-6 w-6 text-violet-200" aria-hidden />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10px] font-black uppercase tracking-wider text-violet-200/80">
-                  {t('aiCoachEyebrow')}
-                </p>
-                <p className="text-xs text-slate-200 leading-relaxed mt-1">{aiNudge}</p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setActiveTab('study-assistant')}
-              className="mt-auto inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold text-white"
-              style={{ background: 'linear-gradient(135deg, #7c3aed, #6366f1)' }}
-            >
-              {t('aiStartRevision').replace('{mins}', '20').replace('{subject}', aiSubject)}
-              <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-            </button>
-          </section>
-        </div>
-      </div>
-
-      {/* Analytics row */}
-      <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <section className="glass rounded-3xl border border-white/10 p-5 space-y-3">
-          <h3 className="text-xs font-extrabold text-white">{t('learningHealth')}</h3>
-          <div className="flex items-end gap-3">
-            <SemiGauge value={studyScore} color={healthTone} />
-            <div className="pb-1 min-w-0">
-              <p className="text-2xl font-black text-white">{studyScore}%</p>
-              <p className="text-[10px] font-bold" style={{ color: healthTone }}>
-                {t(healthKey)}
-              </p>
-            </div>
-          </div>
-          <svg viewBox="0 0 120 36" className="w-full h-9" aria-hidden>
-            <polyline
-              fill="none"
-              stroke={healthTone}
-              strokeWidth="2"
-              strokeLinejoin="round"
-              strokeLinecap="round"
-              points={sparkPoints}
-              opacity="0.85"
-            />
-          </svg>
-          <p className="text-[10px] text-slate-500 leading-relaxed">
-            {attendancePercent >= ATTENDANCE_GOAL
-              ? t('attendanceGoalMet').replace('{pct}', String(attendancePercent))
-              : t('attendanceActionable')
-                  .replace('{days}', String(daysToGoal))
-                  .replace('{goal}', String(ATTENDANCE_GOAL))
-                  .replace('{pct}', String(attendancePercent))}
-          </p>
+          <button
+            type="button"
+            onClick={() => setActiveTab('academics')}
+            className="text-[10px] font-bold text-[var(--accent2)]"
+          >
+            {t('homeProgressView')} →
+          </button>
         </section>
 
         <section className="glass rounded-3xl border border-white/10 p-5 space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xs font-extrabold text-white">{t('homeworkTitle')}</h3>
-            <button
-              type="button"
-              onClick={() => setActiveTab('assignments')}
-              className="text-[10px] font-bold text-violet-300"
-            >
-              {t('viewHomework')}
-            </button>
-          </div>
-          <div className="flex items-center gap-4">
-            <Donut
-              done={doneTasks.length}
-              total={Math.max(tasks.length, 1)}
-              label={`${doneTasks.length}/${tasks.length || 0}`}
-            />
-            <div className="min-w-0 flex-1 space-y-2">
-              <p className="text-[10px] font-bold text-slate-400">
-                {t('homeworkPendingCount').replace('{count}', String(pendingTasks.length))}
-              </p>
-              {pendingTasks.slice(0, 2).map((hw) => (
-                <div key={hw.id} className="text-[11px]">
-                  <p className="font-bold text-white truncate">{hw.subject}</p>
-                  <p className="text-slate-500 truncate">{hw.due}</p>
-                </div>
-              ))}
-              {pendingTasks.length === 0 ? (
-                <p className="text-[11px] text-emerald-300 font-semibold">{t('homeworkAllDone')}</p>
-              ) : null}
-            </div>
-          </div>
-        </section>
-
-        <section className="glass rounded-3xl border border-white/10 p-5 space-y-3">
-          <h3 className="text-xs font-extrabold text-white">{t('recentAchievements')}</h3>
-          <ul className="space-y-2.5">
-            {badges.length === 0 ? (
-              <p className="text-[11px] text-slate-500">{t('noAchievementsYet')}</p>
-            ) : (
-              badges.map((name, i) => (
-                <li key={name} className="flex items-center gap-2.5">
-                  <span
-                    className={`h-8 w-8 rounded-xl flex items-center justify-center shrink-0 ${
-                      i === 0 ? 'bg-amber-500/20 text-amber-300' : 'bg-slate-500/20 text-slate-300'
-                    }`}
-                  >
-                    <Star className="h-4 w-4" aria-hidden />
-                  </span>
-                  <span className="text-xs font-bold text-white truncate">{name}</span>
-                </li>
-              ))
-            )}
-            {streak >= 3 ? (
-              <li className="flex items-center gap-2.5">
-                <span className="h-8 w-8 rounded-xl flex items-center justify-center shrink-0 bg-emerald-500/20 text-emerald-300">
-                  <Trophy className="h-4 w-4" aria-hidden />
-                </span>
-                <span className="text-xs font-bold text-white truncate">
-                  {t('badgeAttendanceStreak').replace('{days}', String(streak))}
-                </span>
+          <h3 className="text-sm font-extrabold text-white font-display">{t('homeWinsTitle')}</h3>
+          <ul className="space-y-2">
+            {streak > 0 ? (
+              <li className="flex items-center gap-2.5 text-xs font-bold text-white">
+                <Flame className="h-4 w-4 text-orange-400" aria-hidden />
+                {t('badgeAttendanceStreak').replace('{days}', String(streak))}
               </li>
             ) : null}
+            {badges.map((name) => (
+              <li key={name} className="flex items-center gap-2.5 text-xs font-bold text-white">
+                <Trophy className="h-4 w-4 text-amber-300" aria-hidden />
+                {name}
+              </li>
+            ))}
+            {streak === 0 && badges.length === 0 ? (
+              <p className="text-[11px] text-slate-500">{t('noAchievementsYet')}</p>
+            ) : null}
           </ul>
+          <p className="text-[11px] text-slate-400 flex items-center gap-1.5">
+            <Star className="h-3.5 w-3.5 text-amber-300" aria-hidden />
+            {t('homeWinsXp')
+              .replace('{xp}', String(totalXp))
+              .replace('{level}', String(level))
+              .replace('{next}', String(xpToNext))}
+          </p>
           <button
             type="button"
             onClick={() => setActiveTab('achievements')}
@@ -530,26 +644,11 @@ export function StudentDashboard() {
             {t('studentAchievements')} →
           </button>
         </section>
+      </div>
 
-        <section className="glass rounded-3xl border border-white/10 p-5 space-y-3">
-          <h3 className="text-xs font-extrabold text-white">{t('upcomingTitle')}</h3>
-          <ul className="space-y-2.5">
-            {upcoming.length === 0 ? (
-              <p className="text-[11px] text-slate-500">{t('upcomingEmpty')}</p>
-            ) : (
-              upcoming.map((ev) => (
-                <li key={ev.id} className="flex items-start gap-2.5">
-                  <CalendarDays className="h-4 w-4 text-violet-300 shrink-0 mt-0.5" aria-hidden />
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold text-white truncate">{ev.title}</p>
-                    <p className="text-[10px] text-slate-500">
-                      {ev.date} · {ev.category}
-                    </p>
-                  </div>
-                </li>
-              ))
-            )}
-          </ul>
+      <section className="glass rounded-3xl border border-white/10 p-5 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-sm font-extrabold text-white font-display">{t('homeComingTitle')}</h3>
           <button
             type="button"
             onClick={() => setActiveTab('calendar')}
@@ -557,135 +656,80 @@ export function StudentDashboard() {
           >
             {t('sharedCalendarTitle')} →
           </button>
-        </section>
-      </div>
+        </div>
+        {upcoming.length === 0 ? (
+          <p className="text-[11px] text-slate-500">{t('upcomingEmpty')}</p>
+        ) : (
+          <ul className="space-y-2.5">
+            {upcoming.map(({ ev, days }) => (
+              <li key={ev.id} className="flex items-start gap-2.5">
+                <CalendarDays className="h-4 w-4 text-violet-300 shrink-0 mt-0.5" aria-hidden />
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-white truncate">{ev.title}</p>
+                  <p className="text-[10px] text-slate-500">
+                    {ev.date}
+                    {days != null
+                      ? ` · ${
+                          days === 0
+                            ? t('homeComingToday')
+                            : t('homeComingIn').replace('{days}', String(days))
+                        }`
+                      : ` · ${ev.category}`}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
-      {/* Motivation + XP — atmospheric art with live HTML quote + XP */}
-      <section
-        className="orbit-motivation relative overflow-hidden rounded-[1.75rem] border"
-        aria-label={`${t('motivationQuote')} ${t('xpEarnedLabel')} ${totalXp} XP`}
-      >
-        <img
-          src="/brand/student-motivation-banner.png"
-          alt=""
-          className="orbit-motivation-art absolute inset-0 h-full w-full object-cover object-left pointer-events-none select-none"
-          draggable={false}
-        />
-        <div className="orbit-motivation-veil pointer-events-none absolute inset-0" aria-hidden />
-
-        <div className="orbit-motivation-body relative z-10 flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-5 lg:min-h-[220px] lg:p-6">
-          <blockquote className="orbit-motivation-quote min-w-0 flex-1 sm:max-w-[28rem] lg:max-w-[34rem]">
-            <span className="orbit-motivation-mark" aria-hidden>
-              “
-            </span>
-            <p className="orbit-motivation-quote-text text-[1.05rem] font-semibold leading-snug tracking-tight sm:text-xl lg:text-[1.35rem]">
-              {t('motivationQuote')}
+      <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 space-y-3">
+        <h3 className="text-sm font-extrabold text-white font-display">{t('homeDiscoverTitle')}</h3>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => setActiveTab('study-assistant')}
+            className="text-left p-4 rounded-2xl border border-white/10 bg-white/[0.03] hover:border-white/20 transition space-y-1"
+          >
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+              {t('homeDiscoverChallenge')}
             </p>
-            <footer className="orbit-motivation-credit mt-2 text-xs font-medium sm:text-sm">
-              — {t('motivationCredit')}
-            </footer>
-          </blockquote>
-
-          <div className="orbit-motivation-xp w-full shrink-0 rounded-2xl border p-4 sm:w-[240px] sm:p-5 lg:w-[260px] flex flex-col justify-center gap-2.5">
-            <p className="orbit-motivation-xp-label text-[11px] font-semibold">{t('xpEarnedLabel')}</p>
-            <div className="flex items-center gap-2">
-              <p className="orbit-motivation-xp-value text-3xl font-black tracking-tight leading-none">
-                {totalXp} <span className="text-lg font-bold opacity-90">XP</span>
-              </p>
-              <Star className="h-5 w-5 text-amber-300 fill-amber-300 drop-shadow-[0_0_8px_rgba(252,211,77,0.65)]" aria-hidden />
-            </div>
-            <p className="orbit-motivation-xp-level text-sm font-bold">
-              {t('xpLevelOnly').replace('{level}', String(level))}
+            <p className="text-xs font-bold text-white">{t('homeDiscoverChallengeBody')}</p>
+            <p className="text-[10px] text-[var(--accent2)]">+20 XP</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('competitions')}
+            className="text-left p-4 rounded-2xl border border-white/10 bg-white/[0.03] hover:border-white/20 transition space-y-1"
+          >
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+              {t('homeDiscoverOpps')}
             </p>
-            <div className="h-2.5 rounded-full bg-black/35 overflow-hidden mt-0.5">
-              <div
-                className="orbit-motivation-xp-bar h-full rounded-full"
-                style={{ width: `${Math.max(6, (xpIntoLevel / XP_PER_LEVEL) * 100)}%` }}
-              />
-            </div>
-            <p className="orbit-motivation-xp-next text-[11px]">
-              {t('xpNextLevel').replace('{xp}', String(xpToNext))}
+            <p className="text-xs font-bold text-white">
+              {t('homeDiscoverOppsBody').replace('{count}', String(openCompetitions))}
             </p>
-          </div>
+            <p className="text-[10px] text-[var(--accent2)]">{t('homeDiscoverExplore')} →</p>
+          </button>
         </div>
       </section>
     </div>
   )
 }
 
-function GlanceStat({
-  icon,
+function DayBlock({
   label,
   value,
   detail,
 }: {
-  icon: ReactNode
   label: string
   value: string
   detail?: string | null
 }) {
   return (
-    <div className="flex items-start gap-2.5 min-w-[7.5rem]">
-      <span className="mt-0.5 shrink-0">{icon}</span>
-      <div className="min-w-0">
-        <p className="orbit-glance-label text-[10px] font-bold">{label}</p>
-        <p className="orbit-glance-value text-sm font-extrabold leading-snug truncate">{value}</p>
-        {detail ? <p className="orbit-glance-detail text-[11px] mt-0.5">{detail}</p> : null}
-      </div>
-    </div>
-  )
-}
-
-function SemiGauge({ value, color }: { value: number; color: string }) {
-  const clamped = Math.max(0, Math.min(100, value))
-  const r = 36
-  const c = 2 * Math.PI * r
-  const half = c / 2
-  const dash = (clamped / 100) * half
-  return (
-    <svg width="88" height="52" viewBox="0 0 88 52" aria-hidden>
-      <path
-        d="M 8 48 A 36 36 0 0 1 80 48"
-        fill="none"
-        stroke="rgba(255,255,255,0.08)"
-        strokeWidth="8"
-        strokeLinecap="round"
-      />
-      <path
-        d="M 8 48 A 36 36 0 0 1 80 48"
-        fill="none"
-        stroke={color}
-        strokeWidth="8"
-        strokeLinecap="round"
-        strokeDasharray={`${dash} ${half}`}
-      />
-    </svg>
-  )
-}
-
-function Donut({ done, total, label }: { done: number; total: number; label: string }) {
-  const pct = total ? done / total : 0
-  const r = 28
-  const c = 2 * Math.PI * r
-  const dash = pct * c
-  return (
-    <div className="relative h-20 w-20 shrink-0">
-      <svg width="80" height="80" viewBox="0 0 80 80" className="-rotate-90" aria-hidden>
-        <circle cx="40" cy="40" r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="8" />
-        <circle
-          cx="40"
-          cy="40"
-          r={r}
-          fill="none"
-          stroke="#a78bfa"
-          strokeWidth="8"
-          strokeLinecap="round"
-          strokeDasharray={`${dash} ${c}`}
-        />
-      </svg>
-      <span className="absolute inset-0 flex items-center justify-center text-[11px] font-black text-white">
-        {label}
-      </span>
+    <div className="rounded-2xl border border-white/10 bg-black/10 px-3.5 py-3 min-w-0">
+      <p className="orbit-glance-label text-[10px] font-bold">{label}</p>
+      <p className="orbit-glance-value text-sm font-extrabold leading-snug mt-1 truncate">{value}</p>
+      {detail ? <p className="orbit-glance-detail text-[11px] mt-0.5">{detail}</p> : null}
     </div>
   )
 }
