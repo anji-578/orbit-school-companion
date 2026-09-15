@@ -1161,14 +1161,8 @@ export const useOrbitStore = create<OrbitState>()(
         get().addXp(xp)
         if (passed) {
           get().unlockBadge(level === 'hard' ? 'GK Champion' : level === 'medium' ? 'GK Explorer' : 'GK Starter')
-          get().triggerToast(
-            level === 'hard'
-              ? `Hard round cleared! +${xp} XP`
-              : `Level cleared! +${xp} XP · Next round unlocked`,
-          )
-        } else {
-          get().triggerToast(`Round scored ${score}/${total}. Need 70% to unlock the next level.`)
         }
+        get().triggerToast(`GK ${level}: ${score}/${total} · +${xp} XP`)
       },
 
       startTask: (id) => set((s) => ({

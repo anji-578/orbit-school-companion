@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
-  Lock,
   Sparkles,
   Trophy,
   XCircle,
@@ -14,10 +13,8 @@ import { translate } from '../../i18n'
 import { useOrbitStore } from '../../store/orbitStore'
 import {
   GK_LEVEL_ORDER,
-  GK_PASS_RATIO,
   GK_ROUND_SIZE,
   getGkBankMeta,
-  isGkLevelUnlocked,
   nextGkLevel,
   pickGkRound,
   scoreGkRound,
@@ -61,38 +58,24 @@ export function GkQuizPanel() {
   const [level, setLevel] = useState<GkDifficulty>('easy')
   const [round, setRound] = useState<GkQuestion[]>([])
   const [answers, setAnswers] = useState<Record<number, number>>({})
-  const [qIdx, setQIdx] = useState(0)
-  const [popKey, setPopKey] = useState(0)
   const [result, setResult] = useState<ReturnType<typeof scoreGkRound> | null>(null)
 
-  useEffect(() => {
-    if (phase !== 'playing') return
-    setPopKey((k) => k + 1)
-  }, [qIdx, phase])
-
   const startRound = (diff: GkDifficulty) => {
-    if (!isGkLevelUnlocked(diff, gkProgress)) {
-      useOrbitStore.getState().triggerToast(t('gkLevelLockedToast'))
-      return
-    }
     const questions = pickGkRound(diff)
     setLevel(diff)
     setRound(questions)
     setAnswers({})
-    setQIdx(0)
     setResult(null)
     setPhase('playing')
   }
 
-  const selectAnswer = (optIdx: number) => {
+  const selectAnswer = (qIndex: number, optIdx: number) => {
     if (phase !== 'playing') return
-    setAnswers((prev) => ({ ...prev, [qIdx]: optIdx }))
-    setPopKey((k) => k + 1)
+    setAnswers((prev) => ({ ...prev, [qIndex]: optIdx }))
   }
 
   const answeredCount = Object.keys(answers).length
   const allAnswered = round.length > 0 && answeredCount >= round.length
-  const current = round[qIdx]
 
   const submitRound = () => {
     if (!allAnswered) {
@@ -103,6 +86,7 @@ export function GkQuizPanel() {
     setResult(scored)
     recordGkRound(level, scored.correct, scored.total, scored.passed)
     setPhase('results')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const goNextLevel = () => {
@@ -113,8 +97,6 @@ export function GkQuizPanel() {
     }
     startRound(next)
   }
-
-  const passNeeded = Math.ceil(GK_ROUND_SIZE * GK_PASS_RATIO)
 
   return (
     <Panel
@@ -143,9 +125,7 @@ export function GkQuizPanel() {
               <p className="text-sm font-bold text-white">
                 {t('gkRoundsDone').replace('{n}', String(gkProgress.roundsCompleted))}
               </p>
-              <p className="text-xs text-slate-400">
-                {t('gkPassRule').replace('{n}', String(passNeeded)).replace('{total}', String(GK_ROUND_SIZE))}
-              </p>
+              <p className="text-xs text-slate-400">{t('gkOpenAccess')}</p>
             </div>
             <div className="flex items-center gap-2 text-[var(--accent2)]">
               <Sparkles className="h-5 w-5" aria-hidden />
@@ -155,7 +135,6 @@ export function GkQuizPanel() {
 
           <div className="grid sm:grid-cols-3 gap-3">
             {GK_LEVEL_ORDER.map((diff, roundNum) => {
-              const unlocked = isGkLevelUnlocked(diff, gkProgress)
               const stats = gkProgress[diff]
               const metaLevel = LEVEL_META[diff]
               return (
@@ -163,17 +142,8 @@ export function GkQuizPanel() {
                   key={diff}
                   type="button"
                   onClick={() => startRound(diff)}
-                  disabled={!unlocked}
-                  className={`gk-level-card relative text-left p-5 rounded-2xl border transition overflow-hidden ${
-                    unlocked
-                      ? 'border-white/15 bg-white/[0.04] hover:border-white/30 hover:-translate-y-0.5'
-                      : 'border-white/5 bg-white/[0.02] opacity-60 cursor-not-allowed'
-                  }`}
-                  style={
-                    unlocked
-                      ? { boxShadow: `0 0 0 1px ${metaLevel.glow}, 0 12px 40px -20px ${metaLevel.glow}` }
-                      : undefined
-                  }
+                  className="gk-level-card relative text-left p-5 rounded-2xl border border-white/15 bg-white/[0.04] hover:border-white/30 hover:-translate-y-0.5 transition overflow-hidden"
+                  style={{ boxShadow: `0 0 0 1px ${metaLevel.glow}, 0 12px 40px -20px ${metaLevel.glow}` }}
                 >
                   <div
                     className="absolute -right-6 -top-6 h-24 w-24 rounded-full blur-2xl opacity-40 pointer-events-none"
@@ -188,11 +158,7 @@ export function GkQuizPanel() {
                       >
                         {t('gkRoundN').replace('{n}', String(roundNum + 1))}
                       </span>
-                      {unlocked ? (
-                        <Zap className="h-4 w-4" style={{ color: metaLevel.accent }} aria-hidden />
-                      ) : (
-                        <Lock className="h-4 w-4 text-slate-500" aria-hidden />
-                      )}
+                      <Zap className="h-4 w-4" style={{ color: metaLevel.accent }} aria-hidden />
                     </div>
                     <p className="text-lg font-extrabold text-white font-display">{t(metaLevel.labelKey)}</p>
                     <p className="text-xs text-slate-400 leading-relaxed">{t(metaLevel.hintKey)}</p>
@@ -221,137 +187,128 @@ export function GkQuizPanel() {
         </div>
       ) : null}
 
-      {phase === 'playing' && current ? (
+      {phase === 'playing' && round.length > 0 ? (
         <div className="space-y-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 sticky top-0 z-10 -mx-1 px-1 py-2 bg-[var(--bg-base)]/90 backdrop-blur-md border-b border-white/5">
             <div>
               <p
                 className="text-xs font-semibold uppercase tracking-widest"
                 style={{ color: LEVEL_META[level].accent }}
               >
-                {t(LEVEL_META[level].labelKey)} ·{' '}
-                {t('gkQuestionOf')
-                  .replace('{n}', String(qIdx + 1))
-                  .replace('{total}', String(round.length))}
+                {t(LEVEL_META[level].labelKey)} · {round.length} {t('gkQuestionsLabel')}
               </p>
-              <p className="text-xs text-slate-400 mt-1">{current.category}</p>
+              <p className="text-xs text-slate-400 mt-1">
+                {answeredCount}/{round.length} {t('gkAnswered')}
+              </p>
             </div>
-            <div className="text-xs font-bold text-slate-300">
-              {answeredCount}/{round.length} {t('gkAnswered')}
-            </div>
+            <button
+              type="button"
+              onClick={submitRound}
+              disabled={!allAnswered}
+              className="btn-accent px-5 py-2.5 rounded-xl text-xs font-bold disabled:opacity-50"
+            >
+              {t('submitQuizText')}
+            </button>
           </div>
 
           <div className="h-2 rounded-full bg-white/5 overflow-hidden">
             <div
               className="h-full rounded-full gk-progress-fill transition-all duration-500 ease-out"
               style={{
-                width: `${((qIdx + 1) / round.length) * 100}%`,
+                width: `${(answeredCount / round.length) * 100}%`,
                 background: `linear-gradient(90deg, ${LEVEL_META[level].accent}, var(--accent2))`,
               }}
             />
           </div>
 
-          <div className="flex flex-wrap gap-1.5">
-            {round.map((_, i) => {
-              const answered = answers[i] !== undefined
-              const active = i === qIdx
+          <div className="space-y-4">
+            {round.map((question, qIndex) => {
+              const selected = answers[qIndex]
+              const isAnswered = selected !== undefined
               return (
-                <button
-                  key={round[i].id}
-                  type="button"
-                  onClick={() => setQIdx(i)}
-                  className={`h-2.5 w-2.5 rounded-full transition-all duration-300 ${
-                    active ? 'scale-150 ring-2 ring-white/40' : ''
-                  } ${answered ? 'bg-[var(--accent2)]' : 'bg-white/15'}`}
-                  aria-label={`Question ${i + 1}`}
-                />
+                <Card
+                  key={question.id}
+                  className={`p-4 sm:p-5 space-y-3 transition-all duration-300 ${
+                    isAnswered ? 'border-[var(--accent)]/30' : 'border-white/10'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <span
+                      className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[11px] font-black"
+                      style={{
+                        background: `${LEVEL_META[level].accent}22`,
+                        color: LEVEL_META[level].accent,
+                      }}
+                    >
+                      {qIndex + 1}
+                    </span>
+                    <div className="min-w-0 space-y-1">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        {question.category}
+                      </p>
+                      <p className="text-sm sm:text-base font-bold text-white leading-snug">
+                        {question.question}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-2 sm:pl-10">
+                    {question.options.map((opt, optIdx) => {
+                      const isSelected = selected === optIdx
+                      return (
+                        <button
+                          key={`${question.id}_${optIdx}`}
+                          type="button"
+                          onClick={() => selectAnswer(qIndex, optIdx)}
+                          className={`gk-option group relative text-left px-3.5 py-3 rounded-xl text-xs sm:text-sm font-semibold border transition-all duration-300 ${
+                            isSelected
+                              ? 'gk-option-selected text-white scale-[1.01]'
+                              : 'border-white/10 bg-white/[0.04] text-slate-300 hover:border-white/25 hover:bg-white/[0.07] hover:text-white'
+                          }`}
+                          style={
+                            isSelected
+                              ? {
+                                  borderColor: LEVEL_META[level].accent,
+                                  background: `${LEVEL_META[level].accent}22`,
+                                  boxShadow: `0 0 20px -8px ${LEVEL_META[level].glow}`,
+                                }
+                              : undefined
+                          }
+                        >
+                          <span className="inline-flex items-start gap-2.5">
+                            <span
+                              className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[10px] font-black border ${
+                                isSelected
+                                  ? 'border-transparent text-slate-950'
+                                  : 'border-white/15 text-slate-400'
+                              }`}
+                              style={isSelected ? { background: LEVEL_META[level].accent } : undefined}
+                            >
+                              {String.fromCharCode(65 + optIdx)}
+                            </span>
+                            <span>{opt}</span>
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </Card>
               )
             })}
           </div>
 
-          <Card
-            key={popKey}
-            className="p-5 sm:p-6 space-y-5 gk-question-enter"
-            style={{ borderColor: `${LEVEL_META[level].accent}33` }}
-          >
-            <p className="text-base sm:text-lg font-bold text-white leading-snug font-display">
-              {current.question}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-white/10">
+            <p className="text-xs text-slate-400">
+              {allAnswered ? t('gkReadyToSubmit') : t('gkKeepAnswering').replace('{n}', String(round.length - answeredCount))}
             </p>
-            <div className="grid sm:grid-cols-2 gap-3">
-              {current.options.map((opt, optIdx) => {
-                const selected = answers[qIdx] === optIdx
-                return (
-                  <button
-                    key={`${current.id}_${optIdx}`}
-                    type="button"
-                    onClick={() => selectAnswer(optIdx)}
-                    className={`gk-option group relative text-left px-4 py-3.5 rounded-xl text-sm font-semibold border transition-all duration-300 ${
-                      selected
-                        ? 'gk-option-selected text-white scale-[1.02]'
-                        : 'border-white/10 bg-white/[0.04] text-slate-300 hover:border-white/25 hover:bg-white/[0.07] hover:text-white'
-                    }`}
-                    style={
-                      selected
-                        ? {
-                            borderColor: LEVEL_META[level].accent,
-                            background: `${LEVEL_META[level].accent}22`,
-                            boxShadow: `0 0 24px -8px ${LEVEL_META[level].glow}`,
-                          }
-                        : undefined
-                    }
-                  >
-                    <span className="inline-flex items-start gap-3">
-                      <span
-                        className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[10px] font-black border transition ${
-                          selected
-                            ? 'border-transparent text-slate-950'
-                            : 'border-white/15 text-slate-400 group-hover:border-white/30'
-                        }`}
-                        style={selected ? { background: LEVEL_META[level].accent } : undefined}
-                      >
-                        {String.fromCharCode(65 + optIdx)}
-                      </span>
-                      <span>{opt}</span>
-                    </span>
-                    {selected ? (
-                      <span className="gk-option-burst absolute inset-0 rounded-xl pointer-events-none" aria-hidden />
-                    ) : null}
-                  </button>
-                )
-              })}
-            </div>
-          </Card>
-
-          <div className="flex flex-wrap items-center justify-between gap-3">
             <button
               type="button"
-              disabled={qIdx === 0}
-              onClick={() => setQIdx((i) => Math.max(0, i - 1))}
-              className="btn-ghost px-4 py-2.5 rounded-xl text-xs font-bold text-white inline-flex items-center gap-1.5 disabled:opacity-40"
+              onClick={submitRound}
+              disabled={!allAnswered}
+              className="btn-accent px-5 py-2.5 rounded-xl text-xs font-bold disabled:opacity-50"
             >
-              <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
-              {t('gkPrev')}
+              {t('submitQuizText')}
             </button>
-
-            {qIdx < round.length - 1 ? (
-              <button
-                type="button"
-                onClick={() => setQIdx((i) => Math.min(round.length - 1, i + 1))}
-                className="btn-accent px-4 py-2.5 rounded-xl text-xs font-bold inline-flex items-center gap-1.5"
-              >
-                {t('gkNext')}
-                <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={submitRound}
-                disabled={!allAnswered}
-                className="btn-accent px-5 py-2.5 rounded-xl text-xs font-bold disabled:opacity-50"
-              >
-                {t('submitQuizText')}
-              </button>
-            )}
           </div>
         </div>
       ) : null}
@@ -360,7 +317,7 @@ export function GkQuizPanel() {
         <div className="space-y-5 gk-results-enter">
           <Card className="p-6 text-center space-y-4">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white/5 border border-white/10">
-              {result.passed ? (
+              {result.percent >= 70 ? (
                 <Trophy className="h-7 w-7 text-amber-300" aria-hidden />
               ) : (
                 <Sparkles className="h-7 w-7 text-[var(--accent2)]" aria-hidden />
@@ -374,47 +331,66 @@ export function GkQuizPanel() {
                 {result.percent}% · {t(LEVEL_META[level].labelKey)}
               </p>
             </div>
-            <p className="text-sm font-semibold text-white">
-              {result.passed ? t('gkRoundPassed') : t('gkRoundRetry')}
-            </p>
+            <p className="text-sm font-semibold text-white">{t('gkResultsHeadline')}</p>
           </Card>
 
-          <div className="space-y-3 max-h-[320px] overflow-y-auto pr-1">
+          <div className="space-y-4">
             {round.map((q, i) => {
               const chosen = answers[i]
-              const correct = chosen === q.answerIndex
+              const isCorrect = chosen === q.answerIndex
               return (
                 <div
                   key={q.id}
-                  className={`rounded-xl border px-4 py-3 text-left ${
-                    correct
-                      ? 'border-emerald-500/30 bg-emerald-500/5'
-                      : 'border-rose-500/30 bg-rose-500/5'
+                  className={`rounded-2xl border p-4 sm:p-5 space-y-3 ${
+                    isCorrect
+                      ? 'border-emerald-500/40 bg-emerald-500/5'
+                      : 'border-rose-500/40 bg-rose-500/5'
                   }`}
                 >
                   <div className="flex items-start gap-2">
-                    {correct ? (
-                      <CheckCircle2 className="h-4 w-4 text-emerald-300 shrink-0 mt-0.5" aria-hidden />
+                    {isCorrect ? (
+                      <CheckCircle2 className="h-5 w-5 text-emerald-300 shrink-0 mt-0.5" aria-hidden />
                     ) : (
-                      <XCircle className="h-4 w-4 text-rose-300 shrink-0 mt-0.5" aria-hidden />
+                      <XCircle className="h-5 w-5 text-rose-300 shrink-0 mt-0.5" aria-hidden />
                     )}
                     <div className="min-w-0 space-y-1">
-                      <p className="text-xs font-bold text-white">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        {q.category}
+                      </p>
+                      <p className="text-sm font-bold text-white">
                         {i + 1}. {q.question}
                       </p>
-                      <p className="text-[11px] text-slate-400">
-                        {t('gkYourAnswer')}: {q.options[chosen] ?? '—'}
-                      </p>
-                      {!correct ? (
-                        <p className="text-[11px] text-emerald-300">
-                          {t('gkCorrectAnswer')}: {q.options[q.answerIndex]}
-                        </p>
-                      ) : null}
-                      {q.explanation ? (
-                        <p className="text-[11px] text-slate-500">{q.explanation}</p>
-                      ) : null}
                     </div>
                   </div>
+
+                  <div className="grid sm:grid-cols-2 gap-2 sm:pl-7">
+                    {q.options.map((opt, optIdx) => {
+                      const isChosen = chosen === optIdx
+                      const isAnswer = optIdx === q.answerIndex
+                      let stateClass = 'border-white/10 bg-white/[0.03] text-slate-400'
+                      if (isAnswer) {
+                        stateClass = 'border-emerald-500/50 bg-emerald-500/15 text-emerald-200'
+                      } else if (isChosen && !isAnswer) {
+                        stateClass = 'border-rose-500/50 bg-rose-500/15 text-rose-200'
+                      }
+                      return (
+                        <div
+                          key={`${q.id}_r_${optIdx}`}
+                          className={`px-3 py-2.5 rounded-xl text-xs font-semibold border flex items-center justify-between gap-2 ${stateClass}`}
+                        >
+                          <span>
+                            {String.fromCharCode(65 + optIdx)}. {opt}
+                          </span>
+                          {isAnswer ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0" aria-hidden /> : null}
+                          {isChosen && !isAnswer ? <XCircle className="h-3.5 w-3.5 shrink-0" aria-hidden /> : null}
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {q.explanation ? (
+                    <p className="text-[11px] text-slate-400 sm:pl-7">{q.explanation}</p>
+                  ) : null}
                 </div>
               )
             })}
@@ -428,16 +404,13 @@ export function GkQuizPanel() {
             >
               {t('tryAnother')}
             </button>
-            {result.passed && nextGkLevel(level) ? (
+            {nextGkLevel(level) ? (
               <button
                 type="button"
                 onClick={goNextLevel}
                 className="btn-accent px-4 py-2.5 rounded-xl text-xs font-bold inline-flex items-center gap-1.5"
               >
-                {t('gkEnterRound2').replace(
-                  '{level}',
-                  t(LEVEL_META[nextGkLevel(level)!].labelKey),
-                )}
+                {t('gkEnterRound2').replace('{level}', t(LEVEL_META[nextGkLevel(level)!].labelKey))}
                 <ArrowRight className="h-3.5 w-3.5" aria-hidden />
               </button>
             ) : (

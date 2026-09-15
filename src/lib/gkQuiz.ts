@@ -31,10 +31,8 @@ export function emptyGkProgress(): GkQuizProgress {
   }
 }
 
-export function isGkLevelUnlocked(level: GkDifficulty, progress: GkQuizProgress): boolean {
-  if (level === 'easy') return true
-  if (level === 'medium') return progress.easy.passed
-  return progress.medium.passed
+export function isGkLevelUnlocked(_level: GkDifficulty, _progress?: GkQuizProgress): boolean {
+  return true
 }
 
 export function nextGkLevel(level: GkDifficulty): GkDifficulty | null {
