@@ -17,6 +17,7 @@ import {
 import { useOrbitStore } from '../../store/orbitStore'
 import { Panel, Card } from '../../components/ui/primitives'
 import type { StudentAcademicProfile, ProfileListItem } from '../../types'
+import { ConfidentialDocsSection } from './ConfidentialDocsSection'
 
 export function AcademicProfile() {
   const lang = useOrbitStore((s) => s.lang)
@@ -659,6 +660,8 @@ export function AcademicProfile() {
           </Card>
         </div>
       )}
+
+      <ConfidentialDocsSection />
     </Panel>
   )
 }

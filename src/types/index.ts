@@ -94,6 +94,28 @@ export interface StudentAcademicProfile {
   milestones: ProfileListItem[]
 }
 
+export type ConfidentialDocCategory =
+  | 'Birth Certificate'
+  | 'ID / Aadhaar'
+  | 'Report Card'
+  | 'Medical'
+  | 'Passport'
+  | 'Admission'
+  | 'Other'
+
+export interface ConfidentialDocument {
+  id: string
+  title: string
+  category: ConfidentialDocCategory
+  fileName: string
+  mimeType: string
+  sizeBytes: number
+  /** Cloud storage object path, or local IndexedDB key. */
+  storagePath: string
+  createdAt: string
+  storage: 'cloud' | 'local'
+}
+
 export interface OrbitCompetition {
   id: string
   title: string

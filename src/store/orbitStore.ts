@@ -22,6 +22,11 @@ import {
 } from '../data/demo'
 import { computeStudyScore } from '../lib/studyScore'
 import { emptyGkProgress } from '../lib/gkQuiz'
+import {
+  deleteConfidentialDoc,
+  listConfidentialDocs,
+  uploadConfidentialDoc,
+} from '../lib/confidentialDocs'
 import { dispatchRemoteAlert, eventTypeFromNotification } from '../lib/alerts'
 import { resolveClassLinked } from '../lib/classLink'
 import {
@@ -99,6 +104,8 @@ import type {
   CompetitionEnrollment,
   GkDifficulty,
   GkQuizProgress,
+  ConfidentialDocument,
+  ConfidentialDocCategory,
 } from '../types'
 
 interface OrbitState {
@@ -122,6 +129,7 @@ interface OrbitState {
   competitions: OrbitCompetition[]
   competitionEnrollments: CompetitionEnrollment[]
   gkProgress: GkQuizProgress
+  confidentialDocs: ConfidentialDocument[]
 
   fees: FeeItem[]
   feesHasMore: boolean
@@ -284,6 +292,9 @@ interface OrbitState {
   payForCompetition: (competitionId: string) => void
   completeCompetition: (competitionId: string, rank: number) => void
   recordGkRound: (level: GkDifficulty, score: number, total: number, passed: boolean) => void
+  loadConfidentialDocs: () => Promise<void>
+  addConfidentialDoc: (file: File, title: string, category: ConfidentialDocCategory) => Promise<boolean>
+  removeConfidentialDoc: (id: string) => Promise<boolean>
   startTask: (id: number) => void
 }
 
@@ -312,6 +323,7 @@ export const useOrbitStore = create<OrbitState>()(
       competitions: initialCompetitions,
       competitionEnrollments: initialCompetitionEnrollments,
       gkProgress: emptyGkProgress(),
+      confidentialDocs: [],
 
       fees: initialFees,
       feesHasMore: false,
@@ -870,6 +882,7 @@ export const useOrbitStore = create<OrbitState>()(
           activeQuiz: null,
           quizScore: null,
           gkProgress: emptyGkProgress(),
+          confidentialDocs: [],
           scanStep: 'select',
           scanInsight: null,
           scanPreviewUrl: null,
@@ -1165,6 +1178,41 @@ export const useOrbitStore = create<OrbitState>()(
         get().triggerToast(`GK ${level}: ${score}/${total} · +${xp} XP`)
       },
 
+      loadConfidentialDocs: async () => {
+        const docs = await listConfidentialDocs()
+        set({ confidentialDocs: docs })
+      },
+
+      addConfidentialDoc: async (file, title, category) => {
+        const result = await uploadConfidentialDoc({ file, title, category })
+        if (!result.ok) {
+          get().triggerToast(result.error)
+          return false
+        }
+        set((s) => ({
+          confidentialDocs: [result.doc, ...s.confidentialDocs.filter((d) => d.id !== result.doc.id)],
+        }))
+        get().triggerToast(
+          result.doc.storage === 'cloud'
+            ? 'Document stored in your private vault.'
+            : 'Document saved in this device’s private vault.',
+        )
+        return true
+      },
+
+      removeConfidentialDoc: async (id) => {
+        const doc = get().confidentialDocs.find((d) => d.id === id)
+        if (!doc) return false
+        const result = await deleteConfidentialDoc(doc)
+        if (!result.ok) {
+          get().triggerToast(result.error || 'Could not delete document.')
+          return false
+        }
+        set((s) => ({ confidentialDocs: s.confidentialDocs.filter((d) => d.id !== id) }))
+        get().triggerToast('Document removed from vault.')
+        return true
+      },
+
       startTask: (id) => set((s) => ({
         tasks: s.tasks.map((t) => t.id === id ? { ...t, started: true } : t)
       })),
@@ -1197,6 +1245,8 @@ export const useOrbitStore = create<OrbitState>()(
         competitions: s.competitions,
         competitionEnrollments: s.competitionEnrollments,
         gkProgress: s.gkProgress,
+        // Metadata only — file bytes stay in private Storage / IndexedDB
+        confidentialDocs: s.confidentialDocs,
       }),
     },
   ),
