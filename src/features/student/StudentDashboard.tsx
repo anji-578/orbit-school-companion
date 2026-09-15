@@ -688,14 +688,14 @@ export function StudentDashboard() {
         <div className="grid sm:grid-cols-2 gap-3">
           <button
             type="button"
-            onClick={() => setActiveTab('study-assistant')}
+            onClick={() => setActiveTab('gk-quiz')}
             className="text-left p-4 rounded-2xl border border-white/10 bg-white/[0.03] hover:border-white/20 transition space-y-1"
           >
             <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">
               {t('homeDiscoverChallenge')}
             </p>
             <p className="text-xs font-bold text-white">{t('homeDiscoverChallengeBody')}</p>
-            <p className="text-[10px] text-[var(--accent2)]">+20 XP</p>
+            <p className="text-[10px] text-[var(--accent2)]">+40 XP</p>
           </button>
           <button
             type="button"

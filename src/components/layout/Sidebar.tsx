@@ -113,6 +113,7 @@ export function getStudentNavGroups(lang: 'en' | 'te'): OrbitNavGroup[] {
           icon: BrainCircuit,
           badge: t('navNewBadge'),
         },
+        { id: 'gk-quiz', label: t('studentGkQuiz'), icon: Sparkles, badge: t('navNewBadge') },
         { id: 'syllabus-explorer', label: t('navSubjects'), icon: BookMarked },
         { id: 'competitions', label: t('studentCompetitions'), icon: Award },
         { id: 'scanner', label: t('studentScanner'), icon: Clipboard },

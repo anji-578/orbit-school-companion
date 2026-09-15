@@ -151,6 +151,9 @@ export const ALL_BADGES = [
   { name: 'Rising Scholar', desc: 'Jump 10+ ranks' },
   { name: 'Curious Mind', desc: 'Ask OrbitAI often' },
   { name: 'Concept Master', desc: 'Pass remediation quiz' },
+  { name: 'GK Starter', desc: 'Clear Easy GK round' },
+  { name: 'GK Explorer', desc: 'Clear Medium GK round' },
+  { name: 'GK Champion', desc: 'Clear Hard GK round' },
 ] as const
 
 export const initialAttendance: AttendanceRecord[] = [

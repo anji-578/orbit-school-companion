@@ -21,6 +21,7 @@ import {
   initialCompetitionEnrollments,
 } from '../data/demo'
 import { computeStudyScore } from '../lib/studyScore'
+import { emptyGkProgress } from '../lib/gkQuiz'
 import { dispatchRemoteAlert, eventTypeFromNotification } from '../lib/alerts'
 import { resolveClassLinked } from '../lib/classLink'
 import {
@@ -96,6 +97,8 @@ import type {
   StudentAcademicProfile,
   OrbitCompetition,
   CompetitionEnrollment,
+  GkDifficulty,
+  GkQuizProgress,
 } from '../types'
 
 interface OrbitState {
@@ -118,6 +121,7 @@ interface OrbitState {
   studentProfile: StudentAcademicProfile
   competitions: OrbitCompetition[]
   competitionEnrollments: CompetitionEnrollment[]
+  gkProgress: GkQuizProgress
 
   fees: FeeItem[]
   feesHasMore: boolean
@@ -279,6 +283,7 @@ interface OrbitState {
   registerForCompetition: (competitionId: string) => void
   payForCompetition: (competitionId: string) => void
   completeCompetition: (competitionId: string, rank: number) => void
+  recordGkRound: (level: GkDifficulty, score: number, total: number, passed: boolean) => void
   startTask: (id: number) => void
 }
 
@@ -306,6 +311,7 @@ export const useOrbitStore = create<OrbitState>()(
       studentProfile: initialStudentProfile,
       competitions: initialCompetitions,
       competitionEnrollments: initialCompetitionEnrollments,
+      gkProgress: emptyGkProgress(),
 
       fees: initialFees,
       feesHasMore: false,
@@ -863,6 +869,7 @@ export const useOrbitStore = create<OrbitState>()(
           quizMode: false,
           activeQuiz: null,
           quizScore: null,
+          gkProgress: emptyGkProgress(),
           scanStep: 'select',
           scanInsight: null,
           scanPreviewUrl: null,
@@ -1133,6 +1140,37 @@ export const useOrbitStore = create<OrbitState>()(
         }
       }),
 
+      recordGkRound: (level, score, total, passed) => {
+        set((s) => {
+          const prev = s.gkProgress[level]
+          return {
+            gkProgress: {
+              ...s.gkProgress,
+              [level]: {
+                bestScore: Math.max(prev.bestScore, score),
+                bestTotal: total,
+                attempts: prev.attempts + 1,
+                passed: prev.passed || passed,
+                lastPlayedAt: new Date().toISOString(),
+              },
+              roundsCompleted: s.gkProgress.roundsCompleted + 1,
+            },
+          }
+        })
+        const xp = passed ? 40 + Math.round((score / Math.max(total, 1)) * 40) : 15
+        get().addXp(xp)
+        if (passed) {
+          get().unlockBadge(level === 'hard' ? 'GK Champion' : level === 'medium' ? 'GK Explorer' : 'GK Starter')
+          get().triggerToast(
+            level === 'hard'
+              ? `Hard round cleared! +${xp} XP`
+              : `Level cleared! +${xp} XP · Next round unlocked`,
+          )
+        } else {
+          get().triggerToast(`Round scored ${score}/${total}. Need 70% to unlock the next level.`)
+        }
+      },
+
       startTask: (id) => set((s) => ({
         tasks: s.tasks.map((t) => t.id === id ? { ...t, started: true } : t)
       })),
@@ -1164,6 +1202,7 @@ export const useOrbitStore = create<OrbitState>()(
         studentProfile: s.studentProfile,
         competitions: s.competitions,
         competitionEnrollments: s.competitionEnrollments,
+        gkProgress: s.gkProgress,
       }),
     },
   ),

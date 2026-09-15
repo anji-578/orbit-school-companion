@@ -210,6 +210,33 @@ export interface QuizPayload {
   questions: QuizQuestion[]
 }
 
+export type GkDifficulty = 'easy' | 'medium' | 'hard'
+
+export interface GkQuestion {
+  id: string
+  difficulty: GkDifficulty
+  category: string
+  question: string
+  options: string[]
+  answerIndex: number
+  explanation?: string
+}
+
+export interface GkLevelStats {
+  bestScore: number
+  bestTotal: number
+  attempts: number
+  passed: boolean
+  lastPlayedAt?: string
+}
+
+export interface GkQuizProgress {
+  easy: GkLevelStats
+  medium: GkLevelStats
+  hard: GkLevelStats
+  roundsCompleted: number
+}
+
 export interface SoftSkill {
   label: string
   score: number

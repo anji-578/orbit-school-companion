@@ -17,6 +17,7 @@ import { AchievementsPanel } from './student/AchievementsPanel'
 import { SyllabusExplorer } from './student/SyllabusExplorer'
 import { AcademicProfile } from './student/AcademicProfile'
 import { CompetitionsPanel } from './student/CompetitionsPanel'
+import { GkQuizPanel } from './student/GkQuizPanel'
 
 import { ParentDashboard } from './parent/ParentDashboard'
 import { TeachersPanel } from './parent/TeachersPanel'
@@ -59,6 +60,7 @@ const ROLE_ROUTES: Record<Role, Record<string, ComponentType>> = {
     extracurriculars: ExtracurricularPanel,
     profile: AcademicProfile,
     competitions: CompetitionsPanel,
+    'gk-quiz': GkQuizPanel,
   },
   parent: {
     dashboard: ParentDashboard,
