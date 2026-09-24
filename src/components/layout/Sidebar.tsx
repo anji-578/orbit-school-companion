@@ -17,6 +17,7 @@ import {
   Home,
   LogOut,
   Menu,
+  MessageSquare,
   School,
   Sliders,
   Sparkles,
@@ -39,6 +40,7 @@ import { useOrbitStore } from '../../store/orbitStore'
 import type { Role } from '../../types'
 import { OrbitLogo } from '../brand/OrbitLogo'
 import { ChildSwitcher } from '../ui/ChildSwitcher'
+import { TeacherClassSwitcher } from '../ui/TeacherClassSwitcher'
 import { isPilotDemoEmail } from '../../lib/classLink'
 
 const ROLE_META: Record<
@@ -162,10 +164,12 @@ export function getTabsForRole(
       { id: 'teacher-attendance', label: t('teacherAttendanceTitle'), icon: UserCheck },
       { id: 'teacher-homework', label: t('teacherHomeworkTitle'), icon: CheckSquare },
       { id: 'teacher-marks', label: t('teacherMarksTitle'), icon: Clipboard },
+      { id: 'teacher-messages', label: t('teacherMessagesTitle'), icon: MessageSquare, badge: t('navNewBadge') },
       { id: 'teacher-syllabus', label: t('teacherSyllabusTitle'), icon: BookOpen },
       { id: 'scanner', label: t('teacherScanner'), icon: Clipboard },
       { id: 'teacher-leaves', label: t('teacherLeavesTitle'), icon: CalendarDays },
       { id: 'teacher-jobs', label: t('teacherJobsTitle'), icon: Briefcase },
+      { id: 'teacher-profile', label: t('teacherProfileTitle'), icon: GraduationCap },
     ],
     school: [
       { id: 'dashboard', label: t('schoolDashboard'), icon: Sliders },
@@ -234,6 +238,8 @@ export function Sidebar() {
   const setMobileMenuOpen = useOrbitStore((s) => s.setMobileMenuOpen)
   const linkedStudent = useOrbitStore((s) => s.linkedStudent)
   const studentProfile = useOrbitStore((s) => s.studentProfile)
+  const teacherAcademicProfile = useOrbitStore((s) => s.teacherAcademicProfile)
+  const teacherActiveClass = useOrbitStore((s) => s.teacherActiveClass)
   const session = useAuthStore((s) => s.session)
   const logout = useAuthStore((s) => s.logout)
   const resetDemoData = useOrbitStore((s) => s.resetDemoData)
@@ -247,7 +253,7 @@ export function Sidebar() {
     (role === 'student' || role === 'parent'
       ? childDisplayName(linkedStudent)
       : role === 'teacher'
-        ? 'Mrs. Sarah Davis'
+        ? teacherAcademicProfile.name || 'Mrs. Sarah Davis'
         : role === 'school'
           ? 'Admin Desk'
           : 'Student')
@@ -257,7 +263,9 @@ export function Sidebar() {
       ? `${linkedStudent.className}${linkedStudent.section ? `-${linkedStudent.section}` : ''}`
       : role === 'parent' && linkedStudent
         ? childFirstName(linkedStudent)
-        : t(meta.subKey))
+        : role === 'teacher'
+          ? teacherActiveClass || t(meta.subKey)
+          : t(meta.subKey))
   const showDemoChrome =
     session?.provider === 'local-demo' || isPilotDemoEmail(session?.email ?? '')
 
@@ -325,6 +333,31 @@ export function Sidebar() {
                 <span className="text-[9px] text-slate-500 mt-0.5 block">{t('studentProfile')} →</span>
               </div>
             </button>
+          ) : role === 'teacher' ? (
+            <button
+              type="button"
+              onClick={() => go('teacher-profile')}
+              aria-current={activeTab === 'teacher-profile' ? 'page' : undefined}
+              aria-label={t('teacherProfileTitle')}
+              className={`w-full flex items-center gap-3 p-3 rounded-2xl border text-left transition ${
+                activeTab === 'teacher-profile'
+                  ? 'bg-white/10 border-white/20'
+                  : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
+              }`}
+            >
+              <img
+                src={teacherAcademicProfile.photoUrl}
+                alt=""
+                className="w-10 h-10 rounded-full border border-white/20 object-cover shrink-0"
+              />
+              <div className="min-w-0 flex-1">
+                <h4 className="text-xs font-bold text-white truncate">{teacherAcademicProfile.name || profileName}</h4>
+                <span className="text-[9px] font-extrabold mt-1 block truncate" style={{ color: meta.accent }}>
+                  {teacherActiveClass || profileSub}
+                </span>
+                <span className="text-[9px] text-slate-500 mt-0.5 block">{t('teacherProfileTitle')} →</span>
+              </div>
+            </button>
           ) : (
             <div className="flex items-center gap-3 p-3 bg-white/5 rounded-2xl border border-white/10">
               <img
@@ -342,6 +375,7 @@ export function Sidebar() {
           )}
 
           <ChildSwitcher />
+          <TeacherClassSwitcher />
 
           <nav className="space-y-4" aria-label={`${role} sections`}>
             {studentGroups ? (

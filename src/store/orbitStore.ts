@@ -17,6 +17,7 @@ import {
   initialTasks,
   schoolTeachers,
   initialStudentProfile,
+  initialTeacherAcademicProfile,
   initialCompetitions,
   initialCompetitionEnrollments,
 } from '../data/demo'
@@ -29,6 +30,16 @@ import {
 } from '../lib/confidentialDocs'
 import { dispatchRemoteAlert, eventTypeFromNotification } from '../lib/alerts'
 import { resolveClassLinked } from '../lib/classLink'
+import {
+  DEMO_TEACHER_CLASSES,
+  classLabelsMatch,
+  clearTeacherActiveClass,
+  fetchSchoolPolicy,
+  readTeacherActiveClass,
+  resolveClassLabel,
+  writeTeacherActiveClass,
+} from '../lib/schoolPolicy'
+import { fetchTeacherClasses } from '../lib/teacherClassesApi'
 import {
   childFirstName,
   fetchLinkedStudent,
@@ -54,7 +65,6 @@ import {
   fetchRosterWithTodayAttendance,
 } from '../lib/attendanceApi'
 import { startAttendanceQueueSync } from '../lib/attendanceQueue'
-import { fetchSchoolPolicy, resolveClassLabel } from '../lib/schoolPolicy'
 import { fetchStudentGrades, saveStudentGrades } from '../lib/gradesApi'
 import { deleteSyllabusNoteFile, fetchSyllabusState, mergeCurriculum, saveSyllabusState, uploadSyllabusNoteFile } from '../lib/syllabusApi'
 import { withSyllabusLearningLinks } from '../lib/syllabusLinks'
@@ -106,6 +116,7 @@ import type {
   GkQuizProgress,
   ConfidentialDocument,
   ConfidentialDocCategory,
+  TeacherAcademicProfile,
 } from '../types'
 
 interface OrbitState {
@@ -130,6 +141,9 @@ interface OrbitState {
   competitionEnrollments: CompetitionEnrollment[]
   gkProgress: GkQuizProgress
   confidentialDocs: ConfidentialDocument[]
+  teacherClasses: string[]
+  teacherActiveClass: string
+  teacherAcademicProfile: TeacherAcademicProfile
 
   fees: FeeItem[]
   feesHasMore: boolean
@@ -196,6 +210,9 @@ interface OrbitState {
   setActiveChild: (studentId: string) => Promise<void>
 
   setRole: (role: Role) => void
+  setTeacherActiveClass: (classLabel: string) => Promise<void>
+  loadTeacherClasses: () => Promise<void>
+  updateTeacherAcademicProfile: (profile: Partial<TeacherAcademicProfile>) => void
   setLang: (lang: Lang) => void
   setTheme: (theme: ThemeMode) => void
   toggleTheme: () => void
@@ -324,6 +341,9 @@ export const useOrbitStore = create<OrbitState>()(
       competitionEnrollments: initialCompetitionEnrollments,
       gkProgress: emptyGkProgress(),
       confidentialDocs: [],
+      teacherClasses: [...DEMO_TEACHER_CLASSES],
+      teacherActiveClass: readTeacherActiveClass() || DEMO_TEACHER_CLASSES[0],
+      teacherAcademicProfile: initialTeacherAcademicProfile,
 
       fees: initialFees,
       feesHasMore: false,
@@ -392,7 +412,75 @@ export const useOrbitStore = create<OrbitState>()(
 
       getAttendancePercent: () => attendancePercent(get().attendanceRecords),
 
-      setRole: (role) => set({ role, activeTab: 'dashboard', mobileMenuOpen: false, notifOpen: false }),
+      setRole: (role) => {
+        if (role !== 'teacher') clearTeacherActiveClass()
+        set({ role, activeTab: 'dashboard', mobileMenuOpen: false, notifOpen: false })
+      },
+
+      setTeacherActiveClass: async (classLabel) => {
+        const label = classLabel.trim()
+        if (!label) return
+        writeTeacherActiveClass(label)
+        set({ teacherActiveClass: label })
+        const role = get().role
+        if (role === 'teacher') {
+          if (isSupabaseConfigured()) {
+            const roster = await fetchRosterWithTodayAttendance({ activeClassOnly: true })
+            if (roster.length) {
+              set({ roster })
+            } else {
+              // Demo / empty cloud: filter local sample roster by class
+              set({
+                roster: initialRoster.filter((r) => classLabelsMatch(r.classLabel, label)),
+              })
+            }
+          } else {
+            set({
+              roster: initialRoster.filter((r) => classLabelsMatch(r.classLabel, label)),
+            })
+          }
+          get().triggerToast(`Switched to ${label}`)
+        }
+      },
+
+      loadTeacherClasses: async () => {
+        const remote = await fetchTeacherClasses()
+        const {
+          data: { user },
+        } = (await getSupabase()?.auth.getUser()) ?? { data: { user: null } }
+        const mine = remote
+          .filter((row) => !user?.id || row.teacherProfileId === user.id)
+          .map((row) =>
+            [row.className, row.section].filter(Boolean).join('-').replace(/\s*-\s*/g, '-'),
+          )
+          .filter(Boolean)
+        const unique = [...new Set(mine.length ? mine : [...DEMO_TEACHER_CLASSES])]
+        const stored = readTeacherActiveClass()
+        const active =
+          (stored && unique.some((c) => classLabelsMatch(c, stored)) && stored) ||
+          unique[0] ||
+          DEMO_TEACHER_CLASSES[0]
+        writeTeacherActiveClass(active)
+        set((s) => ({
+          teacherClasses: unique,
+          teacherActiveClass: active,
+          teacherAcademicProfile: {
+            ...s.teacherAcademicProfile,
+            classes: unique,
+          },
+        }))
+      },
+
+      updateTeacherAcademicProfile: (profile) =>
+        set((s) => {
+          const next = { ...s.teacherAcademicProfile, ...profile }
+          const classes = next.classes.length ? next.classes : s.teacherClasses
+          return {
+            teacherAcademicProfile: next,
+            teacherClasses: classes,
+          }
+        }),
+
       setLang: (lang) => set({ lang }),
       setTheme: (theme) => set({ theme }),
       toggleTheme: () => set((s) => ({ theme: s.theme === 'dark' ? 'light' : 'dark' })),
@@ -537,6 +625,9 @@ export const useOrbitStore = create<OrbitState>()(
         await fetchSchoolPolicy()
         const sessionEmail = (await getSupabase()?.auth.getUser())?.data.user?.email ?? ''
         const role = get().role
+        if (role === 'teacher') {
+          await get().loadTeacherClasses()
+        }
         const classLinked = await resolveClassLinked(sessionEmail, role)
         const linkedStudents = await fetchLinkedStudents(sessionEmail, role)
         const linkedStudent =
@@ -573,7 +664,12 @@ export const useOrbitStore = create<OrbitState>()(
           const leaves = withSample(ops.leaves, initialLeaves)
           const broadcasts = withSample(ops.broadcasts, initialBroadcasts)
           const calendarEvents = withSample(ops.calendarEvents, initialCalendar)
-          const nextRoster = withSample(roster, initialRoster)
+          let nextRoster = withSample(roster, initialRoster)
+          if (role === 'teacher' && (!roster.length || !cloud)) {
+            const focused = s.teacherActiveClass
+            const filtered = nextRoster.filter((r) => classLabelsMatch(r.classLabel, focused))
+            if (filtered.length) nextRoster = filtered
+          }
           const nextAttendance = withSample(attendanceRecords, initialAttendance)
           const nextGrades = withSample(studentGrades, initialGrades)
           const nextTeachers = withSample(teachers, schoolTeachers)
@@ -1247,6 +1343,9 @@ export const useOrbitStore = create<OrbitState>()(
         gkProgress: s.gkProgress,
         // Metadata only — file bytes stay in private Storage / IndexedDB
         confidentialDocs: s.confidentialDocs,
+        teacherClasses: s.teacherClasses,
+        teacherActiveClass: s.teacherActiveClass,
+        teacherAcademicProfile: s.teacherAcademicProfile,
       }),
     },
   ),

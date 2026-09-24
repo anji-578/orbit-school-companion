@@ -93,14 +93,31 @@ export async function fetchRosterWithTodayAttendance(options?: {
     resolveClassLabel({
       linkedClassName: row.class_name as string,
       linkedSection: (row.section as string | null) ?? null,
+      ignoreTeacherFocus: true,
     }),
   )
 
-  // Prefer SQL class filter for teachers so the page isn't wasted on other grades.
-  if (activeClassOnly && teacherLabelsEarly.length === 1) {
-    const only = teacherClassesResult.data![0]!
-    studentsQuery = studentsQuery.eq('class_name', only.class_name as string)
-    if (only.section) studentsQuery = studentsQuery.eq('section', only.section as string)
+  // Prefer SQL class filter for the teacher's focused class when set.
+  if (activeClassOnly && role === 'teacher') {
+    const focused = resolveClassLabel()
+    const matchRow = (teacherClassesResult.data ?? []).find((row) =>
+      classLabelsMatch(
+        resolveClassLabel({
+          linkedClassName: row.class_name as string,
+          linkedSection: (row.section as string | null) ?? null,
+          ignoreTeacherFocus: true,
+        }),
+        focused,
+      ),
+    )
+    if (matchRow) {
+      studentsQuery = studentsQuery.eq('class_name', matchRow.class_name as string)
+      if (matchRow.section) studentsQuery = studentsQuery.eq('section', matchRow.section as string)
+    } else if (teacherLabelsEarly.length === 1) {
+      const only = teacherClassesResult.data![0]!
+      studentsQuery = studentsQuery.eq('class_name', only.class_name as string)
+      if (only.section) studentsQuery = studentsQuery.eq('section', only.section as string)
+    }
   }
 
   const [{ data: students }, { data: marks }] = await Promise.all([
@@ -126,7 +143,11 @@ export async function fetchRosterWithTodayAttendance(options?: {
       const roll = row.roll_no != null ? String(row.roll_no) : undefined
       const className = (row.class_name as string) || ''
       const section = (row.section as string | null) ?? null
-      const classLabel = resolveClassLabel({ linkedClassName: className, linkedSection: section })
+      const classLabel = resolveClassLabel({
+        linkedClassName: className,
+        linkedSection: section,
+        ignoreTeacherFocus: true,
+      })
       const marked = presentById.has(id)
       return {
         id,
@@ -143,7 +164,10 @@ export async function fetchRosterWithTodayAttendance(options?: {
     })
     .filter((row) => {
       if (!activeClassOnly) return true
+      // Focused class wins when the teacher has switched into one of their classes
       if (teacherLabels.length) {
+        const focused = teacherLabels.find((label) => classLabelsMatch(label, activeClass))
+        if (focused) return classLabelsMatch(row.classLabel, focused)
         return teacherLabels.some((label) => classLabelsMatch(row.classLabel, label))
       }
       return classLabelsMatch(row.classLabel, activeClass)

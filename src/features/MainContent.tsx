@@ -33,6 +33,8 @@ import { TeacherSyllabus } from './teacher/TeacherSyllabus'
 import { TeacherLeaves } from './teacher/TeacherLeaves'
 import { TeacherJobs } from './teacher/TeacherJobs'
 import { TeacherHomework } from './teacher/TeacherHomework'
+import { TeacherParentMessage } from './teacher/TeacherParentMessage'
+import { TeacherProfilePanel } from './teacher/TeacherProfilePanel'
 
 import { SchoolDashboard } from './school/SchoolDashboard'
 import { SchoolFees } from './school/SchoolFees'
@@ -85,6 +87,8 @@ const ROLE_ROUTES: Record<Role, Record<string, ComponentType>> = {
     'teacher-syllabus': TeacherSyllabus,
     'teacher-leaves': TeacherLeaves,
     'teacher-jobs': TeacherJobs,
+    'teacher-messages': TeacherParentMessage,
+    'teacher-profile': TeacherProfilePanel,
   },
   school: {
     dashboard: SchoolDashboard,

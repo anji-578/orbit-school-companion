@@ -101,6 +101,8 @@ export type ConfidentialDocCategory =
   | 'Medical'
   | 'Passport'
   | 'Admission'
+  | 'Lesson Plan'
+  | 'Certificates'
   | 'Other'
 
 export interface ConfidentialDocument {
@@ -319,6 +321,21 @@ export interface TeacherProfile {
   qualification: string
   phone: string
   avatar: string
+}
+
+/** Editable teacher identity used in the Teacher Profile tab. */
+export interface TeacherAcademicProfile {
+  photoUrl: string
+  name: string
+  school: string
+  employeeId: string
+  phone: string
+  email: string
+  subjects: string[]
+  classes: string[]
+  qualifications: ProfileListItem[]
+  achievements: ProfileListItem[]
+  certifications: ProfileListItem[]
 }
 
 export interface CoachingItem {

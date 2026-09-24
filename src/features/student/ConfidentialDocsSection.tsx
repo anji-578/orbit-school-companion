@@ -10,7 +10,13 @@ import {
 } from '../../lib/confidentialDocs'
 import type { ConfidentialDocCategory } from '../../types'
 
-export function ConfidentialDocsSection() {
+export function ConfidentialDocsSection({
+  title,
+  description,
+}: {
+  title?: string
+  description?: string
+}) {
   const lang = useOrbitStore((s) => s.lang)
   const docs = useOrbitStore((s) => s.confidentialDocs)
   const loadConfidentialDocs = useOrbitStore((s) => s.loadConfidentialDocs)
@@ -18,7 +24,7 @@ export function ConfidentialDocsSection() {
   const removeConfidentialDoc = useOrbitStore((s) => s.removeConfidentialDoc)
 
   const fileRef = useRef<HTMLInputElement>(null)
-  const [title, setTitle] = useState('')
+  const [docTitle, setDocTitle] = useState('')
   const [category, setCategory] = useState<ConfidentialDocCategory>('Other')
   const [uploading, setUploading] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -30,10 +36,10 @@ export function ConfidentialDocsSection() {
   const onPickFile = async (file: File | null) => {
     if (!file) return
     setUploading(true)
-    const ok = await addConfidentialDoc(file, title || file.name.replace(/\.[^.]+$/, ''), category)
+    const ok = await addConfidentialDoc(file, docTitle || file.name.replace(/\.[^.]+$/, ''), category)
     setUploading(false)
     if (ok) {
-      setTitle('')
+      setDocTitle('')
       setCategory('Other')
       if (fileRef.current) fileRef.current.value = ''
     }
@@ -62,19 +68,23 @@ export function ConfidentialDocsSection() {
     setBusyId(null)
   }
 
+  const heading =
+    title ?? (lang === 'te' ? 'రహస్య పత్రాలు' : 'Confidential Documents')
+  const body =
+    description ??
+    (lang === 'te'
+      ? 'జనన ధృవీకరణ, ఆధార్, రిపోర్ట్ కార్డులు వంటి ఫైల్‌లను ప్రైవేట్ వాల్ట్‌లో అప్‌లోడ్ చేయండి. మీకు మాత్రమే యాక్సెస్.'
+      : 'Upload birth certificates, ID proofs, report cards, and other private files. Visible only to you — private vault with signed access.')
+
   return (
     <Card className="p-5 space-y-4 border border-amber-500/20 bg-amber-500/[0.03]">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
           <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
             <FileLock2 className="h-4 w-4 text-amber-300" aria-hidden />
-            {lang === 'te' ? 'రహస్య పత్రాలు' : 'Confidential Documents'}
+            {heading}
           </h3>
-          <p className="text-[11px] text-slate-400 max-w-xl leading-relaxed">
-            {lang === 'te'
-              ? 'జనన ధృవీకరణ, ఆధార్, రిపోర్ట్ కార్డులు వంటి ఫైల్‌లను ప్రైవేట్ వాల్ట్‌లో అప్‌లోడ్ చేయండి. మీకు మాత్రమే యాక్సెస్.'
-              : 'Upload birth certificates, ID proofs, report cards, and other private files. Visible only to you — private vault with signed access.'}
-          </p>
+          <p className="text-[11px] text-slate-400 max-w-xl leading-relaxed">{body}</p>
         </div>
         <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-200 border border-amber-500/25">
           <Lock className="h-3 w-3" aria-hidden />
@@ -90,8 +100,8 @@ export function ConfidentialDocsSection() {
             </label>
             <input
               type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              value={docTitle}
+              onChange={(e) => setDocTitle(e.target.value)}
               placeholder={lang === 'te' ? 'ఉదా. జనన ధృవీకరణ' : 'e.g. Birth certificate'}
               className="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder:text-slate-500 outline-none focus:border-amber-400/40"
             />
@@ -146,7 +156,7 @@ export function ConfidentialDocsSection() {
           <ShieldCheck className="h-3.5 w-3.5 text-emerald-400 shrink-0 mt-0.5" aria-hidden />
           {lang === 'te'
             ? 'క్లౌడ్‌లో ప్రైవేట్ బకెట్ + సైన్డ్ లింక్‌లు; ఆఫ్‌లైన్‌లో ఈ డివైస్ IndexedDB వాల్ట్.'
-            : 'Cloud: private bucket + short-lived signed links. Offline/demo: encrypted-to-device IndexedDB vault (not public URLs).'}
+            : 'Cloud: private bucket + short-lived signed links. Offline/demo: device IndexedDB vault (not public URLs).'}
         </p>
       </div>
 

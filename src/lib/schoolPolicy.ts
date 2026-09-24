@@ -13,6 +13,40 @@ export type SchoolPolicy = {
   classLabel: string
 }
 
+const TEACHER_CLASS_KEY = 'orbit_teacher_active_class_v1'
+
+/** Demo classes assigned to the sample teacher when cloud data is empty. */
+export const DEMO_TEACHER_CLASSES = [
+  'Grade 8-A',
+  'Grade 8-B',
+  'Grade 5-A',
+  'Grade 10-D',
+  'Grade 9-A',
+] as const
+
+export function readTeacherActiveClass(): string | null {
+  try {
+    const raw = localStorage.getItem(TEACHER_CLASS_KEY)
+    if (raw?.trim()) return raw.trim()
+  } catch {
+    /* ignore */
+  }
+  return null
+}
+
+export function writeTeacherActiveClass(label: string | null): void {
+  try {
+    if (!label?.trim()) localStorage.removeItem(TEACHER_CLASS_KEY)
+    else localStorage.setItem(TEACHER_CLASS_KEY, label.trim())
+  } catch {
+    /* ignore */
+  }
+}
+
+export function clearTeacherActiveClass(): void {
+  writeTeacherActiveClass(null)
+}
+
 export function readSchoolPolicy(): SchoolPolicy {
   try {
     const raw = localStorage.getItem(POLICY_KEY)
@@ -110,13 +144,19 @@ export async function saveSchoolPolicy(
   return { ok: true, policy }
 }
 
-/** Active class label: override → linked student → school policy → demo default. */
+/** Active class label: override → teacher focus → linked student → school policy → demo default. */
 export function resolveClassLabel(options?: {
   override?: string | null
   linkedClassName?: string | null
   linkedSection?: string | null
+  /** When true, skip teacher-focused class (school admin policy reads). */
+  ignoreTeacherFocus?: boolean
 }): string {
   if (options?.override?.trim()) return options.override.trim()
+  if (!options?.ignoreTeacherFocus) {
+    const teacherFocus = readTeacherActiveClass()
+    if (teacherFocus) return teacherFocus
+  }
   const linkedName = options?.linkedClassName?.trim()
   const linkedSection = options?.linkedSection?.trim()
   if (linkedName && linkedSection) return `${linkedName}-${linkedSection}`

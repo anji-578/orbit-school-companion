@@ -14,6 +14,8 @@ export const CONFIDENTIAL_CATEGORIES: ConfidentialDocCategory[] = [
   'Medical',
   'Passport',
   'Admission',
+  'Lesson Plan',
+  'Certificates',
   'Other',
 ]
 

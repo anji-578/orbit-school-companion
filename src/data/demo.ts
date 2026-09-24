@@ -20,8 +20,10 @@ import type {
   SyllabusChapter,
   SyllabusSubtopic,
   SyllabusTopic,
+  TeacherAcademicProfile,
   TeacherProfile,
 } from '../types'
+import { DEMO_TEACHER_CLASSES } from '../lib/schoolPolicy'
 
 export const STUDENT_NAME = 'Ananya Rao'
 export const CLASS_LABEL = 'Class 11-A · Roll 14'
@@ -263,6 +265,50 @@ export const initialStudentProfile: StudentAcademicProfile = {
   ],
 }
 
+export const DEFAULT_TEACHER_PHOTO =
+  'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=240&auto=format&fit=crop&q=80'
+
+export const initialTeacherAcademicProfile: TeacherAcademicProfile = {
+  photoUrl: DEFAULT_TEACHER_PHOTO,
+  name: 'Mrs. Sarah Davis',
+  school: 'Sunrise Public School',
+  employeeId: 'T-1042',
+  phone: '+91 98765 43210',
+  email: 'teacher@orbit.app',
+  subjects: ['Science', 'Mathematics'],
+  classes: [...DEMO_TEACHER_CLASSES],
+  qualifications: [
+    {
+      id: 'tq_1',
+      title: 'M.Sc. Physics',
+      subtitle: 'Osmania University',
+      date: '2014',
+    },
+    {
+      id: 'tq_2',
+      title: 'B.Ed.',
+      subtitle: 'State College of Education',
+      date: '2015',
+    },
+  ],
+  achievements: [
+    {
+      id: 'ta_1',
+      title: 'Best Mentor Award',
+      subtitle: 'School level',
+      date: '2025',
+    },
+  ],
+  certifications: [
+    {
+      id: 'tc_1',
+      title: 'CBSE Continuous Professional Development',
+      subtitle: 'Completed',
+      date: '2024',
+    },
+  ],
+}
+
 export const initialCompetitions: OrbitCompetition[] = [
   {
     id: 'comp_science_quiz',
@@ -443,10 +489,14 @@ export const initialGrades: StudentGrade[] = [
 ]
 
 export const initialRoster: RosterStudent[] = [
-  { id: 's1', name: 'Ananya Rao', present: true, isDemo: true },
-  { id: 's2', name: 'Sarah Jenkins', present: true },
-  { id: 's3', name: 'Marcus Vance', present: false },
-  { id: 's4', name: 'Pranitha K.', present: true },
+  { id: 's1', name: 'Ananya Rao', present: true, isDemo: true, classLabel: 'Grade 8-A', className: 'Grade 8', section: 'A', rollNo: '12' },
+  { id: 's2', name: 'Sarah Jenkins', present: true, classLabel: 'Grade 8-A', className: 'Grade 8', section: 'A', rollNo: '18' },
+  { id: 's3', name: 'Marcus Vance', present: false, classLabel: 'Grade 8-B', className: 'Grade 8', section: 'B', rollNo: '07' },
+  { id: 's4', name: 'Pranitha K.', present: true, classLabel: 'Grade 8-A', className: 'Grade 8', section: 'A', rollNo: '21' },
+  { id: 's5', name: 'Rohan Mehta', present: true, classLabel: 'Grade 5-A', className: 'Grade 5', section: 'A', rollNo: '04' },
+  { id: 's6', name: 'Diya Nair', present: true, classLabel: 'Grade 5-A', className: 'Grade 5', section: 'A', rollNo: '11' },
+  { id: 's7', name: 'Kabir Shah', present: false, classLabel: 'Grade 9-A', className: 'Grade 9', section: 'A', rollNo: '03' },
+  { id: 's8', name: 'Meera Iyer', present: true, classLabel: 'Grade 10-D', className: 'Grade 10', section: 'D', rollNo: '15' },
 ]
 
 export const initialFees: FeeItem[] = [
