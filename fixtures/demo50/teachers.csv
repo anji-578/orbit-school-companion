@@ -1,0 +1,6 @@
+idx,email,display_name,subject,classes,class_focus,password,employee_id,demo_script
+1,teacher01@demo50.orbit.app,Mrs. Kavitha Reddy,Mathematics,Grade 8-A|Grade 5-A|Grade 8-B,Grade 8-A,Demo50!,T-1001,Multi-class switcher · Message Parents · Marks · Attendance for 8-A
+2,teacher02@demo50.orbit.app,Mr. Arun Menon,Science,Grade 7-A|Grade 8-A,Grade 7-A,Demo50!,T-1002,Science homework · Paper scan · Syllabus notes
+3,teacher03@demo50.orbit.app,Ms. Fatima Khan,English,Grade 6-A|Grade 5-A,Grade 6-A,Demo50!,T-1003,English class · Leave request · Parent messaging
+4,teacher04@demo50.orbit.app,Mr. Suresh Pillai,Social Studies,Grade 9-A|Grade 8-A,Grade 9-A,Demo50!,T-1004,Grade 9 focus · Achievements / profile vault
+5,teacher05@demo50.orbit.app,Mrs. Anjali Deshmukh,Class Teacher,Grade 8-B|Grade 7-A,Grade 8-B,Demo50!,T-1005,Class teacher 8-B · Switch to 7-A · Secure folder

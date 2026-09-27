@@ -1,0 +1,98 @@
+student_id,student_idx,student_name,name,amount_rupees,status,category
+d5000000-0000-4000-8000-000000000001,1,Aarav D'Souza,Tuition — Term 1,18500,Unpaid,Tuition
+d5000000-0000-4000-8000-000000000001,1,Aarav D'Souza,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000002,2,Mary-Anne Joseph,Tuition — Term 1,18500,Unpaid,Tuition
+d5000000-0000-4000-8000-000000000002,2,Mary-Anne Joseph,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000003,3,Muhammad Ibrahim Al-Hassan,Tuition — Term 1,18500,Unpaid,Tuition
+d5000000-0000-4000-8000-000000000003,3,Muhammad Ibrahim Al-Hassan,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000004,4,Chinnu,Tuition — Term 1,18500,Unpaid,Tuition
+d5000000-0000-4000-8000-000000000004,4,Chinnu,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000005,5,Ñisha O'Brien,Tuition — Term 1,18500,Paid,Tuition
+d5000000-0000-4000-8000-000000000005,5,Ñisha O'Brien,Lab & Activity,4500,Paid,Lab
+d5000000-0000-4000-8000-000000000006,6,Ira Rao,Tuition — Term 1,18500,Unpaid,Tuition
+d5000000-0000-4000-8000-000000000006,6,Ira Rao,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000007,7,Karthik Patel,Tuition — Term 1,18500,Overdue,Tuition
+d5000000-0000-4000-8000-000000000007,7,Karthik Patel,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000008,8,Priya Sharma,Tuition — Term 1,18500,Unpaid,Tuition
+d5000000-0000-4000-8000-000000000008,8,Priya Sharma,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000009,9,Meera Menon,Tuition — Term 1,18500,Unpaid,Tuition
+d5000000-0000-4000-8000-000000000009,9,Meera Menon,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000010,10,Nikhil Mukherjee,Tuition — Term 1,18500,Paid,Tuition
+d5000000-0000-4000-8000-000000000010,10,Nikhil Mukherjee,Lab & Activity,4500,Paid,Lab
+d5000000-0000-4000-8000-000000000012,12,Rahul Nair,Tuition — Term 1,18500,Paid,Tuition
+d5000000-0000-4000-8000-000000000012,12,Rahul Nair,Lab & Activity,4500,Paid,Lab
+d5000000-0000-4000-8000-000000000013,13,Sneha Das,Tuition — Term 1,18500,Overdue,Tuition
+d5000000-0000-4000-8000-000000000013,13,Sneha Das,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000014,14,Tanvi Rao,Tuition — Term 1,18500,Pending,Tuition
+d5000000-0000-4000-8000-000000000014,14,Tanvi Rao,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000015,15,Lakshmi Patel,Transport — Quarterly,6000,Unpaid,Transport
+d5000000-0000-4000-8000-000000000016,16,Tejas Singh,Tuition — Term 1,18500,Unpaid,Tuition
+d5000000-0000-4000-8000-000000000016,16,Tejas Singh,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000017,17,Neha Mehta,Tuition — Term 1,18500,Unpaid,Tuition
+d5000000-0000-4000-8000-000000000017,17,Neha Mehta,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000018,18,Zara Sharma,Tuition — Term 1,18500,Unpaid,Tuition
+d5000000-0000-4000-8000-000000000018,18,Zara Sharma,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000019,19,Priya Sharma,Tuition — Term 1,18500,Unpaid,Tuition
+d5000000-0000-4000-8000-000000000019,19,Priya Sharma,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000020,20,Manoj Patel,Tuition — Term 1,18500,Paid,Tuition
+d5000000-0000-4000-8000-000000000020,20,Manoj Patel,Lab & Activity,4500,Paid,Lab
+d5000000-0000-4000-8000-000000000021,21,Shruti Singh,Tuition — Term 1,18500,Overdue,Tuition
+d5000000-0000-4000-8000-000000000021,21,Shruti Singh,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000022,22,Kiran Mehta,Tuition — Term 1,18500,Unpaid,Tuition
+d5000000-0000-4000-8000-000000000022,22,Kiran Mehta,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000023,23,Vivaan Sharma,Tuition — Term 1,18500,Unpaid,Tuition
+d5000000-0000-4000-8000-000000000023,23,Vivaan Sharma,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000024,24,Arjun Menon,Tuition — Term 1,18500,Unpaid,Tuition
+d5000000-0000-4000-8000-000000000024,24,Arjun Menon,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000025,25,Krishna Mukherjee,Tuition — Term 1,18500,Paid,Tuition
+d5000000-0000-4000-8000-000000000025,25,Krishna Mukherjee,Lab & Activity,4500,Paid,Lab
+d5000000-0000-4000-8000-000000000026,26,Ananya Shetty,Tuition — Term 1,18500,Unpaid,Tuition
+d5000000-0000-4000-8000-000000000026,26,Ananya Shetty,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000027,27,Myra Nair,Tuition — Term 1,18500,Unpaid,Tuition
+d5000000-0000-4000-8000-000000000027,27,Myra Nair,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000028,28,Kiara Das,Tuition — Term 1,18500,Overdue,Tuition
+d5000000-0000-4000-8000-000000000028,28,Kiara Das,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000029,29,Kabir Menon,Tuition — Term 1,18500,Unpaid,Tuition
+d5000000-0000-4000-8000-000000000029,29,Kabir Menon,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000030,30,Diya Mukherjee,Tuition — Term 1,18500,Paid,Tuition
+d5000000-0000-4000-8000-000000000030,30,Diya Mukherjee,Lab & Activity,4500,Paid,Lab
+d5000000-0000-4000-8000-000000000031,31,Anika Shetty,Tuition — Term 1,18500,Unpaid,Tuition
+d5000000-0000-4000-8000-000000000031,31,Anika Shetty,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000032,32,కృష్ణ రెడ్డి,Tuition — Term 1,18500,Unpaid,Tuition
+d5000000-0000-4000-8000-000000000032,32,కృష్ణ రెడ్డి,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000033,33,अनिका शर्मा,Tuition — Term 1,18500,Unpaid,Tuition
+d5000000-0000-4000-8000-000000000033,33,अनिका शर्मा,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000034,34,Siddharth Rao,Tuition — Term 1,18500,Unpaid,Tuition
+d5000000-0000-4000-8000-000000000034,34,Siddharth Rao,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000035,35,Om Patel,Tuition — Term 1,18500,Paid,Tuition
+d5000000-0000-4000-8000-000000000035,35,Om Patel,Lab & Activity,4500,Paid,Lab
+d5000000-0000-4000-8000-000000000036,36,Priya Singh,Tuition — Term 1,18500,Unpaid,Tuition
+d5000000-0000-4000-8000-000000000036,36,Priya Singh,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000037,37,Kavya Mehta,Tuition — Term 1,18500,Unpaid,Tuition
+d5000000-0000-4000-8000-000000000037,37,Kavya Mehta,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000038,38,Harini Sharma,Tuition — Term 1,18500,Unpaid,Tuition
+d5000000-0000-4000-8000-000000000038,38,Harini Sharma,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000039,39,Radha Menon,Tuition — Term 1,18500,Unpaid,Tuition
+d5000000-0000-4000-8000-000000000039,39,Radha Menon,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000040,40,Manoj Mukherjee,Tuition — Term 1,18500,Paid,Tuition
+d5000000-0000-4000-8000-000000000040,40,Manoj Mukherjee,Lab & Activity,4500,Paid,Lab
+d5000000-0000-4000-8000-000000000041,41,Kavya Menon,Tuition — Term 1,18500,Unpaid,Tuition
+d5000000-0000-4000-8000-000000000041,41,Kavya Menon,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000042,42,Harini Mukherjee,Tuition — Term 1,18500,Overdue,Tuition
+d5000000-0000-4000-8000-000000000042,42,Harini Mukherjee,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000043,43,Radha Shetty,Tuition — Term 1,18500,Unpaid,Tuition
+d5000000-0000-4000-8000-000000000043,43,Radha Shetty,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000044,44,Manoj Nair,Tuition — Term 1,18500,Unpaid,Tuition
+d5000000-0000-4000-8000-000000000044,44,Manoj Nair,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000045,45,Shruti Das,Tuition — Term 1,18500,Paid,Tuition
+d5000000-0000-4000-8000-000000000045,45,Shruti Das,Lab & Activity,4500,Paid,Lab
+d5000000-0000-4000-8000-000000000046,46,Neha Banerjee,Tuition — Term 1,18500,Unpaid,Tuition
+d5000000-0000-4000-8000-000000000046,46,Neha Banerjee,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000047,47,Zara Pillai,Tuition — Term 1,18500,Unpaid,Tuition
+d5000000-0000-4000-8000-000000000047,47,Zara Pillai,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000048,48,Sahana Reddy,Tuition — Term 1,18500,Unpaid,Tuition
+d5000000-0000-4000-8000-000000000048,48,Sahana Reddy,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000049,49,Aditya Khan,Tuition — Term 1,18500,Overdue,Tuition
+d5000000-0000-4000-8000-000000000049,49,Aditya Khan,Lab & Activity,4500,Unpaid,Lab
+d5000000-0000-4000-8000-000000000050,50,Zara Khan,Tuition — Term 1,18500,Paid,Tuition
+d5000000-0000-4000-8000-000000000050,50,Zara Khan,Lab & Activity,4500,Paid,Lab

@@ -12,6 +12,7 @@
     "pilot100:generate": "node scripts/generate-pilot100.mjs && node scripts/generate-pilot100-auth-sql.mjs",
     "pilot100:provision": "node scripts/provision-pilot100.mjs",
     "pilot100:teardown": "node scripts/teardown-pilot100.mjs",
+    "demo50:generate": "node scripts/generate-demo50.mjs",
     "test:smoke": "node scripts/smoke-hardening.mjs",
     "test:razorpay": "node scripts/verify-razorpay-local.mjs"
   },
@@ -33,6 +34,7 @@
     "oxlint": "^1.71.0",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.2",
-    "vite": "^8.1.1"
+    "vite": "^8.1.1",
+    "xlsx": "^0.18.5"
   }
 }

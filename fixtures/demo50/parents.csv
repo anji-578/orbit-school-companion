@@ -1,0 +1,47 @@
+idx,provisional_id,display_name,email,phone,edge_case,password,children_count,demo_script
+1,d5100000-0000-4000-8000-000000000001,Suresh Rao,parent001@demo50.orbit.app,+919811000001,three_siblings,Demo50!,3,"Parent switcher with 3 children across Grade 8-A, 6-A, 9-A"
+2,d5100000-0000-4000-8000-000000000002,Lakshmi Iyer,parent002@demo50.orbit.app,+919811000002,two_siblings_same_grade,Demo50!,2,Two children in Grade 8-A — switcher + shared fee view
+3,d5100000-0000-4000-8000-000000000003,D'Souza Guardian,parent003@demo50.orbit.app,+919822000003,single_child,Demo50!,1,Guardian of Aarav D'Souza · Grade 5-A
+4,d5100000-0000-4000-8000-000000000004,Joseph Guardian,parent004@demo50.orbit.app,+919822000004,single_child,Demo50!,1,Guardian of Mary-Anne Joseph · Grade 5-A
+5,d5100000-0000-4000-8000-000000000005,Al-Hassan Guardian,parent005@demo50.orbit.app,+919822000005,single_child,Demo50!,1,Guardian of Muhammad Ibrahim Al-Hassan · Grade 5-A
+6,d5100000-0000-4000-8000-000000000006,Chinnu Guardian,parent006@demo50.orbit.app,+919822000006,single_child,Demo50!,1,Guardian of Chinnu · Grade 5-A
+7,d5100000-0000-4000-8000-000000000007,O'Brien Guardian,parent007@demo50.orbit.app,+919822000007,single_child,Demo50!,1,Guardian of Ñisha O'Brien · Grade 5-A
+8,d5100000-0000-4000-8000-000000000008,Rao Guardian,parent008@demo50.orbit.app,+919822000008,single_child,Demo50!,1,Guardian of Ira Rao · Grade 5
+9,d5100000-0000-4000-8000-000000000009,Patel Guardian,parent009@demo50.orbit.app,+919822000009,single_child,Demo50!,1,Guardian of Karthik Patel · Grade 5-A
+10,d5100000-0000-4000-8000-000000000010,Sharma Guardian,parent010@demo50.orbit.app,+919822000010,single_child,Demo50!,1,Guardian of Priya Sharma · Grade 5-A
+11,d5100000-0000-4000-8000-000000000011,Mukherjee Guardian,parent011@demo50.orbit.app,+919822000011,single_child,Demo50!,1,Guardian of Nikhil Mukherjee · Grade 6-A
+12,d5100000-0000-4000-8000-000000000012,Shetty Guardian,parent012@demo50.orbit.app,+919822000012,single_child,Demo50!,1,Guardian of Dev Shetty · Grade 6-A
+13,d5100000-0000-4000-8000-000000000013,Nair Guardian,parent013@demo50.orbit.app,+919822000013,single_child,Demo50!,1,Guardian of Rahul Nair · Grade 6-A
+14,d5100000-0000-4000-8000-000000000014,Das Guardian,parent014@demo50.orbit.app,+919822000014,single_child,Demo50!,1,Guardian of Sneha Das · Grade 6-A
+15,d5100000-0000-4000-8000-000000000015,Rao Guardian,parent015@demo50.orbit.app,+919822000015,single_child,Demo50!,1,Guardian of Tanvi Rao · Grade 6-A
+16,d5100000-0000-4000-8000-000000000016,Patel Guardian,parent016@demo50.orbit.app,+919822000016,single_child,Demo50!,1,Guardian of Lakshmi Patel · Grade 6-A
+17,d5100000-0000-4000-8000-000000000017,Singh Guardian,parent017@demo50.orbit.app,+919822000017,single_child,Demo50!,1,Guardian of Tejas Singh · Grade 6-A
+18,d5100000-0000-4000-8000-000000000018,Mehta Guardian,parent018@demo50.orbit.app,+919822000018,single_child,Demo50!,1,Guardian of Neha Mehta · Grade 6-A
+19,d5100000-0000-4000-8000-000000000019,Sharma Guardian,parent019@demo50.orbit.app,+919822000019,single_child,Demo50!,1,Guardian of Zara Sharma · Grade 6-A
+20,d5100000-0000-4000-8000-000000000020,Sharma Guardian,parent020@demo50.orbit.app,+919822000020,single_child,Demo50!,1,Guardian of Priya Sharma · Grade 7-A
+21,d5100000-0000-4000-8000-000000000021,Patel Guardian,parent021@demo50.orbit.app,+919822000021,single_child,Demo50!,1,Guardian of Manoj Patel · Grade 7-A
+22,d5100000-0000-4000-8000-000000000022,Menon Guardian,parent022@demo50.orbit.app,+919822000022,single_child,Demo50!,1,Guardian of Arjun Menon · Grade 7-A
+23,d5100000-0000-4000-8000-000000000023,Mukherjee Guardian,parent023@demo50.orbit.app,+919822000023,single_child,Demo50!,1,Guardian of Krishna Mukherjee · Grade 7-A
+24,d5100000-0000-4000-8000-000000000024,Shetty Guardian,parent024@demo50.orbit.app,+919822000024,single_child,Demo50!,1,Guardian of Ananya Shetty · Grade 7-A
+25,d5100000-0000-4000-8000-000000000025,Nair Guardian,parent025@demo50.orbit.app,+919822000025,single_child,Demo50!,1,Guardian of Myra Nair · Grade 7-A
+26,d5100000-0000-4000-8000-000000000026,Das Guardian,parent026@demo50.orbit.app,+919822000026,single_child,Demo50!,1,Guardian of Kiara Das · Grade 7-A
+27,d5100000-0000-4000-8000-000000000027,Menon Guardian,parent027@demo50.orbit.app,+919822000027,single_child,Demo50!,1,Guardian of Kabir Menon · Grade 8-A
+28,d5100000-0000-4000-8000-000000000028,Shetty Guardian,parent028@demo50.orbit.app,+919822000028,parent_no_student_login,Demo50!,1,Parent can log in; student has no login (parent_only_login)
+29,d5100000-0000-4000-8000-000000000029,రెడ్డి Guardian,parent029@demo50.orbit.app,+919822000029,single_child,Demo50!,1,Guardian of కృష్ణ రెడ్డి · Grade 8-A
+30,d5100000-0000-4000-8000-000000000030,शर्मा Guardian,parent030@demo50.orbit.app,+919822000030,single_child,Demo50!,1,Guardian of अनिका शर्मा · Grade 8-A
+31,d5100000-0000-4000-8000-000000000031,Rao Guardian,parent031@demo50.orbit.app,+919822000031,single_child,Demo50!,1,Guardian of Siddharth Rao · Grade 8-A
+32,d5100000-0000-4000-8000-000000000032,Patel Guardian,parent032@demo50.orbit.app,+919822000032,single_child,Demo50!,1,Guardian of Om Patel · Grade 8-A
+33,d5100000-0000-4000-8000-000000000033,Singh Guardian,parent033@demo50.orbit.app,+919822000033,single_child,Demo50!,1,Guardian of Priya Singh · Grade 8-A
+34,d5100000-0000-4000-8000-000000000034,Mehta Guardian,parent034@demo50.orbit.app,+919822000034,single_child,Demo50!,1,Guardian of Kavya Mehta · Grade 8-A
+35,d5100000-0000-4000-8000-000000000035,Sharma Guardian,parent035@demo50.orbit.app,+919822000035,single_child,Demo50!,1,Guardian of Harini Sharma · Grade 8-A
+36,d5100000-0000-4000-8000-000000000036,Menon Guardian,parent036@demo50.orbit.app,+919822000036,single_child,Demo50!,1,Guardian of Radha Menon · Grade 8-A
+37,d5100000-0000-4000-8000-000000000037,Mukherjee Guardian,parent037@demo50.orbit.app,+919822000037,single_child,Demo50!,1,Guardian of Manoj Mukherjee · Grade 8-A
+38,d5100000-0000-4000-8000-000000000038,Menon Guardian,parent038@demo50.orbit.app,+919822000038,single_child,Demo50!,1,Guardian of Kavya Menon · Grade 8-B
+39,d5100000-0000-4000-8000-000000000039,Mukherjee Guardian,parent039@demo50.orbit.app,+919822000039,single_child,Demo50!,1,Guardian of Harini Mukherjee · Grade 8-B
+40,d5100000-0000-4000-8000-000000000040,Shetty Guardian,parent040@demo50.orbit.app,+919822000040,single_child,Demo50!,1,Guardian of Radha Shetty · Grade 8-B
+41,d5100000-0000-4000-8000-000000000041,Nair Guardian,parent041@demo50.orbit.app,+919822000041,single_child,Demo50!,1,Guardian of Manoj Nair · Grade 8-B
+42,d5100000-0000-4000-8000-000000000042,Das Guardian,parent042@demo50.orbit.app,+919822000042,single_child,Demo50!,1,Guardian of Shruti Das · Grade 8-B
+43,d5100000-0000-4000-8000-000000000043,Pillai Guardian,parent043@demo50.orbit.app,+919822000043,single_child,Demo50!,1,Guardian of Zara Pillai · Grade 9-A
+44,d5100000-0000-4000-8000-000000000044,Reddy Guardian,parent044@demo50.orbit.app,+919822000044,single_child,Demo50!,1,Guardian of Sahana Reddy · Grade 9-A
+45,d5100000-0000-4000-8000-000000000045,Khan Guardian,parent045@demo50.orbit.app,+919822000045,single_child,Demo50!,1,Guardian of Aditya Khan · Grade 9-A
+46,d5100000-0000-4000-8000-000000000046,Khan Guardian,parent046@demo50.orbit.app,+919822000046,single_child,Demo50!,1,Guardian of Zara Khan · Grade 9-A

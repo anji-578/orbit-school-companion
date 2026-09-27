@@ -1,0 +1,5 @@
+step,role,email,password,open_first,talk_track
+1,school,admin@demo50.orbit.app,Demo50!,Dashboard → Fee Auditor → Roster,Whole-school ops in one admin desk
+2,teacher,teacher01@demo50.orbit.app,Demo50!,Class switcher → Attendance → Message Parents → Profile,Teacher handles many classes without losing context
+3,parent,parent001@demo50.orbit.app,Demo50!,Child switcher → Payments → Alerts,"One parent, three children, clear money + attendance story"
+4,student,student040@demo50.orbit.app,Demo50!,Home → GK Quiz → Competitions → Profile vault,Companion that is more than ERP — learning + identity

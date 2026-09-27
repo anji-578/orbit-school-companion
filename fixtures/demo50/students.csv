@@ -1,0 +1,51 @@
+idx,id,display_name,class_name,section,class_label,roll_no,edge_case,scenario_tag,gender_hint,math_mark,science_mark,english_mark,attendance_pct,fee_status,bus_route,class_teacher
+1,d5000000-0000-4000-8000-000000000001,Aarav D'Souza,Grade 5,A,Grade 5-A,01,apostrophe_surname,name_special_chars,M,62,61,63,79,Unpaid,Route B,Mrs. Kavitha Reddy
+2,d5000000-0000-4000-8000-000000000002,Mary-Anne Joseph,Grade 5,A,Grade 5-A,02,hyphenated_given,name_special_chars,F,69,72,66,80,Unpaid,Walk / Own,Mrs. Kavitha Reddy
+3,d5000000-0000-4000-8000-000000000003,Muhammad Ibrahim Al-Hassan,Grade 5,A,Grade 5-A,03,long_multi_part_name,name_special_chars,M,76,83,69,81,Unpaid,Route A,Mrs. Kavitha Reddy
+4,d5000000-0000-4000-8000-000000000004,Chinnu,Grade 5,A,Grade 5-A,04,single_word_name,name_special_chars,F,83,94,72,82,Unpaid,Route B,Mrs. Kavitha Reddy
+5,d5000000-0000-4000-8000-000000000005,Ñisha O'Brien,Grade 5,A,Grade 5-A,05,unicode_name,name_special_chars,M,90,60,75,83,Paid,Walk / Own,Mrs. Kavitha Reddy
+6,d5000000-0000-4000-8000-000000000006,Ira Rao,Grade 5,,Grade 5,06,empty_section,roster_edge,F,57,71,78,84,Unpaid,Route A,Mrs. Kavitha Reddy
+7,d5000000-0000-4000-8000-000000000007,Karthik Patel,Grade 5,A,Grade 5-A,99,non_sequential_roll,roster_edge,M,64,82,81,85,Overdue,Route B,Mrs. Kavitha Reddy
+8,d5000000-0000-4000-8000-000000000008,Priya Sharma,Grade 5,A,Grade 5-A,08,duplicate_name_a,duplicate_name,F,71,93,84,86,Unpaid,Walk / Own,Mrs. Kavitha Reddy
+9,d5000000-0000-4000-8000-000000000009,Meera Menon,Grade 6,A,Grade 6-A,01,sibling_group_a_child2,multi_child_parent,M,78,59,87,87,Unpaid,Route A,Ms. Fatima Khan
+10,d5000000-0000-4000-8000-000000000010,Nikhil Mukherjee,Grade 6,A,Grade 6-A,02,standard,,F,85,70,90,88,Paid,Route B,Ms. Fatima Khan
+11,d5000000-0000-4000-8000-000000000011,Dev Shetty,Grade 6,A,Grade 6-A,03,no_fees,fees_none,M,92,81,93,89,None,Walk / Own,Ms. Fatima Khan
+12,d5000000-0000-4000-8000-000000000012,Rahul Nair,Grade 6,A,Grade 6-A,04,all_fees_paid,fees_paid,F,59,92,61,90,Paid,Route A,Ms. Fatima Khan
+13,d5000000-0000-4000-8000-000000000013,Sneha Das,Grade 6,A,Grade 6-A,05,overdue_fees,fees_overdue,M,66,58,64,91,Overdue,Route B,Ms. Fatima Khan
+14,d5000000-0000-4000-8000-000000000014,Tanvi Rao,Grade 6,A,Grade 6-A,06,pending_utr,fees_pending,F,73,69,67,92,Pending,Walk / Own,Ms. Fatima Khan
+15,d5000000-0000-4000-8000-000000000015,Lakshmi Patel,Grade 6,A,Grade 6-A,07,transport_fee_only,fees_transport_only,M,80,80,70,93,Unpaid,Route A,Ms. Fatima Khan
+16,d5000000-0000-4000-8000-000000000016,Tejas Singh,Grade 6,A,Grade 6-A,08,standard,,F,87,91,73,94,Unpaid,Route B,Ms. Fatima Khan
+17,d5000000-0000-4000-8000-000000000017,Neha Mehta,Grade 6,A,Grade 6-A,09,standard,,M,94,57,76,95,Unpaid,Walk / Own,Ms. Fatima Khan
+18,d5000000-0000-4000-8000-000000000018,Zara Sharma,Grade 6,A,Grade 6-A,10,standard,,F,61,68,79,96,Unpaid,Route A,Ms. Fatima Khan
+19,d5000000-0000-4000-8000-000000000019,Priya Sharma,Grade 7,A,Grade 7-A,01,duplicate_name_b,duplicate_name,M,68,79,82,97,Unpaid,Route B,Mr. Arun Menon
+20,d5000000-0000-4000-8000-000000000020,Manoj Patel,Grade 7,A,Grade 7-A,02,standard,,F,75,90,85,78,Paid,Walk / Own,Mr. Arun Menon
+21,d5000000-0000-4000-8000-000000000021,Shruti Singh,Grade 8,A,Grade 8-A,03,sibling_group_a_child1,multi_child_parent,M,82,56,88,79,Overdue,Route A,Mrs. Kavitha Reddy
+22,d5000000-0000-4000-8000-000000000022,Kiran Mehta,Grade 7,A,Grade 7-A,04,sibling_group_b_child1,two_siblings_same_grade,F,89,67,91,80,Unpaid,Route B,Mr. Arun Menon
+23,d5000000-0000-4000-8000-000000000023,Vivaan Sharma,Grade 7,A,Grade 7-A,05,sibling_group_b_child2,two_siblings_same_grade,M,56,78,94,81,Unpaid,Walk / Own,Mr. Arun Menon
+24,d5000000-0000-4000-8000-000000000024,Arjun Menon,Grade 7,A,Grade 7-A,06,chronic_absent,attendance_low,F,63,89,62,62,Unpaid,Route A,Mr. Arun Menon
+25,d5000000-0000-4000-8000-000000000025,Krishna Mukherjee,Grade 7,A,Grade 7-A,07,perfect_attendance,attendance_perfect,M,70,55,65,100,Paid,Route B,Mr. Arun Menon
+26,d5000000-0000-4000-8000-000000000026,Ananya Shetty,Grade 7,A,Grade 7-A,08,weak_math,marks_struggle,F,38,72,70,84,Unpaid,Walk / Own,Mr. Arun Menon
+27,d5000000-0000-4000-8000-000000000027,Myra Nair,Grade 7,A,Grade 7-A,09,topper,marks_excellent,M,96,94,92,85,Unpaid,Route A,Mr. Arun Menon
+28,d5000000-0000-4000-8000-000000000028,Kiara Das,Grade 7,A,Grade 7-A,10,homework_pressure,homework_incomplete,F,91,88,74,86,Overdue,Route B,Mr. Arun Menon
+29,d5000000-0000-4000-8000-000000000029,Kabir Menon,Grade 8,A,Grade 8-A,01,standard,,M,58,54,77,87,Unpaid,Walk / Own,Mrs. Kavitha Reddy
+30,d5000000-0000-4000-8000-000000000030,Diya Mukherjee,Grade 8,A,Grade 8-A,02,unlinked_no_parent,no_parent_link,F,65,65,80,88,Paid,Route A,Mrs. Kavitha Reddy
+31,d5000000-0000-4000-8000-000000000031,Anika Shetty,Grade 8,A,Grade 8-A,03,parent_no_student_login,parent_only_login,M,72,76,83,89,Unpaid,Route B,Mrs. Kavitha Reddy
+32,d5000000-0000-4000-8000-000000000032,కృష్ణ రెడ్డి,Grade 8,A,Grade 8-A,04,telugu_script_name,i18n_name,F,79,87,86,90,Unpaid,Walk / Own,Mrs. Kavitha Reddy
+33,d5000000-0000-4000-8000-000000000033,अनिका शर्मा,Grade 8,A,Grade 8-A,05,hindi_script_name,i18n_name,M,86,53,89,91,Unpaid,Route A,Mrs. Kavitha Reddy
+34,d5000000-0000-4000-8000-000000000034,Siddharth Rao,Grade 8,A,Grade 8-A,06,standard,,F,93,64,92,92,Unpaid,Route B,Mrs. Kavitha Reddy
+35,d5000000-0000-4000-8000-000000000035,Om Patel,Grade 8,A,Grade 8-A,07,standard,,M,60,75,60,93,Paid,Walk / Own,Mrs. Kavitha Reddy
+36,d5000000-0000-4000-8000-000000000036,Priya Singh,Grade 8,A,Grade 8-A,08,standard,,F,67,86,63,94,Unpaid,Route A,Mrs. Kavitha Reddy
+37,d5000000-0000-4000-8000-000000000037,Kavya Mehta,Grade 8,A,Grade 8-A,09,standard,,M,74,52,66,95,Unpaid,Route B,Mrs. Kavitha Reddy
+38,d5000000-0000-4000-8000-000000000038,Harini Sharma,Grade 8,A,Grade 8-A,10,standard,,F,81,63,69,96,Unpaid,Walk / Own,Mrs. Kavitha Reddy
+39,d5000000-0000-4000-8000-000000000039,Radha Menon,Grade 8,A,Grade 8-A,11,standard,,M,88,74,72,97,Unpaid,Route A,Mrs. Kavitha Reddy
+40,d5000000-0000-4000-8000-000000000040,Manoj Mukherjee,Grade 8,A,Grade 8-A,12,gk_quiz_champion,student_gk_quiz,F,55,85,75,78,Paid,Route B,Mrs. Kavitha Reddy
+41,d5000000-0000-4000-8000-000000000041,Kavya Menon,Grade 8,B,Grade 8-B,01,competition_enrolled,student_competition,M,62,51,78,79,Unpaid,Walk / Own,Mrs. Anjali Deshmukh
+42,d5000000-0000-4000-8000-000000000042,Harini Mukherjee,Grade 8,B,Grade 8-B,02,confidential_docs,student_vault,F,69,62,81,80,Overdue,Route A,Mrs. Anjali Deshmukh
+43,d5000000-0000-4000-8000-000000000043,Radha Shetty,Grade 8,B,Grade 8-B,03,standard,,M,76,73,84,81,Unpaid,Route B,Mrs. Anjali Deshmukh
+44,d5000000-0000-4000-8000-000000000044,Manoj Nair,Grade 8,B,Grade 8-B,04,standard,,F,83,84,87,82,Unpaid,Walk / Own,Mrs. Anjali Deshmukh
+45,d5000000-0000-4000-8000-000000000045,Shruti Das,Grade 8,B,Grade 8-B,05,standard,,M,90,50,90,83,Paid,Route A,Mrs. Anjali Deshmukh
+46,d5000000-0000-4000-8000-000000000046,Neha Banerjee,Grade 9,A,Grade 9-A,01,sibling_group_a_child3,multi_child_parent,F,57,61,93,84,Unpaid,Route B,Mr. Suresh Pillai
+47,d5000000-0000-4000-8000-000000000047,Zara Pillai,Grade 9,A,Grade 9-A,02,standard,,M,64,72,61,85,Unpaid,Walk / Own,Mr. Suresh Pillai
+48,d5000000-0000-4000-8000-000000000048,Sahana Reddy,Grade 9,A,Grade 9-A,03,bus_tracker_demo,parent_transport,F,71,83,64,86,Unpaid,Route A,Mr. Suresh Pillai
+49,d5000000-0000-4000-8000-000000000049,Aditya Khan,Grade 9,A,Grade 9-A,04,standard,,M,78,94,67,87,Overdue,Route B,Mr. Suresh Pillai
+50,d5000000-0000-4000-8000-000000000050,Zara Khan,Grade 9,A,Grade 9-A,05,last_roster_row,roster_end,F,85,60,70,88,Paid,Walk / Own,Mr. Suresh Pillai

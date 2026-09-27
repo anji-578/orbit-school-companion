@@ -1,0 +1,19 @@
+order,role,persona,email,password,student_idx,feature,what_to_show,expected,edge_case
+1,school,School Admin,admin@demo50.orbit.app,Demo50!,,School Dashboard,"Roster health, fees overview, broadcasts, hiring, fleet",Admin can see whole-school pulse and drill into Fee Auditor / Roster,school_full_access
+2,school,School Admin,admin@demo50.orbit.app,Demo50!,13,Fee Auditor — Overdue,Open fees for Sneha Das (overdue),Overdue tuition visible; can filter unpaid / overdue,overdue_fees
+3,teacher,Mrs. Kavitha Reddy,teacher01@demo50.orbit.app,Demo50!,,Multi-class switcher,Switch Grade 8-A → 5-A → 8-B in sidebar,Roster / attendance context follows active class,teacher_multi_class
+4,teacher,Mrs. Kavitha Reddy,teacher01@demo50.orbit.app,Demo50!,24,Attendance — chronic absent,Mark / review Arjun Menon (low attendance scenario),Parent gets attendance alert when marked absent,chronic_absent
+5,teacher,Mrs. Kavitha Reddy,teacher01@demo50.orbit.app,Demo50!,26,Message Parents,"Search Ananya Shetty, send note about weak Math",Parent + student notifications appear,weak_math
+6,teacher,Mrs. Kavitha Reddy,teacher01@demo50.orbit.app,Demo50!,,Teacher Profile + Secure folder,Open profile from sidebar · upload a sample PDF to vault,Subjects/classes/quals editable; private vault owner-only,teacher_profile_vault
+7,teacher,Mr. Arun Menon,teacher02@demo50.orbit.app,Demo50!,,Homework + Syllabus,Assign homework for Grade 7-A; upload syllabus notes,Students/parents in that class see homework,teacher_homework
+8,parent,Suresh Rao,parent001@demo50.orbit.app,Demo50!,21|9|46,Multi-child switcher,Switch between 3 children across grades,Dashboard / fees / attendance follow selected child,three_siblings
+9,parent,Das Guardian,parent014@demo50.orbit.app,Demo50!,13,Payments — Overdue,Open Payments · see overdue tuition,Amount + UPI / Razorpay path; history empty or prior paid lines,overdue_fees
+10,parent,Transport demo parent,parent044@demo50.orbit.app,Demo50!,48,Bus tracker,Open Transport for bus-route student,Route / ETA demo surfaces,bus_tracker_demo
+11,student,Manoj Mukherjee,student040@demo50.orbit.app,Demo50!,40,GK Quiz,Learn → GK Quiz · Easy full list · submit · green/red review,All levels open; score + review after submit,gk_quiz_champion
+12,student,Kavya Menon,student041@demo50.orbit.app,Demo50!,41,Competitions,Register / pay flow for a competition,Enrollment reflects on Academic Profile competitions loop,competition_enrolled
+13,student,Harini Mukherjee,student042@demo50.orbit.app,Demo50!,42,Confidential Documents,Profile → upload birth certificate / report card,Private vault; open via signed/local URL only,confidential_docs
+14,student,Myra Nair,student027@demo50.orbit.app,Demo50!,27,Academics / Achievements,Strong marks student · progress + badges,High marks story; achievements panel populated,topper
+15,student,Kiara Das,student028@demo50.orbit.app,Demo50!,28,Homework reminders,Home priority tasks · start / complete homework,XP + toast; parent can see completion signal,homework_pressure
+16,student,కృష్ణ రెడ్డి,student032@demo50.orbit.app,Demo50!,32,Telugu UI name,Login · toggle language TE · verify name renders,Unicode name + Telugu chrome OK,telugu_script_name
+17,parent,Shetty Guardian,parent028@demo50.orbit.app,Demo50!,31,Parent-only login,Parent logs in; student031 has NO student login,Parent sees child data; student email does not authenticate,parent_no_student_login
+18,school,School Admin,admin@demo50.orbit.app,Demo50!,30,Unlinked student,Diya Mukherjee on roster with no parent link,School can still manage attendance/fees; no parent alert target,unlinked_no_parent

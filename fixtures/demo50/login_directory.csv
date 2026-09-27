@@ -1,0 +1,102 @@
+role,email,password,display_name,notes,student_id,class_label,demo_priority
+school,admin@demo50.orbit.app,Demo50!,Sunrise Demo Admin,Full school suite · DEMO50,,,P0
+teacher,teacher01@demo50.orbit.app,Demo50!,Mrs. Kavitha Reddy,Mathematics · classes: Grade 8-A|Grade 5-A|Grade 8-B,,Grade 8-A,P0
+teacher,teacher02@demo50.orbit.app,Demo50!,Mr. Arun Menon,Science · classes: Grade 7-A|Grade 8-A,,Grade 7-A,P1
+teacher,teacher03@demo50.orbit.app,Demo50!,Ms. Fatima Khan,English · classes: Grade 6-A|Grade 5-A,,Grade 6-A,P1
+teacher,teacher04@demo50.orbit.app,Demo50!,Mr. Suresh Pillai,Social Studies · classes: Grade 9-A|Grade 8-A,,Grade 9-A,P1
+teacher,teacher05@demo50.orbit.app,Demo50!,Mrs. Anjali Deshmukh,Class Teacher · classes: Grade 8-B|Grade 7-A,,Grade 8-B,P1
+parent,parent001@demo50.orbit.app,Demo50!,Suresh Rao,three_siblings,,,P0
+parent,parent002@demo50.orbit.app,Demo50!,Lakshmi Iyer,two_siblings_same_grade,,,P0
+parent,parent003@demo50.orbit.app,Demo50!,D'Souza Guardian,single_child,,,P2
+parent,parent004@demo50.orbit.app,Demo50!,Joseph Guardian,single_child,,,P2
+parent,parent005@demo50.orbit.app,Demo50!,Al-Hassan Guardian,single_child,,,P2
+parent,parent006@demo50.orbit.app,Demo50!,Chinnu Guardian,single_child,,,P2
+parent,parent007@demo50.orbit.app,Demo50!,O'Brien Guardian,single_child,,,P2
+parent,parent008@demo50.orbit.app,Demo50!,Rao Guardian,single_child,,,P2
+parent,parent009@demo50.orbit.app,Demo50!,Patel Guardian,single_child,,,P2
+parent,parent010@demo50.orbit.app,Demo50!,Sharma Guardian,single_child,,,P2
+parent,parent011@demo50.orbit.app,Demo50!,Mukherjee Guardian,single_child,,,P2
+parent,parent012@demo50.orbit.app,Demo50!,Shetty Guardian,single_child,,,P2
+parent,parent013@demo50.orbit.app,Demo50!,Nair Guardian,single_child,,,P2
+parent,parent014@demo50.orbit.app,Demo50!,Das Guardian,single_child,,,P2
+parent,parent015@demo50.orbit.app,Demo50!,Rao Guardian,single_child,,,P2
+parent,parent016@demo50.orbit.app,Demo50!,Patel Guardian,single_child,,,P2
+parent,parent017@demo50.orbit.app,Demo50!,Singh Guardian,single_child,,,P2
+parent,parent018@demo50.orbit.app,Demo50!,Mehta Guardian,single_child,,,P2
+parent,parent019@demo50.orbit.app,Demo50!,Sharma Guardian,single_child,,,P2
+parent,parent020@demo50.orbit.app,Demo50!,Sharma Guardian,single_child,,,P2
+parent,parent021@demo50.orbit.app,Demo50!,Patel Guardian,single_child,,,P2
+parent,parent022@demo50.orbit.app,Demo50!,Menon Guardian,single_child,,,P2
+parent,parent023@demo50.orbit.app,Demo50!,Mukherjee Guardian,single_child,,,P2
+parent,parent024@demo50.orbit.app,Demo50!,Shetty Guardian,single_child,,,P2
+parent,parent025@demo50.orbit.app,Demo50!,Nair Guardian,single_child,,,P2
+parent,parent026@demo50.orbit.app,Demo50!,Das Guardian,single_child,,,P2
+parent,parent027@demo50.orbit.app,Demo50!,Menon Guardian,single_child,,,P2
+parent,parent028@demo50.orbit.app,Demo50!,Shetty Guardian,parent_no_student_login,,,P2
+parent,parent029@demo50.orbit.app,Demo50!,రెడ్డి Guardian,single_child,,,P2
+parent,parent030@demo50.orbit.app,Demo50!,शर्मा Guardian,single_child,,,P2
+parent,parent031@demo50.orbit.app,Demo50!,Rao Guardian,single_child,,,P2
+parent,parent032@demo50.orbit.app,Demo50!,Patel Guardian,single_child,,,P2
+parent,parent033@demo50.orbit.app,Demo50!,Singh Guardian,single_child,,,P2
+parent,parent034@demo50.orbit.app,Demo50!,Mehta Guardian,single_child,,,P2
+parent,parent035@demo50.orbit.app,Demo50!,Sharma Guardian,single_child,,,P2
+parent,parent036@demo50.orbit.app,Demo50!,Menon Guardian,single_child,,,P2
+parent,parent037@demo50.orbit.app,Demo50!,Mukherjee Guardian,single_child,,,P2
+parent,parent038@demo50.orbit.app,Demo50!,Menon Guardian,single_child,,,P2
+parent,parent039@demo50.orbit.app,Demo50!,Mukherjee Guardian,single_child,,,P2
+parent,parent040@demo50.orbit.app,Demo50!,Shetty Guardian,single_child,,,P2
+parent,parent041@demo50.orbit.app,Demo50!,Nair Guardian,single_child,,,P2
+parent,parent042@demo50.orbit.app,Demo50!,Das Guardian,single_child,,,P2
+parent,parent043@demo50.orbit.app,Demo50!,Pillai Guardian,single_child,,,P2
+parent,parent044@demo50.orbit.app,Demo50!,Reddy Guardian,single_child,,,P2
+parent,parent045@demo50.orbit.app,Demo50!,Khan Guardian,single_child,,,P2
+parent,parent046@demo50.orbit.app,Demo50!,Khan Guardian,single_child,,,P2
+student,student001@demo50.orbit.app,Demo50!,Aarav D'Souza,roll 01 · Grade 5-A · apostrophe_surname,d5000000-0000-4000-8000-000000000001,Grade 5-A,P2
+student,student002@demo50.orbit.app,Demo50!,Mary-Anne Joseph,roll 02 · Grade 5-A · hyphenated_given,d5000000-0000-4000-8000-000000000002,Grade 5-A,P2
+student,student003@demo50.orbit.app,Demo50!,Muhammad Ibrahim Al-Hassan,roll 03 · Grade 5-A · long_multi_part_name,d5000000-0000-4000-8000-000000000003,Grade 5-A,P2
+student,student004@demo50.orbit.app,Demo50!,Chinnu,roll 04 · Grade 5-A · single_word_name,d5000000-0000-4000-8000-000000000004,Grade 5-A,P2
+student,student005@demo50.orbit.app,Demo50!,Ñisha O'Brien,roll 05 · Grade 5-A · unicode_name,d5000000-0000-4000-8000-000000000005,Grade 5-A,P2
+student,student006@demo50.orbit.app,Demo50!,Ira Rao,roll 06 · Grade 5 · empty_section,d5000000-0000-4000-8000-000000000006,Grade 5,P2
+student,student007@demo50.orbit.app,Demo50!,Karthik Patel,roll 99 · Grade 5-A · non_sequential_roll,d5000000-0000-4000-8000-000000000007,Grade 5-A,P2
+student,student008@demo50.orbit.app,Demo50!,Priya Sharma,roll 08 · Grade 5-A · duplicate_name_a,d5000000-0000-4000-8000-000000000008,Grade 5-A,P2
+student,student009@demo50.orbit.app,Demo50!,Meera Menon,roll 01 · Grade 6-A · sibling_group_a_child2,d5000000-0000-4000-8000-000000000009,Grade 6-A,P2
+student,student010@demo50.orbit.app,Demo50!,Nikhil Mukherjee,roll 02 · Grade 6-A · standard,d5000000-0000-4000-8000-000000000010,Grade 6-A,P2
+student,student011@demo50.orbit.app,Demo50!,Dev Shetty,roll 03 · Grade 6-A · no_fees,d5000000-0000-4000-8000-000000000011,Grade 6-A,P2
+student,student012@demo50.orbit.app,Demo50!,Rahul Nair,roll 04 · Grade 6-A · all_fees_paid,d5000000-0000-4000-8000-000000000012,Grade 6-A,P2
+student,student013@demo50.orbit.app,Demo50!,Sneha Das,roll 05 · Grade 6-A · overdue_fees,d5000000-0000-4000-8000-000000000013,Grade 6-A,P2
+student,student014@demo50.orbit.app,Demo50!,Tanvi Rao,roll 06 · Grade 6-A · pending_utr,d5000000-0000-4000-8000-000000000014,Grade 6-A,P2
+student,student015@demo50.orbit.app,Demo50!,Lakshmi Patel,roll 07 · Grade 6-A · transport_fee_only,d5000000-0000-4000-8000-000000000015,Grade 6-A,P2
+student,student016@demo50.orbit.app,Demo50!,Tejas Singh,roll 08 · Grade 6-A · standard,d5000000-0000-4000-8000-000000000016,Grade 6-A,P2
+student,student017@demo50.orbit.app,Demo50!,Neha Mehta,roll 09 · Grade 6-A · standard,d5000000-0000-4000-8000-000000000017,Grade 6-A,P2
+student,student018@demo50.orbit.app,Demo50!,Zara Sharma,roll 10 · Grade 6-A · standard,d5000000-0000-4000-8000-000000000018,Grade 6-A,P2
+student,student019@demo50.orbit.app,Demo50!,Priya Sharma,roll 01 · Grade 7-A · duplicate_name_b,d5000000-0000-4000-8000-000000000019,Grade 7-A,P2
+student,student020@demo50.orbit.app,Demo50!,Manoj Patel,roll 02 · Grade 7-A · standard,d5000000-0000-4000-8000-000000000020,Grade 7-A,P2
+student,student021@demo50.orbit.app,Demo50!,Shruti Singh,roll 03 · Grade 8-A · sibling_group_a_child1,d5000000-0000-4000-8000-000000000021,Grade 8-A,P2
+student,student022@demo50.orbit.app,Demo50!,Kiran Mehta,roll 04 · Grade 7-A · sibling_group_b_child1,d5000000-0000-4000-8000-000000000022,Grade 7-A,P2
+student,student023@demo50.orbit.app,Demo50!,Vivaan Sharma,roll 05 · Grade 7-A · sibling_group_b_child2,d5000000-0000-4000-8000-000000000023,Grade 7-A,P2
+student,student024@demo50.orbit.app,Demo50!,Arjun Menon,roll 06 · Grade 7-A · chronic_absent,d5000000-0000-4000-8000-000000000024,Grade 7-A,P2
+student,student025@demo50.orbit.app,Demo50!,Krishna Mukherjee,roll 07 · Grade 7-A · perfect_attendance,d5000000-0000-4000-8000-000000000025,Grade 7-A,P2
+student,student026@demo50.orbit.app,Demo50!,Ananya Shetty,roll 08 · Grade 7-A · weak_math,d5000000-0000-4000-8000-000000000026,Grade 7-A,P2
+student,student027@demo50.orbit.app,Demo50!,Myra Nair,roll 09 · Grade 7-A · topper,d5000000-0000-4000-8000-000000000027,Grade 7-A,P0
+student,student028@demo50.orbit.app,Demo50!,Kiara Das,roll 10 · Grade 7-A · homework_pressure,d5000000-0000-4000-8000-000000000028,Grade 7-A,P0
+student,student029@demo50.orbit.app,Demo50!,Kabir Menon,roll 01 · Grade 8-A · standard,d5000000-0000-4000-8000-000000000029,Grade 8-A,P2
+student,student030@demo50.orbit.app,Demo50!,Diya Mukherjee,roll 02 · Grade 8-A · unlinked_no_parent,d5000000-0000-4000-8000-000000000030,Grade 8-A,P2
+student,student032@demo50.orbit.app,Demo50!,కృష్ణ రెడ్డి,roll 04 · Grade 8-A · telugu_script_name,d5000000-0000-4000-8000-000000000032,Grade 8-A,P0
+student,student033@demo50.orbit.app,Demo50!,अनिका शर्मा,roll 05 · Grade 8-A · hindi_script_name,d5000000-0000-4000-8000-000000000033,Grade 8-A,P2
+student,student034@demo50.orbit.app,Demo50!,Siddharth Rao,roll 06 · Grade 8-A · standard,d5000000-0000-4000-8000-000000000034,Grade 8-A,P2
+student,student035@demo50.orbit.app,Demo50!,Om Patel,roll 07 · Grade 8-A · standard,d5000000-0000-4000-8000-000000000035,Grade 8-A,P2
+student,student036@demo50.orbit.app,Demo50!,Priya Singh,roll 08 · Grade 8-A · standard,d5000000-0000-4000-8000-000000000036,Grade 8-A,P2
+student,student037@demo50.orbit.app,Demo50!,Kavya Mehta,roll 09 · Grade 8-A · standard,d5000000-0000-4000-8000-000000000037,Grade 8-A,P2
+student,student038@demo50.orbit.app,Demo50!,Harini Sharma,roll 10 · Grade 8-A · standard,d5000000-0000-4000-8000-000000000038,Grade 8-A,P2
+student,student039@demo50.orbit.app,Demo50!,Radha Menon,roll 11 · Grade 8-A · standard,d5000000-0000-4000-8000-000000000039,Grade 8-A,P2
+student,student040@demo50.orbit.app,Demo50!,Manoj Mukherjee,roll 12 · Grade 8-A · gk_quiz_champion,d5000000-0000-4000-8000-000000000040,Grade 8-A,P0
+student,student041@demo50.orbit.app,Demo50!,Kavya Menon,roll 01 · Grade 8-B · competition_enrolled,d5000000-0000-4000-8000-000000000041,Grade 8-B,P0
+student,student042@demo50.orbit.app,Demo50!,Harini Mukherjee,roll 02 · Grade 8-B · confidential_docs,d5000000-0000-4000-8000-000000000042,Grade 8-B,P0
+student,student043@demo50.orbit.app,Demo50!,Radha Shetty,roll 03 · Grade 8-B · standard,d5000000-0000-4000-8000-000000000043,Grade 8-B,P2
+student,student044@demo50.orbit.app,Demo50!,Manoj Nair,roll 04 · Grade 8-B · standard,d5000000-0000-4000-8000-000000000044,Grade 8-B,P2
+student,student045@demo50.orbit.app,Demo50!,Shruti Das,roll 05 · Grade 8-B · standard,d5000000-0000-4000-8000-000000000045,Grade 8-B,P2
+student,student046@demo50.orbit.app,Demo50!,Neha Banerjee,roll 01 · Grade 9-A · sibling_group_a_child3,d5000000-0000-4000-8000-000000000046,Grade 9-A,P2
+student,student047@demo50.orbit.app,Demo50!,Zara Pillai,roll 02 · Grade 9-A · standard,d5000000-0000-4000-8000-000000000047,Grade 9-A,P2
+student,student048@demo50.orbit.app,Demo50!,Sahana Reddy,roll 03 · Grade 9-A · bus_tracker_demo,d5000000-0000-4000-8000-000000000048,Grade 9-A,P2
+student,student049@demo50.orbit.app,Demo50!,Aditya Khan,roll 04 · Grade 9-A · standard,d5000000-0000-4000-8000-000000000049,Grade 9-A,P2
+student,student050@demo50.orbit.app,Demo50!,Zara Khan,roll 05 · Grade 9-A · last_roster_row,d5000000-0000-4000-8000-000000000050,Grade 9-A,P2

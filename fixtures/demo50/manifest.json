@@ -1,0 +1,22 @@
+{
+  "school": {
+    "code": "DEMO50",
+    "name": "Sunrise Demo Academy",
+    "city": "Hyderabad",
+    "upi": "sunrise.demo50@oksbi",
+    "academicYear": "2025–26"
+  },
+  "password": "Demo50!",
+  "domain": "demo50.orbit.app",
+  "counts": {
+    "students": 50,
+    "parents": 46,
+    "teachers": 5,
+    "fees": 97,
+    "logins": 101,
+    "links": 49,
+    "timetableRows": 150,
+    "scenarios": 18
+  },
+  "generatedAt": "2026-09-27T19:40:47.056Z"
+}
