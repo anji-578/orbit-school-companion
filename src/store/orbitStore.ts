@@ -635,6 +635,7 @@ export const useOrbitStore = create<OrbitState>()(
         const timetableClass = resolveClassLabel({
           linkedClassName: linkedStudent?.className,
           linkedSection: linkedStudent?.section,
+          ignoreTeacherFocus: role === 'student' || role === 'parent' || role === 'school',
         })
         const [ops, roster, attendanceRecords, studentGrades, remoteSyllabus, timetableByDay, teachers, busRoutes, hiring] =
           await Promise.all([
