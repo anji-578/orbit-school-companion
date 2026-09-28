@@ -143,6 +143,8 @@ export interface CompetitionEnrollment {
 
 export interface StudentGrade {
   id: string
+  /** Linked roster student when known (required for teacher save under cloud). */
+  studentId?: string
   name: string
   math: string
   science: string

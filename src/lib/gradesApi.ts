@@ -45,6 +45,7 @@ export async function fetchStudentGrades(linkedStudentId?: string | null): Promi
   if (!data?.length) return []
   return data.map((row) => ({
     id: row.id as string,
+    studentId: (row.student_id as string | null) ?? undefined,
     name: row.student_name as string,
     math: (row.math as string) || '',
     science: (row.science as string) || '',
@@ -60,12 +61,14 @@ export async function saveStudentGrades(grades: StudentGrade[]): Promise<{ ok: b
   const schoolId = await resolveSchoolId()
   if (!schoolId) return { ok: false, error: 'School not found' }
 
-  const studentId = await resolveLinkedStudentId()
+  const role = await currentRole()
+  const fallbackStudentId =
+    role === 'parent' || role === 'student' ? await resolveLinkedStudentId() : null
 
   const rows = grades.map((g) => ({
     id: g.id,
     school_id: schoolId,
-    student_id: studentId || DEMO_STUDENT_IDS.ananya,
+    student_id: g.studentId || fallbackStudentId || DEMO_STUDENT_IDS.ananya,
     student_name: g.name,
     math: g.math,
     science: g.science,

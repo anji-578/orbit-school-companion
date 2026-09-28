@@ -644,7 +644,10 @@ export const useOrbitStore = create<OrbitState>()(
               includeInactive: role === 'school',
             }),
             fetchAttendanceHistory(20, linkedStudent?.id),
-            fetchStudentGrades(linkedStudent?.id),
+            // Teachers/school need the class roster grades; parents/students are scoped to the linked child.
+            fetchStudentGrades(
+              role === 'parent' || role === 'student' ? linkedStudent?.id : undefined,
+            ),
             fetchSyllabusState(),
             fetchTimetableByDay(timetableClass),
             fetchStaffDirectory(),
