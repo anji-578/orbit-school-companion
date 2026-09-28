@@ -681,12 +681,13 @@ export const useOrbitStore = create<OrbitState>()(
             : cloud
               ? timetableByDay
               : getLocalTimetable()
-          const curriculum = withSyllabusLearningLinks(
-            mergeCurriculum(
-              remoteSyllabus,
-              cloud ? s.curriculum : s.curriculum.length ? s.curriculum : initialCurriculum,
-            ),
-          )
+          const curriculumBase =
+            cloud && !(remoteSyllabus?.length)
+              ? initialCurriculum
+              : s.curriculum.length
+                ? s.curriculum
+                : initialCurriculum
+          const curriculum = withSyllabusLearningLinks(mergeCurriculum(remoteSyllabus, curriculumBase))
 
           const usedSample = !cloud && (
             !(ops.tasks?.length) ||
@@ -705,6 +706,25 @@ export const useOrbitStore = create<OrbitState>()(
             : withSample([], initialFleet)
           const nextCandidates = hiring.length ? hiring : withSample([], initialCandidates)
           const primaryBus = busRoutes.find((b) => b.id === 'bus_14') || busRoutes[0]
+
+          const linkedClass =
+            linkedStudent?.className && linkedStudent.section
+              ? `${linkedStudent.className}-${linkedStudent.section}`
+              : linkedStudent?.className || ''
+          const nextStudentProfile =
+            role === 'student' && linkedStudent
+              ? {
+                  ...s.studentProfile,
+                  name: linkedStudent.displayName,
+                  grade: linkedClass || s.studentProfile.grade,
+                  school:
+                    sessionEmail.toLowerCase().includes('@demo50.orbit.app')
+                      ? 'Sunrise Demo Academy'
+                      : s.studentProfile.school,
+                }
+              : s.studentProfile
+          const nextCompetitions = s.competitions?.length ? s.competitions : initialCompetitions
+
           return {
             usingCloudData: cloud,
             showingSampleData: usedSample,
@@ -732,6 +752,8 @@ export const useOrbitStore = create<OrbitState>()(
                   : 12
               : s.busPosition,
             studyScore: computeStudyScore(attendancePercent(nextAttendance), homeworkPercent(tasks)),
+            studentProfile: nextStudentProfile,
+            competitions: nextCompetitions,
           }
         })
       },

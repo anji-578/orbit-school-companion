@@ -35,7 +35,7 @@ import { useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { translate } from '../../i18n'
 import { useAuthStore } from '../../auth/authStore'
-import { childDisplayName, childFirstName } from '../../lib/linkedStudent'
+import { childClassLabel, childDisplayName, childFirstName } from '../../lib/linkedStudent'
 import { useOrbitStore } from '../../store/orbitStore'
 import type { Role } from '../../types'
 import { OrbitLogo } from '../brand/OrbitLogo'
@@ -326,9 +326,11 @@ export function Sidebar() {
                 className="w-10 h-10 rounded-full border border-white/20 object-cover shrink-0"
               />
               <div className="min-w-0 flex-1">
-                <h4 className="text-xs font-bold text-white truncate">{studentProfile.name || profileName}</h4>
+                <h4 className="text-xs font-bold text-white truncate">
+                  {childDisplayName(linkedStudent, studentProfile.name || profileName)}
+                </h4>
                 <span className="text-[9px] font-extrabold mt-1 block truncate" style={{ color: meta.accent }}>
-                  {studentProfile.grade || profileSub}
+                  {childClassLabel(linkedStudent) || studentProfile.grade || profileSub}
                 </span>
                 <span className="text-[9px] text-slate-500 mt-0.5 block">{t('studentProfile')} →</span>
               </div>
