@@ -1341,6 +1341,24 @@ export const useOrbitStore = create<OrbitState>()(
     }),
     {
       name: 'orbit-school-v1',
+      version: 2,
+      migrate: (persisted: unknown) => {
+        const state = (persisted || {}) as { studentProfile?: { name?: string; grade?: string; school?: string } }
+        const profile = state.studentProfile
+        // Drop stale offline demo identity so cloud DEMO50 / linked roster can own the name.
+        if (profile?.name === 'Ananya Rao' || profile?.grade === 'Class 11-A') {
+          return {
+            ...state,
+            studentProfile: {
+              ...profile,
+              name: '',
+              grade: '',
+              school: profile.school === 'Sunrise Public School' ? '' : profile.school,
+            },
+          }
+        }
+        return state
+      },
       partialize: (s) => ({
         lang: s.lang,
         theme: s.theme,

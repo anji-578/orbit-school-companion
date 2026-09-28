@@ -242,3 +242,17 @@ where email = 'student040@demo50.orbit.app';
 update public.students
 set profile_id = (select id from public.profiles where email = 'student040@demo50.orbit.app')
 where id = 'd5000000-0000-4000-8000-000000000040'::uuid;
+
+-- Extracurricular programs for Resources tab
+delete from public.extracurricular_programs where school_id = 'd5a00000-0000-4000-8000-000000000050'::uuid;
+insert into public.extracurricular_programs (school_id, category, title, coach, location, cost_label, phone, active)
+values
+('d5a00000-0000-4000-8000-000000000050'::uuid, 'sports', 'Sunrise Cricket Academy', 'Coach Vinay Kumar', 'Ground A', '₹1,500/month', '+91 94451 12345', true),
+('d5a00000-0000-4000-8000-000000000050'::uuid, 'sports', 'Elite Football Club', 'Coach Marcus Jenkins', 'Main Turf', '₹1,800/month', '+91 94451 67890', true),
+('d5a00000-0000-4000-8000-000000000050'::uuid, 'sports', 'Badminton Beginners', 'Coach Priya Rao', 'Indoor Court 2', '₹1,200/month', '+91 94451 33445', true),
+('d5a00000-0000-4000-8000-000000000050'::uuid, 'drawing', 'Creative Minds Painting Academy', 'Instructor Aruna Devi', 'Art Studio 1', '₹1,000/month', '+91 94452 11223', true),
+('d5a00000-0000-4000-8000-000000000050'::uuid, 'drawing', 'Sketch & Portrait Club', 'Mr. Ravi Sharma', 'Art Studio 2', '₹900/month', '+91 94452 77889', true),
+('d5a00000-0000-4000-8000-000000000050'::uuid, 'singing', 'Swarasdhara Classical Vocals', 'Guru K. Swarnalatha', 'Music Room A', '₹1,200/month', '+91 94453 54321', true),
+('d5a00000-0000-4000-8000-000000000050'::uuid, 'singing', 'School Choir', 'Ms. Fatima Khan', 'Auditorium', '₹600/month', '+91 94453 22110', true),
+('d5a00000-0000-4000-8000-000000000050'::uuid, 'dancing', 'Kuchipudi Classical Dance', 'Guru Sreeleela Devi', 'Dance Hall 1', '₹1,400/month', '+91 94454 09876', true),
+('d5a00000-0000-4000-8000-000000000050'::uuid, 'dancing', 'Modern Hip-Hop Studio', 'Choreographer Rakesh', 'Fitness Studio', '₹1,600/month', '+91 94454 11223', true);

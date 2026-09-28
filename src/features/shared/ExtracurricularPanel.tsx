@@ -98,36 +98,42 @@ export function ExtracurricularPanel() {
         </div>
 
         <div className="grid sm:grid-cols-2 gap-4 mt-1">
-          {items.map((item) => (
-            <Card key={item.id} className="p-5 space-y-3">
-              <div>
-                <Eyebrow>{(CATEGORY_META[activeCategory] || { label: activeCategory }).label}</Eyebrow>
-                <h3 className="text-sm font-bold text-white mt-1">{item.title}</h3>
-                <p className="text-xs text-slate-400">{item.coach}</p>
-              </div>
-              <div className="space-y-1.5 text-[11px] text-slate-300">
-                <p className="flex items-center gap-2">
-                  <MapPin className="h-3.5 w-3.5 text-[var(--accent2)]" aria-hidden /> {item.loc}
-                </p>
-                <p className="flex items-center gap-2">
-                  <Wallet className="h-3.5 w-3.5 text-[var(--accent2)]" aria-hidden /> {item.cost}
-                </p>
-              </div>
-              <button
-                type="button"
-                disabled={busyId === item.id || Boolean(item.requestStatus)}
-                onClick={() => void onRequest(item)}
-                className="btn-ghost w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-white disabled:opacity-60"
-              >
-                <UserPlus className="h-3.5 w-3.5" aria-hidden />
-                {item.requestStatus
-                  ? t('extraRequested').replace('{status}', item.requestStatus)
-                  : busyId === item.id
-                    ? t('extraRequesting')
-                    : t('requestToJoin')}
-              </button>
+          {!items.length ? (
+            <Card className="p-5 sm:col-span-2 text-sm text-slate-400">
+              No programs in this category yet. Try another tab, or ask the school desk to publish clubs.
             </Card>
-          ))}
+          ) : (
+            items.map((item) => (
+              <Card key={item.id} className="p-5 space-y-3">
+                <div>
+                  <Eyebrow>{(CATEGORY_META[activeCategory] || { label: activeCategory }).label}</Eyebrow>
+                  <h3 className="text-sm font-bold text-white mt-1">{item.title}</h3>
+                  <p className="text-xs text-slate-400">{item.coach}</p>
+                </div>
+                <div className="space-y-1.5 text-[11px] text-slate-300">
+                  <p className="flex items-center gap-2">
+                    <MapPin className="h-3.5 w-3.5 text-[var(--accent2)]" aria-hidden /> {item.loc}
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <Wallet className="h-3.5 w-3.5 text-[var(--accent2)]" aria-hidden /> {item.cost}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={busyId === item.id || Boolean(item.requestStatus)}
+                  onClick={() => void onRequest(item)}
+                  className="btn-ghost w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-white disabled:opacity-60"
+                >
+                  <UserPlus className="h-3.5 w-3.5" aria-hidden />
+                  {item.requestStatus
+                    ? t('extraRequested').replace('{status}', item.requestStatus)
+                    : busyId === item.id
+                      ? t('extraRequesting')
+                      : t('requestToJoin')}
+                </button>
+              </Card>
+            ))
+          )}
         </div>
       </Panel>
     </div>

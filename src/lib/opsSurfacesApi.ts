@@ -121,25 +121,27 @@ export async function scheduleHiringInterview(id: string): Promise<{ ok: boolean
   return { ok: true }
 }
 
+function localExtracurricularPrograms(): ExtraProgram[] {
+  return Object.entries(extracurricularListing).flatMap(([category, items]) =>
+    items.map((item, idx) => ({
+      id: `local_${category}_${idx}`,
+      category,
+      title: item.title,
+      coach: item.coach,
+      loc: item.loc,
+      cost: item.cost,
+      phone: item.phone,
+      requestStatus: null,
+    })),
+  )
+}
+
 export async function fetchExtracurricularPrograms(studentId?: string | null): Promise<ExtraProgram[]> {
-  if (!isSupabaseConfigured()) {
-    return Object.entries(extracurricularListing).flatMap(([category, items]) =>
-      items.map((item, idx) => ({
-        id: `local_${category}_${idx}`,
-        category,
-        title: item.title,
-        coach: item.coach,
-        loc: item.loc,
-        cost: item.cost,
-        phone: item.phone,
-        requestStatus: null,
-      })),
-    )
-  }
+  if (!isSupabaseConfigured()) return localExtracurricularPrograms()
   const supabase = getSupabase()
-  if (!supabase) return []
+  if (!supabase) return localExtracurricularPrograms()
   const schoolId = await resolveSchoolId()
-  if (!schoolId) return []
+  if (!schoolId) return localExtracurricularPrograms()
 
   const childId = studentId ?? (await resolveLinkedStudentId())
   const [{ data: programs }, { data: requests }] = await Promise.all([
@@ -156,7 +158,8 @@ export async function fetchExtracurricularPrograms(studentId?: string | null): P
       : Promise.resolve({ data: [] as { program_id: string; status: string }[] }),
   ])
 
-  if (!programs?.length) return []
+  // Cloud school with no rows yet — keep the demo catalog visible for reviews.
+  if (!programs?.length) return localExtracurricularPrograms()
   const statusByProgram = new Map(
     (requests ?? []).map((r) => [r.program_id as string, r.status as string]),
   )

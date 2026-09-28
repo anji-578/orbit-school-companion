@@ -15,6 +15,8 @@ import {
   X,
 } from 'lucide-react'
 import { useOrbitStore } from '../../store/orbitStore'
+import { useAuthStore } from '../../auth/authStore'
+import { childClassLabel, childDisplayName } from '../../lib/linkedStudent'
 import { Panel, Card } from '../../components/ui/primitives'
 import type { StudentAcademicProfile, ProfileListItem } from '../../types'
 import { ConfidentialDocsSection } from './ConfidentialDocsSection'
@@ -22,10 +24,23 @@ import { ConfidentialDocsSection } from './ConfidentialDocsSection'
 export function AcademicProfile() {
   const lang = useOrbitStore((s) => s.lang)
   const studentProfile = useOrbitStore((s) => s.studentProfile)
+  const linkedStudent = useOrbitStore((s) => s.linkedStudent)
+  const session = useAuthStore((s) => s.session)
   const updateStudentProfile = useOrbitStore((s) => s.updateStudentProfile)
+  const displayName = childDisplayName(linkedStudent, session?.displayName || studentProfile.name)
+  const displayGrade = childClassLabel(linkedStudent) || studentProfile.grade
+  const displaySchool =
+    session?.email?.toLowerCase().includes('@demo50.orbit.app')
+      ? 'Sunrise Demo Academy'
+      : studentProfile.school
 
   const [isEditing, setIsEditing] = useState(false)
-  const [editForm, setEditForm] = useState<StudentAcademicProfile>(studentProfile)
+  const [editForm, setEditForm] = useState<StudentAcademicProfile>(() => ({
+    ...studentProfile,
+    name: displayName,
+    grade: displayGrade,
+    school: displaySchool,
+  }))
 
   // Temp state for adding items to lists
   const [newInterest, setNewInterest] = useState('')
@@ -428,19 +443,19 @@ export function AcademicProfile() {
           <div className="flex flex-col sm:flex-row items-center gap-5 p-5 bg-white/[0.02] border border-white/10 rounded-2xl">
             <img
               src={studentProfile.photoUrl}
-              alt={studentProfile.name}
+              alt={displayName}
               className="w-24 h-24 rounded-2xl object-cover border-2 border-white/10 shrink-0"
             />
             <div className="text-center sm:text-left space-y-1.5 min-w-0">
               <h3 className="text-xl font-black text-white font-display flex items-center justify-center sm:justify-start gap-2">
-                {studentProfile.name}
+                {displayName}
                 <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-[var(--accent)]/15 text-[var(--accent2)] border border-[var(--accent)]/25">
                   Student
                 </span>
               </h3>
-              <p className="text-sm text-slate-300 font-semibold">{studentProfile.school}</p>
+              <p className="text-sm text-slate-300 font-semibold">{displaySchool}</p>
               <p className="text-xs text-slate-400 flex items-center justify-center sm:justify-start gap-1.5">
-                <GraduationCap className="h-4 w-4 text-[var(--accent2)]" /> {studentProfile.grade}
+                <GraduationCap className="h-4 w-4 text-[var(--accent2)]" /> {displayGrade}
               </p>
             </div>
           </div>

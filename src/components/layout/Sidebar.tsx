@@ -269,6 +269,19 @@ export function Sidebar() {
   const showDemoChrome =
     session?.provider === 'local-demo' || isPilotDemoEmail(session?.email ?? '')
 
+  // Auth / roster identity wins over persisted offline demo profile (Ananya / Class 11-A).
+  const staleDemoProfile =
+    studentProfile.name === 'Ananya Rao' || studentProfile.grade === 'Class 11-A'
+  const studentCardName =
+    linkedStudent?.displayName?.trim() ||
+    session?.displayName?.trim() ||
+    (!staleDemoProfile ? studentProfile.name : '') ||
+    profileName
+  const studentCardGrade =
+    childClassLabel(linkedStudent) ||
+    (!staleDemoProfile ? studentProfile.grade : '') ||
+    profileSub
+
   const handleLogout = () => {
     void logout().then(() => setMobileMenuOpen(false))
   }
@@ -326,11 +339,9 @@ export function Sidebar() {
                 className="w-10 h-10 rounded-full border border-white/20 object-cover shrink-0"
               />
               <div className="min-w-0 flex-1">
-                <h4 className="text-xs font-bold text-white truncate">
-                  {childDisplayName(linkedStudent, studentProfile.name || profileName)}
-                </h4>
+                <h4 className="text-xs font-bold text-white truncate">{studentCardName}</h4>
                 <span className="text-[9px] font-extrabold mt-1 block truncate" style={{ color: meta.accent }}>
-                  {childClassLabel(linkedStudent) || studentProfile.grade || profileSub}
+                  {studentCardGrade}
                 </span>
                 <span className="text-[9px] text-slate-500 mt-0.5 block">{t('studentProfile')} →</span>
               </div>
