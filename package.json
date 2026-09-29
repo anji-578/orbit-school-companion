@@ -9,6 +9,10 @@
     "build": "tsc -b && tsc -p tsconfig.api.json && vite build",
     "lint": "oxlint",
     "preview": "vite preview --host",
+    "cap:sync": "npm run build && npx cap sync android",
+    "android:open": "npx cap open android",
+    "android:run": "npx cap run android",
+    "android:emu": "bash scripts/android-emulator.sh",
     "pilot100:generate": "node scripts/generate-pilot100.mjs && node scripts/generate-pilot100-auth-sql.mjs",
     "pilot100:provision": "node scripts/provision-pilot100.mjs",
     "pilot100:teardown": "node scripts/teardown-pilot100.mjs",
@@ -17,6 +21,12 @@
     "test:razorpay": "node scripts/verify-razorpay-local.mjs"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/cli": "^8.5.2",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/keyboard": "^8.0.5",
+    "@capacitor/status-bar": "^8.0.3",
     "@supabase/supabase-js": "^2.111.0",
     "lucide-react": "^1.27.0",
     "react": "^19.2.7",

@@ -31,3 +31,14 @@ dist-ssr
 
 # Local PDF generation venv
 .venv-pdf/
+
+# Local Android toolchain / emulator packages (huge)
+.android-toolchain/
+
+# Android local machine SDK path
+android/local.properties
+android/.gradle/
+android/app/build/
+android/build/
+android/captures/
+android/.idea/
