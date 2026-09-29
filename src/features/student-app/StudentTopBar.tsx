@@ -1,26 +1,19 @@
-import { ArrowLeft, Bell, LogOut, Moon, Sun } from 'lucide-react'
-import { useAuthStore } from '../../auth/authStore'
+import { ArrowLeft, Bell, Settings } from 'lucide-react'
 import { useOrbitStore } from '../../store/orbitStore'
-import { DESTINATION_TITLES } from './studentNav'
+import { titleForFrame } from './studentNav'
 import { useStudentNav } from './StudentNavContext'
 
 export function StudentTopBar() {
   const { current, canGoBack, pop, push, tab } = useStudentNav()
-  const theme = useOrbitStore((s) => s.theme)
-  const setTheme = useOrbitStore((s) => s.setTheme)
-  const logout = useAuthStore((s) => s.logout)
   const notifications = useOrbitStore((s) => s.notifications)
 
   const unread = notifications.filter(
     (a) => a.unread && (a.role === 'student' || a.role === 'all'),
   ).length
+
+  const title = titleForFrame(current)
   const showTitle = canGoBack || tab !== 'home'
-  const title =
-    current === 'home'
-      ? 'Today'
-      : current === 'learn' || current === 'grow' || current === 'me'
-        ? DESTINATION_TITLES[current]
-        : DESTINATION_TITLES[current]
+  const showSettings = tab === 'me' && !canGoBack
 
   return (
     <header className="student-topbar shrink-0 sticky top-0 z-20 border-b border-[var(--border)] bg-[var(--header-bg)] backdrop-blur-xl">
@@ -52,7 +45,7 @@ export function StudentTopBar() {
           type="button"
           onClick={() => push('alerts')}
           className="relative h-9 w-9 rounded-xl flex items-center justify-center border border-[var(--border)] bg-[var(--surface)] text-[var(--fg)]"
-          aria-label="Announcements"
+          aria-label="Notifications"
         >
           <Bell className="h-4 w-4" aria-hidden />
           {unread > 0 ? (
@@ -62,25 +55,16 @@ export function StudentTopBar() {
           ) : null}
         </button>
 
-        <button
-          type="button"
-          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="h-9 w-9 rounded-xl flex items-center justify-center border border-[var(--border)] bg-[var(--surface)] text-[var(--fg)]"
-          aria-label="Toggle theme"
-        >
-          {theme === 'dark' ? <Sun className="h-4 w-4" aria-hidden /> : <Moon className="h-4 w-4" aria-hidden />}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            void logout()
-          }}
-          className="h-9 w-9 rounded-xl flex items-center justify-center border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)]"
-          aria-label="Sign out"
-        >
-          <LogOut className="h-4 w-4" aria-hidden />
-        </button>
+        {showSettings ? (
+          <button
+            type="button"
+            onClick={() => push('settings')}
+            className="h-9 w-9 rounded-xl flex items-center justify-center border border-[var(--border)] bg-[var(--surface)] text-[var(--fg)]"
+            aria-label="Settings"
+          >
+            <Settings className="h-4 w-4" aria-hidden />
+          </button>
+        ) : null}
       </div>
     </header>
   )

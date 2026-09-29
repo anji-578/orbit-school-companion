@@ -92,7 +92,7 @@ export function HomeToday() {
         id: `hw-${t.id}`,
         done: t.completed,
         title: `${t.subject}: ${t.task}`,
-        onOpen: () => push('homework'),
+        onOpen: () => push('homework', { subject: t.subject, taskId: t.id }, 'Homework'),
       })
     }
     for (const period of timeline.slice(0, 3)) {
@@ -100,7 +100,7 @@ export function HomeToday() {
         id: `class-${period.name}-${period.time}`,
         done: period.status === 'Completed',
         title: `${period.name} class`,
-        onOpen: () => push('schedule'),
+        onOpen: () => push('subject', { subject: period.name }, period.name),
       })
     }
     return items.slice(0, 6)
@@ -125,7 +125,11 @@ export function HomeToday() {
         <SaCard className="p-4 space-y-3">
           {nextLive ? (
             <>
-              <button type="button" className="w-full text-left" onClick={() => push('schedule')}>
+              <button
+                type="button"
+                className="w-full text-left"
+                onClick={() => push('subject', { subject: nextLive.name }, nextLive.name)}
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-base font-extrabold text-[var(--fg)] truncate">{nextLive.name}</p>
@@ -139,7 +143,11 @@ export function HomeToday() {
                   </span>
                 </div>
               </button>
-              <SaPrimaryButton onClick={() => push('study-assistant')}>
+              <SaPrimaryButton
+                onClick={() =>
+                  push('study-assistant', { subject: nextLive.name }, 'Ask Orbit')
+                }
+              >
                 Get ready
                 <ArrowRight className="h-3.5 w-3.5" aria-hidden />
               </SaPrimaryButton>
@@ -173,7 +181,11 @@ export function HomeToday() {
                     startTask(urgentHw.id)
                     triggerToast('Homework started')
                   }
-                  push('homework')
+                  push(
+                    'homework',
+                    { subject: urgentHw.subject, taskId: urgentHw.id },
+                    'Homework',
+                  )
                 }}
               >
                 {urgentHw.started ? 'Continue' : 'Start'}
@@ -209,7 +221,11 @@ export function HomeToday() {
       <SaSection
         eyebrow="Today"
         action={
-          <button type="button" className="text-[10px] font-bold text-[var(--accent)]" onClick={() => push('homework')}>
+          <button
+            type="button"
+            className="text-[10px] font-bold text-[var(--accent)]"
+            onClick={() => push('upcoming')}
+          >
             View all →
           </button>
         }
@@ -262,7 +278,7 @@ export function HomeToday() {
         </div>
         <button
           type="button"
-          onClick={() => push('attendance')}
+          onClick={() => push('school-records')}
           className="text-[10px] font-bold text-[var(--accent)] shrink-0"
         >
           Details →

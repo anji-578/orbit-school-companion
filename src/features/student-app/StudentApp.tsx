@@ -36,7 +36,7 @@ function StudentAppBody() {
       <StudentTopBar />
       <main className="flex-1 min-h-0 overflow-y-auto orbit-scroll">
         <div className="max-w-lg mx-auto w-full px-4 py-4 fade-up">
-          <StudentScreen dest={current} />
+          <StudentScreen dest={current.dest} />
         </div>
       </main>
       <StudentBottomNav />

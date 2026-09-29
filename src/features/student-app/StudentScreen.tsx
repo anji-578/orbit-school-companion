@@ -20,6 +20,10 @@ import { MeHub } from './screens/MeHub'
 import { InterestsDetail } from './screens/InterestsDetail'
 import { PortfolioDetail } from './screens/PortfolioDetail'
 import { StudentAnnouncements } from './screens/StudentAnnouncements'
+import { SettingsScreen } from './screens/SettingsScreen'
+import { SchoolRecordsScreen } from './screens/SchoolRecordsScreen'
+import { SubjectHome } from './screens/SubjectHome'
+import { UpcomingScreen } from './screens/UpcomingScreen'
 
 /** Renders hub or nested destination for the student app stack. */
 export function StudentScreen({ dest }: { dest: StudentDestination }) {
@@ -32,6 +36,10 @@ export function StudentScreen({ dest }: { dest: StudentDestination }) {
       return <GrowHub />
     case 'me':
       return <MeHub />
+    case 'subject':
+      return <SubjectHome />
+    case 'upcoming':
+      return <UpcomingScreen />
     case 'homework':
       return <AssignmentsPanel />
     case 'schedule':
@@ -67,6 +75,10 @@ export function StudentScreen({ dest }: { dest: StudentDestination }) {
       return <StudentAnnouncements />
     case 'portfolio':
       return <PortfolioDetail />
+    case 'school-records':
+      return <SchoolRecordsScreen />
+    case 'settings':
+      return <SettingsScreen />
     default:
       return <HomeToday />
   }

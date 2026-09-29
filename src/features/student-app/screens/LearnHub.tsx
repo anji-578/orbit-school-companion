@@ -1,17 +1,8 @@
 import { useMemo } from 'react'
-import {
-  BookMarked,
-  BrainCircuit,
-  CalendarDays,
-  CheckSquare,
-  Clipboard,
-  FileText,
-  Sparkles,
-  Calendar,
-} from 'lucide-react'
+import { ArrowRight, CalendarDays } from 'lucide-react'
 import { useOrbitStore } from '../../../store/orbitStore'
 import { currentDayCode, deriveTodayTimeline } from '../../../lib/timetableApi'
-import { SaCard, SaPrimaryButton, SaRow, SaSection } from '../components/SaUi'
+import { SaCard, SaPrimaryButton, SaSection } from '../components/SaUi'
 import { useStudentNav } from '../StudentNavContext'
 import type { HomeworkTask } from '../../../types'
 
@@ -22,28 +13,32 @@ function taskMinutes(task: HomeworkTask): number {
   return 25
 }
 
+function dueUrgency(due: string): number {
+  const d = due.toLowerCase()
+  if (d.includes('tomorrow') || d.includes('today')) return 0
+  if (d.includes('2 day')) return 1
+  return 2
+}
+
 const SUBJECT_COLORS = ['#2563eb', '#059669', '#d97706', '#db2777', '#7c3aed', '#0891b2']
 
+/** Learn = Continue · Subjects · Upcoming. No feature directory. */
 export function LearnHub() {
   const { push } = useStudentNav()
   const tasks = useOrbitStore((s) => s.tasks)
   const timetableByDay = useOrbitStore((s) => s.timetableByDay)
   const studentGrades = useOrbitStore((s) => s.studentGrades)
   const curriculum = useOrbitStore((s) => s.curriculum)
+  const calendarEvents = useOrbitStore((s) => s.calendarEvents)
 
   const pending = tasks.filter((t) => !t.completed)
-  const continueTask = pending[0] ?? tasks[0]
-
-  const todayClasses = useMemo(
-    () => deriveTodayTimeline(timetableByDay[currentDayCode()]),
-    [timetableByDay],
-  )
+  const continueTask = [...pending].sort((a, b) => dueUrgency(a.due) - dueUrgency(b.due))[0]
 
   const subjects = useMemo(() => {
     const fromSyllabus = curriculum.map((s) => s.subject).filter(Boolean)
     const fromGrades = studentGrades[0] ? ['Mathematics', 'Science', 'Chemistry'] : []
     const fromTasks = tasks.map((t) => t.subject)
-    return [...new Set([...fromSyllabus, ...fromGrades, ...fromTasks])].slice(0, 8)
+    return [...new Set([...fromSyllabus, ...fromGrades, ...fromTasks])]
   }, [curriculum, studentGrades, tasks])
 
   const continuePct = continueTask
@@ -54,6 +49,36 @@ export function LearnHub() {
         : 20
     : 0
 
+  const upcomingPreview = useMemo(() => {
+    const items: { id: string; title: string; meta: string; onOpen: () => void }[] = []
+    const classes = deriveTodayTimeline(timetableByDay[currentDayCode()]).filter((c) => c.status !== 'Completed')
+    for (const c of classes.slice(0, 2)) {
+      items.push({
+        id: `c-${c.name}-${c.time}`,
+        title: c.name,
+        meta: `Class · ${c.time}`,
+        onOpen: () => push('upcoming'),
+      })
+    }
+    for (const t of pending.slice(0, 2)) {
+      items.push({
+        id: `h-${t.id}`,
+        title: t.task,
+        meta: `${t.subject} · Due ${t.due}`,
+        onOpen: () => push('subject', { subject: t.subject }, t.subject),
+      })
+    }
+    for (const ev of calendarEvents.filter((e) => e.category === 'Exams').slice(0, 1)) {
+      items.push({
+        id: `e-${ev.id}`,
+        title: ev.title,
+        meta: `Assessment · ${ev.date}`,
+        onOpen: () => push('upcoming'),
+      })
+    }
+    return items.slice(0, 4)
+  }, [timetableByDay, pending, calendarEvents, push])
+
   return (
     <div className="space-y-5 pb-4">
       <div className="px-0.5">
@@ -61,7 +86,6 @@ export function LearnHub() {
         <p className="text-sm text-[var(--muted)] mt-0.5">Continue where you left off</p>
       </div>
 
-      {/* Continue */}
       <SaSection eyebrow="Continue">
         <SaCard className="p-4 space-y-3">
           {continueTask ? (
@@ -70,9 +94,7 @@ export function LearnHub() {
                 <p className="text-[10px] font-black uppercase tracking-wider text-[var(--muted)]">
                   {continueTask.subject}
                 </p>
-                <p className="text-base font-extrabold text-[var(--fg)] mt-1 leading-snug">
-                  {continueTask.task}
-                </p>
+                <p className="text-base font-extrabold text-[var(--fg)] mt-1 leading-snug">{continueTask.task}</p>
                 <p className="text-[11px] text-[var(--muted)] mt-1">
                   {continuePct}% · ~{taskMinutes(continueTask)} min · Due {continueTask.due}
                 </p>
@@ -86,126 +108,80 @@ export function LearnHub() {
                   }}
                 />
               </div>
-              <SaPrimaryButton onClick={() => push('homework')}>Continue</SaPrimaryButton>
+              <SaPrimaryButton
+                onClick={() =>
+                  push('homework', { subject: continueTask.subject, taskId: continueTask.id }, 'Homework')
+                }
+              >
+                Continue
+                <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+              </SaPrimaryButton>
             </>
           ) : (
-            <p className="text-sm text-[var(--muted)]">No open homework — explore a subject below.</p>
+            <p className="text-sm text-[var(--muted)]">You&apos;re caught up — pick a subject to explore.</p>
           )}
         </SaCard>
       </SaSection>
 
-      {/* Today counts */}
-      <SaSection eyebrow="Today">
-        <div className="grid grid-cols-3 gap-2.5">
-          <StatTile label="Homework" value={pending.length} onClick={() => push('homework')} />
-          <StatTile label="Classes" value={todayClasses.length} onClick={() => push('schedule')} />
-          <StatTile
-            label="Assessment"
-            value={studentGrades.length ? 1 : 0}
-            onClick={() => push('academics')}
-          />
-        </div>
-      </SaSection>
-
-      {/* Subjects */}
-      <SaSection eyebrow="Subjects">
-        <div className="grid grid-cols-2 gap-2.5">
-          {subjects.length === 0 ? (
-            <SaCard className="p-4 col-span-2">
-              <p className="text-xs text-[var(--muted)]">Subjects appear when your school links a syllabus.</p>
-            </SaCard>
-          ) : (
-            subjects.map((subject, i) => (
-              <SaCard
-                key={subject}
-                className="p-3.5 flex items-center gap-3"
-                onClick={() => push('syllabus')}
-              >
-                <span
-                  className="h-9 w-9 rounded-xl flex items-center justify-center text-white text-xs font-black shrink-0"
-                  style={{ background: SUBJECT_COLORS[i % SUBJECT_COLORS.length] }}
+      <SaSection eyebrow="Your subjects">
+        {subjects.length === 0 ? (
+          <SaCard className="p-4">
+            <p className="text-xs text-[var(--muted)]">Subjects appear when your school links a syllabus.</p>
+          </SaCard>
+        ) : (
+          <ul className="rounded-2xl border border-[var(--border)] bg-[var(--panel)] divide-y divide-[var(--border)] overflow-hidden">
+            {subjects.map((subject, i) => (
+              <li key={subject}>
+                <button
+                  type="button"
+                  onClick={() => push('subject', { subject }, subject)}
+                  className="w-full flex items-center gap-3 px-3.5 py-3.5 text-left"
                 >
-                  {subject.slice(0, 1)}
-                </span>
-                <span className="text-xs font-bold text-[var(--fg)] truncate">{subject}</span>
-              </SaCard>
-            ))
-          )}
-        </div>
+                  <span
+                    className="h-9 w-9 rounded-xl flex items-center justify-center text-white text-xs font-black shrink-0"
+                    style={{ background: SUBJECT_COLORS[i % SUBJECT_COLORS.length] }}
+                  >
+                    {subject.slice(0, 1)}
+                  </span>
+                  <span className="flex-1 text-sm font-bold text-[var(--fg)] truncate">{subject}</span>
+                  <ArrowRight className="h-4 w-4 text-[var(--muted)] shrink-0" aria-hidden />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </SaSection>
 
-      {/* Destinations inside Learn */}
-      <SaSection eyebrow="Study tools">
-        <div className="space-y-2">
-          <SaRow
-            icon={CheckSquare}
-            title="Homework"
-            subtitle={`${pending.length} open`}
-            onClick={() => push('homework')}
-          />
-          <SaRow
-            icon={Calendar}
-            title="Classes"
-            subtitle="Timetable for this week"
-            onClick={() => push('schedule')}
-          />
-          <SaRow
-            icon={FileText}
-            title="Assessments & reports"
-            subtitle="Marks and feedback"
-            onClick={() => push('academics')}
-          />
-          <SaRow
-            icon={BookMarked}
-            title="Subjects & syllabus"
-            onClick={() => push('syllabus')}
-          />
-          <SaRow
-            icon={BrainCircuit}
-            title="Study coach"
-            subtitle="Ask Orbit when you're stuck"
-            accent="#7c3aed"
-            onClick={() => push('study-assistant')}
-          />
-          <SaRow
-            icon={Clipboard}
-            title="Paper scan"
-            subtitle="Snap a page for feedback"
-            accent="#db2777"
-            onClick={() => push('scanner')}
-          />
-          <SaRow
-            icon={Sparkles}
-            title="Quiz"
-            subtitle="Quick practice"
-            accent="#d97706"
-            onClick={() => push('gk-quiz')}
-          />
-          <SaRow
-            icon={CalendarDays}
-            title="Calendar"
-            subtitle="Exams and school events"
-            onClick={() => push('calendar')}
-          />
-        </div>
+      <SaSection
+        eyebrow="Upcoming"
+        action={
+          <button type="button" className="text-[10px] font-bold text-[var(--accent)]" onClick={() => push('upcoming')}>
+            View all →
+          </button>
+        }
+      >
+        {upcomingPreview.length === 0 ? (
+          <SaCard className="p-4">
+            <p className="text-xs text-[var(--muted)]">Nothing urgent coming up.</p>
+          </SaCard>
+        ) : (
+          <SaCard className="p-2">
+            <ul className="divide-y divide-[var(--border)]">
+              {upcomingPreview.map((item) => (
+                <li key={item.id}>
+                  <button type="button" onClick={item.onOpen} className="w-full flex items-start gap-3 px-3 py-3 text-left">
+                    <CalendarDays className="h-4 w-4 text-[var(--accent)] shrink-0 mt-0.5" aria-hidden />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-bold text-[var(--fg)] truncate">{item.title}</span>
+                      <span className="text-[11px] text-[var(--muted)]">{item.meta}</span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </SaCard>
+        )}
       </SaSection>
     </div>
-  )
-}
-
-function StatTile({
-  label,
-  value,
-  onClick,
-}: {
-  label: string
-  value: number
-  onClick: () => void
-}) {
-  return (
-    <SaCard className="p-3.5 text-center space-y-1" onClick={onClick}>
-      <p className="text-2xl font-black text-[var(--accent)] tabular-nums">{value}</p>
-      <p className="text-[10px] font-bold text-[var(--muted)] uppercase tracking-wide">{label}</p>
-    </SaCard>
   )
 }

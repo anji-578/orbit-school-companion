@@ -1,14 +1,11 @@
 import { useMemo } from 'react'
 import {
   Award,
-  BookOpen,
   Briefcase,
-  CalendarCheck,
   ChevronRight,
+  FileText,
   GraduationCap,
-  Sparkles,
   Trophy,
-  Users,
 } from 'lucide-react'
 import { useAuthStore } from '../../../auth/authStore'
 import { useOrbitStore } from '../../../store/orbitStore'
@@ -38,7 +35,7 @@ function trendLabel(pct: number): { label: string; tone: string } {
   return { label: 'Needs focus', tone: 'text-amber-600 dark:text-amber-400' }
 }
 
-/** Me = identity + progress + portfolio — not a contact form. */
+/** Me = identity + progress + portfolio. School records are demoted one level. */
 export function MeHub() {
   const { push } = useStudentNav()
   const session = useAuthStore((s) => s.session)
@@ -49,7 +46,6 @@ export function MeHub() {
   const studentGrades = useOrbitStore((s) => s.studentGrades)
   const unlockedBadges = useOrbitStore((s) => s.unlockedBadges)
   const totalXp = useOrbitStore((s) => s.totalXp)
-  const teachers = useOrbitStore((s) => s.teachers)
 
   const name = childDisplayName(linkedStudent, session?.displayName || studentProfile.name)
   const grade = childClassLabel(linkedStudent) || studentProfile.grade
@@ -85,7 +81,6 @@ export function MeHub() {
 
   return (
     <div className="space-y-5 pb-4">
-      {/* Identity header */}
       <SaCard className="p-5 space-y-3">
         <div className="flex items-center gap-3">
           <div className="h-14 w-14 rounded-2xl bg-[var(--accent)]/15 flex items-center justify-center overflow-hidden shrink-0">
@@ -117,10 +112,10 @@ export function MeHub() {
         </div>
         <button
           type="button"
-          onClick={() => push('profile')}
+          onClick={() => push('portfolio')}
           className="text-[11px] font-bold text-[var(--accent)] inline-flex items-center gap-1"
         >
-          Edit full profile <ChevronRight className="h-3.5 w-3.5" aria-hidden />
+          Open portfolio <ChevronRight className="h-3.5 w-3.5" aria-hidden />
         </button>
       </SaCard>
 
@@ -133,7 +128,7 @@ export function MeHub() {
                 <li key={row.subject}>
                   <button
                     type="button"
-                    onClick={() => push('academics')}
+                    onClick={() => push('subject', { subject: row.subject }, row.subject)}
                     className="w-full flex items-center justify-between gap-3 px-3 py-3 text-left"
                   >
                     <span className="text-sm font-bold text-[var(--fg)]">{row.subject}</span>
@@ -211,18 +206,20 @@ export function MeHub() {
         </SaSection>
       ) : null}
 
-      <SaSection eyebrow="School record">
+      <SaSection eyebrow="More">
         <div className="space-y-2">
-          <MeLink icon={CalendarCheck} title="Attendance" meta={`${attendancePct}% overall`} onClick={() => push('attendance')} />
-          <MeLink icon={BookOpen} title="Progress reports" onClick={() => push('academics')} />
           <MeLink
-            icon={Users}
-            title="My teachers"
-            meta={`${teachers.length} teachers`}
-            onClick={() => push('teachers')}
+            icon={Briefcase}
+            title="Portfolio"
+            meta="Your growth story"
+            onClick={() => push('portfolio')}
           />
-          <MeLink icon={Briefcase} title="Portfolio" meta="Identity layer" onClick={() => push('portfolio')} />
-          <MeLink icon={Sparkles} title="Full academic profile" onClick={() => push('profile')} />
+          <MeLink
+            icon={FileText}
+            title="School records"
+            meta="Attendance, reports, teachers"
+            onClick={() => push('school-records')}
+          />
         </div>
       </SaSection>
     </div>
