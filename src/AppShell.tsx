@@ -4,18 +4,13 @@ import { MobileSimulator } from './components/layout/MobileSimulator'
 import { Sidebar, getRoleMeta } from './components/layout/Sidebar'
 import { ToastHost } from './components/layout/ToastHost'
 import { MainContent } from './features/MainContent'
+import { StudentApp } from './features/student-app/StudentApp'
 import { translate } from './i18n'
 import { useAuthStore } from './auth/authStore'
 import { useOrbitStore } from './store/orbitStore'
-import { childClassLabel, childDisplayName } from './lib/linkedStudent'
+import { childClassLabel } from './lib/linkedStudent'
 
-function studentGreetingKey(hour = new Date().getHours()): 'goodMorning' | 'goodAfternoon' | 'goodEvening' {
-  if (hour < 12) return 'goodMorning'
-  if (hour < 17) return 'goodAfternoon'
-  return 'goodEvening'
-}
-
-/** Authenticated application chrome (sidebar + header + content). */
+/** Authenticated application chrome. Students get the 4-tab mobile product shell. */
 export function AppShell() {
   const session = useAuthStore((s) => s.session)
   const role = useOrbitStore((s) => s.role)
@@ -29,7 +24,8 @@ export function AppShell() {
   const meta = getRoleMeta(role)
   const t = (key: string) => translate(lang, key)
 
-  // Keep orbit role locked to authenticated persona
+  const isStudent = role === 'student' || session?.role === 'student'
+
   useEffect(() => {
     if (session && session.role !== role) {
       setRole(session.role)
@@ -37,45 +33,46 @@ export function AppShell() {
   }, [session, role, setRole])
 
   useEffect(() => {
-    if (!session) return
+    if (!session || isStudent) return
     void hydrateFromSupabase()
-  }, [session, hydrateFromSupabase])
+  }, [session, hydrateFromSupabase, isStudent])
 
   useEffect(() => {
+    if (isStudent) return
     const id = window.setInterval(() => tickBus(), 900)
     return () => window.clearInterval(id)
-  }, [tickBus])
+  }, [tickBus, isStudent])
 
   useEffect(() => {
+    if (isStudent) return
     document.documentElement.style.setProperty('--accent', meta.accent)
     document.documentElement.style.setProperty('--accent2', meta.accent2)
-  }, [meta.accent, meta.accent2])
+  }, [meta.accent, meta.accent2, isStudent])
 
   useEffect(() => {
-    if (!notifOpen) return
+    if (!notifOpen || isStudent) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setNotifOpen(false)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [notifOpen, setNotifOpen])
+  }, [notifOpen, setNotifOpen, isStudent])
 
   const displayName = session?.displayName ?? 'Orbit User'
-  const studentFullName = childDisplayName(linkedStudent, displayName)
   const linkedClassLabel =
     childClassLabel(linkedStudent) ||
     (linkedStudent?.className
       ? `${linkedStudent.className}${linkedStudent.section ? `-${linkedStudent.section}` : ''}`
       : null)
-  const greetKey = role === 'student' ? studentGreetingKey() : meta.greetKey
-  const greetName = role === 'student' ? studentFullName.split(' ')[0] : displayName.split(' ')[0]
+  const greetName = displayName.split(' ')[0]
   const subtitle = useMemo(() => {
-    if (role === 'student') {
-      return t('homeGreetingMatters')
-    }
     if (role === 'parent' && linkedClassLabel) return linkedClassLabel
-    return session?.subtitle ?? t(meta.subKey)
+    return session?.subtitle ?? translate(lang, meta.subKey)
   }, [role, linkedClassLabel, session?.subtitle, lang, meta.subKey])
+
+  if (isStudent) {
+    return <StudentApp />
+  }
 
   return (
     <div
@@ -88,27 +85,14 @@ export function AppShell() {
         <Header />
         <main className="flex-1 p-4 sm:p-6 space-y-5 overflow-y-auto orbit-scroll">
           <div className="fade-up">
-            {role !== 'student' ? (
-              <div className="flex items-center gap-2 uppercase tracking-widest text-slate-400 mb-1.5 text-[11px]">
-                <span aria-hidden>{meta.emoji}</span>
-                <span>{t(meta.labelKey)}</span>
-              </div>
-            ) : null}
+            <div className="flex items-center gap-2 uppercase tracking-widest text-slate-400 mb-1.5 text-[11px]">
+              <span aria-hidden>{meta.emoji}</span>
+              <span>{t(meta.labelKey)}</span>
+            </div>
             <h1 className="font-display text-2xl lg:text-3xl font-bold tracking-tight text-white">
-              {role === 'student' ? (
-                <>
-                  {t(greetKey)}, {greetName}! <span aria-hidden>👋</span>
-                </>
-              ) : (
-                <>
-                  {t(greetKey)}, {greetName}
-                </>
-              )}
+              {t(meta.greetKey)}, {greetName}
             </h1>
             <p className="text-sm text-slate-400 mt-1">{subtitle}</p>
-            {role === 'student' && linkedClassLabel ? (
-              <p className="text-[11px] text-slate-500 mt-0.5">{linkedClassLabel}</p>
-            ) : null}
             {session?.provider === 'local-demo' ? (
               <p className="text-[10px] text-amber-300/90 mt-2 font-semibold">{t('authDemoHint')}</p>
             ) : null}

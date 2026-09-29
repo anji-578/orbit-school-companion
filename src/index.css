@@ -844,3 +844,42 @@ html[data-theme='light'] .landing-feat-tab.is-active svg {
   box-shadow: 0 0 12px rgba(147, 197, 253, 0.35);
 }
 
+
+/* ── Student app (Home · Learn · Grow · Me) ── */
+.student-app {
+  max-width: 100vw;
+}
+
+.student-bottom-nav {
+  padding-bottom: max(0.35rem, env(safe-area-inset-bottom));
+}
+
+.safe-bottom {
+  padding-bottom: max(0.25rem, env(safe-area-inset-bottom));
+}
+
+.student-card {
+  transition: border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+}
+
+.student-card:active {
+  transform: scale(0.992);
+}
+
+.student-embed .glass,
+.student-embed [class*="Panel"],
+.student-embed .rounded-3xl {
+  border-radius: 1rem;
+}
+
+.student-app main .panel-title,
+.student-embed h2 {
+  font-size: 1rem;
+}
+
+@media (min-width: 640px) {
+  .student-app {
+    /* Phone-first column on desktop preview */
+  }
+}
+

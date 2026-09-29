@@ -1,0 +1,32 @@
+---
+description: Orbit Student IA — four destinations, journey stages, no ERP menus
+globs: src/features/student-app/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Orbit Student Information Architecture
+
+Every student feature must answer **exactly one** of:
+
+| Tab | Question |
+|--|--|
+| **Home** | What matters now? |
+| **Learn** | What should I learn / do? |
+| **Grow** | What can I explore / develop? |
+| **Me** | Who am I becoming? |
+
+## Hard rules
+
+- Exactly **four** bottom destinations: Home, Learn, Grow, Me. Never add a fifth.
+- Home is a **Today** page (Next · Priority · Today · one Progress signal) — not a dashboard of modules.
+- Homework, Classes, Assessments, Study AI, Paper Scan, Quiz live **inside Learn** (or contextual), never as bottom nav.
+- Competitions, clubs, interests, opportunities live in **Grow**.
+- Profile, attendance record, achievements, portfolio live in **Me**.
+- Fees stay out of student MVP.
+- Intelligence appears **in context** (after a wrong answer, after an assessment) — never as an “AI Dashboard” tab.
+- Information levels: **Glance → Understand → Explore**. Never put Level 3 detail on Home.
+- If a feature does not fit a tab, rehome it — do not create new navigation.
+
+## Build order
+
+Stage 1 Home/Today → Stage 2 Learn shell → Stage 3 Learn→Do loop → Stage 4 contextual intelligence → Stage 5 Grow → Stage 6 Discover → Stage 7 Me → Stage 8 Portfolio.
