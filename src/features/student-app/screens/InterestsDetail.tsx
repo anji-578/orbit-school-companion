@@ -16,6 +16,8 @@ const INTEREST_POOL = [
   'Robotics',
 ]
 
+const MAX_INTERESTS = 4
+
 export function InterestsDetail() {
   const studentProfile = useOrbitStore((s) => s.studentProfile)
   const updateStudentProfile = useOrbitStore((s) => s.updateStudentProfile)
@@ -23,16 +25,22 @@ export function InterestsDetail() {
   const interests = studentProfile.interests || []
 
   const toggle = (interest: string) => {
-    const next = interests.includes(interest)
-      ? interests.filter((i) => i !== interest)
-      : [...interests, interest]
-    updateStudentProfile({ interests: next })
-    triggerToast(interests.includes(interest) ? `Removed ${interest}` : `Added ${interest}`)
+    if (interests.includes(interest)) {
+      updateStudentProfile({ interests: interests.filter((i) => i !== interest) })
+      triggerToast(`Removed ${interest}`)
+      return
+    }
+    if (interests.length >= MAX_INTERESTS) {
+      triggerToast(`Pick up to ${MAX_INTERESTS} interests`)
+      return
+    }
+    updateStudentProfile({ interests: [...interests, interest] })
+    triggerToast(`Added ${interest}`)
   }
 
   return (
     <div className="space-y-4 pb-4">
-      <SaSection eyebrow="Discover" title="What would you like to explore?">
+      <SaSection eyebrow="Discover" title={`What would you like to explore? (${interests.length}/${MAX_INTERESTS})`}>
         <SaCard className="p-4">
           <div className="flex flex-wrap gap-2">
             {INTEREST_POOL.map((item) => (
@@ -44,7 +52,7 @@ export function InterestsDetail() {
         </SaCard>
       </SaSection>
       <p className="text-[11px] text-[var(--muted)] px-1 leading-relaxed">
-        Orbit uses light taps like these — not a giant form — to learn what to recommend in Grow.
+        Cap is {MAX_INTERESTS} so Grow recommendations stay honest and focused.
       </p>
     </div>
   )

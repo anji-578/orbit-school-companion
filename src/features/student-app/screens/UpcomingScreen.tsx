@@ -2,7 +2,8 @@ import { useMemo } from 'react'
 import { CalendarDays, CheckSquare, ClipboardList } from 'lucide-react'
 import { useOrbitStore } from '../../../store/orbitStore'
 import { currentDayCode, deriveTodayTimeline } from '../../../lib/timetableApi'
-import { SaCard, SaRow, SaSection } from '../components/SaUi'
+import { SaRow, SaSection } from '../components/SaUi'
+import { SaEmpty } from '../components/NestedChrome'
 import { useStudentNav } from '../StudentNavContext'
 
 function dueUrgency(due: string): number {
@@ -12,7 +13,7 @@ function dueUrgency(due: string): number {
   return 2
 }
 
-/** Learn → Upcoming: classes, homework, calendar — not a tool directory. */
+/** Learn → Upcoming: classes, homework, calendar. */
 export function UpcomingScreen() {
   const { push } = useStudentNav()
   const tasks = useOrbitStore((s) => s.tasks)
@@ -21,7 +22,7 @@ export function UpcomingScreen() {
 
   const pending = useMemo(
     () =>
-      [...tasks.filter((t) => !t.completed)].sort((a, b) => dueUrgency(a.due) - dueUrgency(b.due)).slice(0, 6),
+      [...tasks.filter((t) => !t.completed)].sort((a, b) => dueUrgency(a.due) - dueUrgency(b.due)).slice(0, 8),
     [tasks],
   )
 
@@ -30,15 +31,13 @@ export function UpcomingScreen() {
     [timetableByDay],
   )
 
-  const soonEvents = useMemo(() => calendarEvents.slice(0, 4), [calendarEvents])
+  const soonEvents = useMemo(() => calendarEvents.slice(0, 5), [calendarEvents])
 
   return (
-    <div className="space-y-5 pb-4">
+    <div className="space-y-5 pb-6">
       <SaSection eyebrow="Classes">
         {todayClasses.length === 0 ? (
-          <SaCard className="p-4">
-            <p className="text-xs text-[var(--muted)]">No more classes today.</p>
-          </SaCard>
+          <SaEmpty title="No more classes today" body="Enjoy the break — or jump into homework." />
         ) : (
           <div className="space-y-2">
             {todayClasses.map((c) => (
@@ -47,7 +46,7 @@ export function UpcomingScreen() {
                 icon={ClipboardList}
                 title={c.name}
                 subtitle={c.time}
-                onClick={() => push('schedule')}
+                onClick={() => push('subject', { subject: c.name }, c.name)}
               />
             ))}
           </div>
@@ -56,9 +55,7 @@ export function UpcomingScreen() {
 
       <SaSection eyebrow="Homework">
         {pending.length === 0 ? (
-          <SaCard className="p-4">
-            <p className="text-xs text-[var(--muted)]">No open homework — nice work.</p>
-          </SaCard>
+          <SaEmpty title="No open homework" body="You're clear — revisit a subject if you want extra practice." />
         ) : (
           <div className="space-y-2">
             {pending.map((t) => (
@@ -67,7 +64,7 @@ export function UpcomingScreen() {
                 icon={CheckSquare}
                 title={t.task}
                 subtitle={`${t.subject} · Due ${t.due}`}
-                onClick={() => push('homework', { subject: t.subject, taskId: t.id })}
+                onClick={() => push('homework', { subject: t.subject, taskId: t.id }, 'Homework')}
               />
             ))}
           </div>
@@ -83,9 +80,7 @@ export function UpcomingScreen() {
         }
       >
         {soonEvents.length === 0 ? (
-          <SaCard className="p-4">
-            <p className="text-xs text-[var(--muted)]">No upcoming school events.</p>
-          </SaCard>
+          <SaEmpty title="No upcoming events" body="School events and exams will list here." />
         ) : (
           <div className="space-y-2">
             {soonEvents.map((ev) => (

@@ -1,19 +1,18 @@
 import { useMemo } from 'react'
-import { ArrowRight, BookOpen, ClipboardList, FileText, FolderOpen, LineChart } from 'lucide-react'
+import { ArrowRight, BookOpen, Camera, ClipboardList, FileText, FolderOpen, LineChart, MessageCircle } from 'lucide-react'
 import { useOrbitStore } from '../../../store/orbitStore'
 import { chapterProgress } from '../../../store/orbitHelpers'
-import { SaCard, SaPrimaryButton, SaSection } from '../components/SaUi'
+import { SaPrimaryButton, SaSection } from '../components/SaUi'
 import { useStudentNav } from '../StudentNavContext'
 
 const SUBJECT_COLORS = ['#2563eb', '#059669', '#d97706', '#db2777', '#7c3aed', '#0891b2']
 
-/** Subject home — natural place for academic depth. */
+/** Phase 4 Subject home — academic depth + contextual Ask / Scan. */
 export function SubjectHome() {
-  const { push, params } = useStudentNav()
+  const { push, params, openAskOrbit } = useStudentNav()
   const subject = params.subject || 'Subject'
   const curriculum = useOrbitStore((s) => s.curriculum)
   const tasks = useOrbitStore((s) => s.tasks)
-  const setAiPrompt = useOrbitStore((s) => s.setAiPrompt)
 
   const chapters = useMemo(
     () => curriculum.filter((c) => c.subject.toLowerCase() === subject.toLowerCase()),
@@ -29,8 +28,8 @@ export function SubjectHome() {
   const color = SUBJECT_COLORS[Math.abs(hash(subject)) % SUBJECT_COLORS.length]
 
   return (
-    <div className="space-y-5 pb-4">
-      <SaCard className="p-4 space-y-3">
+    <div className="space-y-5 pb-6">
+      <div className="space-y-3 px-0.5">
         <div className="flex items-start gap-3">
           <span
             className="h-11 w-11 rounded-2xl flex items-center justify-center text-white text-sm font-black shrink-0"
@@ -46,14 +45,14 @@ export function SubjectHome() {
             <p className="text-[11px] text-[var(--muted)] mt-1">{progress}% complete</p>
           </div>
         </div>
-        <div className="h-2 rounded-full bg-[var(--border)] overflow-hidden">
+        <div className="h-1.5 rounded-full bg-[var(--border)] overflow-hidden">
           <div className="h-full rounded-full" style={{ width: `${progress}%`, background: color }} />
         </div>
         <div className="flex flex-wrap gap-2">
           <SaPrimaryButton
             onClick={() => {
               if (pendingHw[0]) {
-                push('homework', { subject }, 'Homework')
+                push('homework', { subject, taskId: pendingHw[0].id }, 'Homework')
                 return
               }
               push('syllabus', { subject }, 'Topics')
@@ -64,23 +63,31 @@ export function SubjectHome() {
           </SaPrimaryButton>
           <button
             type="button"
-            onClick={() => {
-              setAiPrompt(
+            onClick={() =>
+              openAskOrbit(
                 currentChapter
                   ? `Help me understand ${currentChapter.title} in ${subject}. Keep it simple.`
                   : `Help me with ${subject}.`,
               )
-              push('study-assistant', { subject }, 'Ask Orbit')
-            }}
-            className="rounded-xl px-3.5 py-2.5 text-xs font-bold border border-[var(--border)] text-[var(--fg)]"
+            }
+            className="inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2.5 text-xs font-bold border border-[var(--border)] text-[var(--fg)]"
           >
-            Need help?
+            <MessageCircle className="h-3.5 w-3.5" aria-hidden />
+            Ask Orbit
+          </button>
+          <button
+            type="button"
+            onClick={() => push('scanner', { subject }, 'Paper scan')}
+            className="inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2.5 text-xs font-bold border border-[var(--border)] text-[var(--fg)]"
+          >
+            <Camera className="h-3.5 w-3.5" aria-hidden />
+            Scan
           </button>
         </div>
-      </SaCard>
+      </div>
 
       <SaSection eyebrow="In this subject">
-        <div className="space-y-2">
+        <div className="divide-y divide-[var(--border)]">
           <SubjectLink
             icon={BookOpen}
             title="Topics"
@@ -129,13 +136,9 @@ function SubjectLink({
   onClick: () => void
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="w-full flex items-center gap-3 p-3.5 rounded-2xl border border-[var(--border)] bg-[var(--panel)] text-left"
-    >
-      <span className="h-10 w-10 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center shrink-0">
-        <Icon className="h-5 w-5 text-[var(--accent)]" aria-hidden />
+    <button type="button" onClick={onClick} className="w-full flex items-center gap-3 py-3.5 text-left px-0.5">
+      <span className="h-9 w-9 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center shrink-0">
+        <Icon className="h-4 w-4 text-[var(--accent)]" aria-hidden />
       </span>
       <span className="flex-1 min-w-0">
         <span className="block text-sm font-bold text-[var(--fg)]">{title}</span>

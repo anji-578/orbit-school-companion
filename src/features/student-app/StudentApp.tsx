@@ -5,9 +5,10 @@ import { StudentNavProvider, useStudentNav } from './StudentNavContext'
 import { StudentTopBar } from './StudentTopBar'
 import { StudentBottomNav } from './StudentBottomNav'
 import { StudentScreen } from './StudentScreen'
+import { AskOrbitSheet } from './components/AskOrbitSheet'
 
 function StudentAppBody() {
-  const { current } = useStudentNav()
+  const { current, deepFocus } = useStudentNav()
   const hydrateFromSupabase = useOrbitStore((s) => s.hydrateFromSupabase)
   const tickBus = useOrbitStore((s) => s.tickBus)
   const setRole = useOrbitStore((s) => s.setRole)
@@ -34,12 +35,13 @@ function StudentAppBody() {
   return (
     <div className="student-app orbit-root h-dvh w-full flex flex-col relative antialiased selection:bg-[var(--accent)] selection:text-white">
       <StudentTopBar />
-      <main className="flex-1 min-h-0 overflow-y-auto orbit-scroll">
+      <main className="flex-1 min-h-0 overflow-y-auto orbit-scroll student-main">
         <div className="max-w-lg mx-auto w-full px-4 py-4 fade-up">
           <StudentScreen dest={current.dest} />
         </div>
       </main>
-      <StudentBottomNav />
+      {!deepFocus ? <StudentBottomNav /> : null}
+      <AskOrbitSheet />
       <ToastHost />
     </div>
   )

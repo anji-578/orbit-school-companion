@@ -18,16 +18,18 @@ Every student feature must answer **exactly one** of:
 ## Hard rules
 
 - Exactly **four** bottom destinations: Home, Learn, Grow, Me. Never add a fifth.
-- Home is a **Today** page (Next · Priority · Today · one Progress signal) — not a dashboard of modules.
+- Home is a **Today** briefing (Next · Priority · open Today · quiet Progress) — collapse completed; announcements live on the bell.
 - **Learn** surface is only **Continue · Subjects · Upcoming**. No feature directory.
 - A **Subject home** is the academic unit of depth (Topics · Homework · Assessments · Resources · Progress). Nested tools open from Subject or context — never from the Learn root as a menu.
+- Filter homework/topics by subject params when coming from Subject.
 - Homework, Classes, Assessments, Study AI, Paper Scan, Quiz live **inside Learn** (or contextual), never as bottom nav.
-- Competitions, clubs, interests, opportunities live in **Grow**.
-- **Me** is identity + growth (portfolio, achievements, interests). Attendance, progress reports, teachers live under **School records** — demoted one level, not peer links on Me root.
+- **Ask Orbit** opens as a contextual sheet (`openAskOrbit`) — never an AI Dashboard tab.
+- Competitions, clubs, challenges, workshops live in **Grow**. Cap visible interests at **4**. For You reasons must be honest (match or admit school-open default).
+- **Me** is identity + growth (portfolio, achievements, interests). Attendance, progress reports, teachers live under **School records**.
 - Settings (theme, language, sign out) live behind the Me gear — not in the global top bar.
 - Fees stay out of student MVP.
-- Intelligence appears **in context** (after a wrong answer, after an assessment) — never as an “AI Dashboard” tab.
-- Information levels: **Glance → Understand → Explore**. Never put Level 3 detail on Home.
+- Information levels: **Glance → Understand · Explore**. Never put Level 3 detail on Home.
+- Hide bottom nav on deep Level 3 stacks (`deepFocus`) for one-hand focus.
 - If a feature does not fit a tab, rehome it — do not create new navigation.
 
 ## Build order

@@ -1,16 +1,9 @@
 import { useMemo } from 'react'
-import {
-  Award,
-  Briefcase,
-  ChevronRight,
-  FileText,
-  GraduationCap,
-  Trophy,
-} from 'lucide-react'
+import { Award, Briefcase, ChevronRight, FileText, GraduationCap, Trophy } from 'lucide-react'
 import { useAuthStore } from '../../../auth/authStore'
 import { useOrbitStore } from '../../../store/orbitStore'
 import { childClassLabel, childDisplayName } from '../../../lib/linkedStudent'
-import { SaCard, SaSection } from '../components/SaUi'
+import { SaSection } from '../components/SaUi'
 import { useStudentNav } from '../StudentNavContext'
 
 function presentStreak(records: { status: string }[]): number {
@@ -35,14 +28,13 @@ function trendLabel(pct: number): { label: string; tone: string } {
   return { label: 'Needs focus', tone: 'text-amber-600 dark:text-amber-400' }
 }
 
-/** Me = identity + progress + portfolio. School records are demoted one level. */
+/** Phase 6 Me — identity first; admin under School records. */
 export function MeHub() {
   const { push } = useStudentNav()
   const session = useAuthStore((s) => s.session)
   const linkedStudent = useOrbitStore((s) => s.linkedStudent)
   const studentProfile = useOrbitStore((s) => s.studentProfile)
   const attendanceRecords = useOrbitStore((s) => s.attendanceRecords)
-  const getAttendancePercent = useOrbitStore((s) => s.getAttendancePercent)
   const studentGrades = useOrbitStore((s) => s.studentGrades)
   const unlockedBadges = useOrbitStore((s) => s.unlockedBadges)
   const totalXp = useOrbitStore((s) => s.totalXp)
@@ -54,7 +46,6 @@ export function MeHub() {
       ? 'Sunrise Demo Academy'
       : studentProfile.school
   const streak = presentStreak(attendanceRecords)
-  const attendancePct = getAttendancePercent()
 
   const learning = useMemo(() => {
     const g = studentGrades[0]
@@ -80,8 +71,8 @@ export function MeHub() {
   const projects = (studentProfile.projects || []).slice(0, 3)
 
   return (
-    <div className="space-y-5 pb-4">
-      <SaCard className="p-5 space-y-3">
+    <div className="space-y-5 pb-6">
+      <div className="px-0.5 space-y-3">
         <div className="flex items-center gap-3">
           <div className="h-14 w-14 rounded-2xl bg-[var(--accent)]/15 flex items-center justify-center overflow-hidden shrink-0">
             {studentProfile.photoUrl ? (
@@ -95,20 +86,11 @@ export function MeHub() {
             <p className="text-xs text-[var(--muted)] mt-0.5">
               {grade} · {school || 'Orbit Student'}
             </p>
+            <p className="text-[11px] text-[var(--muted)] mt-1">
+              {streak > 0 ? `${streak}-day presence streak` : 'Building your presence'}
+              {totalXp > 0 ? ` · ${totalXp} XP` : ''}
+            </p>
           </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {streak > 0 ? (
-            <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-orange-500/15 text-orange-600 dark:text-orange-300">
-              🔥 {streak}-day streak
-            </span>
-          ) : null}
-          <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-[var(--accent)]/10 text-[var(--accent)]">
-            {attendancePct}% attendance
-          </span>
-          <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300">
-            {totalXp} XP
-          </span>
         </div>
         <button
           type="button"
@@ -117,40 +99,38 @@ export function MeHub() {
         >
           Open portfolio <ChevronRight className="h-3.5 w-3.5" aria-hidden />
         </button>
-      </SaCard>
+      </div>
 
-      <SaSection eyebrow="Learning">
-        <SaCard className="p-2">
-          <ul className="divide-y divide-[var(--border)]">
-            {learning.map((row) => {
-              const trend = trendLabel(row.pct || 70)
-              return (
-                <li key={row.subject}>
-                  <button
-                    type="button"
-                    onClick={() => push('subject', { subject: row.subject }, row.subject)}
-                    className="w-full flex items-center justify-between gap-3 px-3 py-3 text-left"
-                  >
-                    <span className="text-sm font-bold text-[var(--fg)]">{row.subject}</span>
-                    <span className={`text-xs font-bold ${trend.tone}`}>
-                      {row.pct > 0 ? `${row.pct}% · ` : ''}
-                      {trend.label}
-                    </span>
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
-        </SaCard>
+      <SaSection eyebrow="Learning & skills">
+        <ul className="divide-y divide-[var(--border)]">
+          {learning.map((row) => {
+            const trend = trendLabel(row.pct || 70)
+            return (
+              <li key={row.subject}>
+                <button
+                  type="button"
+                  onClick={() => push('subject', { subject: row.subject }, row.subject)}
+                  className="w-full flex items-center justify-between gap-3 py-3 text-left px-0.5"
+                >
+                  <span className="text-sm font-bold text-[var(--fg)]">{row.subject}</span>
+                  <span className={`text-xs font-bold ${trend.tone}`}>
+                    {row.pct > 0 ? `${row.pct}% · ` : ''}
+                    {trend.label}
+                  </span>
+                </button>
+              </li>
+            )
+          })}
+        </ul>
       </SaSection>
 
       <SaSection eyebrow="Interests">
-        <SaCard className="p-4" onClick={() => push('interests')}>
+        <button type="button" onClick={() => push('interests')} className="w-full text-left px-0.5 py-1">
           {(studentProfile.interests || []).length === 0 ? (
             <p className="text-xs text-[var(--muted)]">Add interests in Grow — they show up here.</p>
           ) : (
             <div className="flex flex-wrap gap-2">
-              {studentProfile.interests.map((i) => (
+              {studentProfile.interests.slice(0, 4).map((i) => (
                 <span
                   key={i}
                   className="text-[11px] font-bold px-2.5 py-1 rounded-full border border-[var(--border)] bg-[var(--surface)]"
@@ -160,60 +140,53 @@ export function MeHub() {
               ))}
             </div>
           )}
-        </SaCard>
+        </button>
       </SaSection>
 
       <SaSection eyebrow="Achievements">
-        <SaCard className="p-2">
-          {achievements.length === 0 && unlockedBadges.length === 0 ? (
-            <p className="p-3 text-xs text-[var(--muted)]">Wins from competitions and study will land here.</p>
-          ) : (
-            <ul className="divide-y divide-[var(--border)]">
-              {unlockedBadges.slice(0, 3).map((b) => (
-                <li key={b} className="flex items-center gap-2.5 px-3 py-3 text-xs font-bold text-[var(--fg)]">
-                  <Trophy className="h-4 w-4 text-amber-500" aria-hidden />
-                  {b}
-                </li>
-              ))}
-              {achievements.map((a) => (
-                <li key={a.id} className="flex items-center gap-2.5 px-3 py-3 text-xs font-bold text-[var(--fg)]">
-                  <Award className="h-4 w-4 text-[var(--accent)]" aria-hidden />
-                  <span className="truncate">{a.title}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-          <button
-            type="button"
-            onClick={() => push('achievements')}
-            className="w-full text-[11px] font-bold text-[var(--accent)] px-3 py-2.5 text-left"
-          >
-            See all achievements →
-          </button>
-        </SaCard>
+        {achievements.length === 0 && unlockedBadges.length === 0 ? (
+          <p className="text-xs text-[var(--muted)] px-0.5">Wins from competitions and study will land here.</p>
+        ) : (
+          <ul className="divide-y divide-[var(--border)]">
+            {unlockedBadges.slice(0, 3).map((b) => (
+              <li key={b} className="flex items-center gap-2.5 py-3 text-xs font-bold text-[var(--fg)] px-0.5">
+                <Trophy className="h-4 w-4 text-amber-500" aria-hidden />
+                {b}
+              </li>
+            ))}
+            {achievements.map((a) => (
+              <li key={a.id} className="flex items-center gap-2.5 py-3 text-xs font-bold text-[var(--fg)] px-0.5">
+                <Award className="h-4 w-4 text-[var(--accent)]" aria-hidden />
+                <span className="truncate">{a.title}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        <button
+          type="button"
+          onClick={() => push('achievements')}
+          className="text-[11px] font-bold text-[var(--accent)] px-0.5 pt-2"
+        >
+          See all achievements →
+        </button>
       </SaSection>
 
       {projects.length > 0 ? (
         <SaSection eyebrow="Projects">
-          <SaCard className="p-2">
+          <div className="space-y-3 px-0.5">
             {projects.map((p) => (
-              <div key={p.id} className="px-3 py-3 border-b border-[var(--border)] last:border-0">
+              <div key={p.id}>
                 <p className="text-sm font-bold text-[var(--fg)]">{p.title}</p>
                 {p.subtitle ? <p className="text-[11px] text-[var(--muted)] mt-0.5">{p.subtitle}</p> : null}
               </div>
             ))}
-          </SaCard>
+          </div>
         </SaSection>
       ) : null}
 
       <SaSection eyebrow="More">
-        <div className="space-y-2">
-          <MeLink
-            icon={Briefcase}
-            title="Portfolio"
-            meta="Your growth story"
-            onClick={() => push('portfolio')}
-          />
+        <div className="divide-y divide-[var(--border)]">
+          <MeLink icon={Briefcase} title="Portfolio" meta="Your growth story" onClick={() => push('portfolio')} />
           <MeLink
             icon={FileText}
             title="School records"
@@ -238,13 +211,9 @@ function MeLink({
   onClick: () => void
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="w-full flex items-center gap-3 p-3.5 rounded-2xl border border-[var(--border)] bg-[var(--panel)] text-left"
-    >
-      <span className="h-10 w-10 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center shrink-0">
-        <Icon className="h-5 w-5 text-[var(--accent)]" aria-hidden />
+    <button type="button" onClick={onClick} className="w-full flex items-center gap-3 py-3.5 text-left px-0.5">
+      <span className="h-9 w-9 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center shrink-0">
+        <Icon className="h-4 w-4 text-[var(--accent)]" aria-hidden />
       </span>
       <span className="flex-1 min-w-0">
         <span className="block text-sm font-bold text-[var(--fg)]">{title}</span>

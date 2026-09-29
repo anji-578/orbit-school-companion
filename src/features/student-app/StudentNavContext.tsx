@@ -12,6 +12,12 @@ type StudentNavValue = {
   current: StudentNavFrame
   canGoBack: boolean
   params: StudentNavParams
+  /** Hide bottom nav on Level 3+ focus stacks */
+  deepFocus: boolean
+  askOrbitOpen: boolean
+  askOrbitSeed: string
+  openAskOrbit: (seed?: string) => void
+  closeAskOrbit: () => void
 }
 
 const StudentNavContext = createContext<StudentNavValue | null>(null)
@@ -30,10 +36,13 @@ function rootFrame(tab: StudentTab): StudentNavFrame {
 export function StudentNavProvider({ children }: { children: ReactNode }) {
   const [tab, setTabState] = useState<StudentTab>('home')
   const [stack, setStack] = useState<StudentNavFrame[]>([rootFrame('home')])
+  const [askOrbitOpen, setAskOrbitOpen] = useState(false)
+  const [askOrbitSeed, setAskOrbitSeed] = useState('')
 
   const setTab = useCallback((next: StudentTab) => {
     setTabState(next)
     setStack([rootFrame(next)])
+    setAskOrbitOpen(false)
   }, [])
 
   const resetToTab = setTab
@@ -44,10 +53,8 @@ export function StudentNavProvider({ children }: { children: ReactNode }) {
     setStack((prev) => {
       const root = rootFrame(nextTab)
       if (dest === root.dest && !params) return [root]
-      // Keep prior frames on the same tab for true back stack; reset root when switching tabs
       const base = prev[0]?.dest === root.dest ? prev : [root]
       const nextFrame: StudentNavFrame = { dest, params, title }
-      // Avoid duplicate consecutive frames
       const last = base[base.length - 1]
       if (last?.dest === dest && JSON.stringify(last.params ?? {}) === JSON.stringify(params ?? {})) {
         return base
@@ -63,13 +70,54 @@ export function StudentNavProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
+  const openAskOrbit = useCallback((seed?: string) => {
+    setAskOrbitSeed(seed ?? '')
+    setAskOrbitOpen(true)
+  }, [])
+
+  const closeAskOrbit = useCallback(() => {
+    setAskOrbitOpen(false)
+    setAskOrbitSeed('')
+  }, [])
+
   const current = stack[stack.length - 1] ?? rootFrame('home')
   const canGoBack = stack.length > 1
   const params = current.params ?? {}
+  const deepFocus = stack.length >= 3
 
   const value = useMemo(
-    () => ({ tab, stack, setTab, push, pop, resetToTab, current, canGoBack, params }),
-    [tab, stack, setTab, push, pop, resetToTab, current, canGoBack, params],
+    () => ({
+      tab,
+      stack,
+      setTab,
+      push,
+      pop,
+      resetToTab,
+      current,
+      canGoBack,
+      params,
+      deepFocus,
+      askOrbitOpen,
+      askOrbitSeed,
+      openAskOrbit,
+      closeAskOrbit,
+    }),
+    [
+      tab,
+      stack,
+      setTab,
+      push,
+      pop,
+      resetToTab,
+      current,
+      canGoBack,
+      params,
+      deepFocus,
+      askOrbitOpen,
+      askOrbitSeed,
+      openAskOrbit,
+      closeAskOrbit,
+    ],
   )
 
   return <StudentNavContext.Provider value={value}>{children}</StudentNavContext.Provider>

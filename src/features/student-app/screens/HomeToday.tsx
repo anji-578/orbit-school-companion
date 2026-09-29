@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { CheckCircle2, Circle, Flame, ArrowRight } from 'lucide-react'
 import { useAuthStore } from '../../../auth/authStore'
 import { useOrbitStore } from '../../../store/orbitStore'
@@ -6,7 +6,7 @@ import { childDisplayName } from '../../../lib/linkedStudent'
 import { currentDayCode, deriveTodayTimeline } from '../../../lib/timetableApi'
 import { InviteRedeemCard } from '../../../components/ui/InviteRedeemCard'
 import type { HomeworkTask } from '../../../types'
-import { SaCard, SaPrimaryButton, SaSection } from '../components/SaUi'
+import { SaPrimaryButton, SaSection } from '../components/SaUi'
 import { useStudentNav } from '../StudentNavContext'
 
 function greeting(hour = new Date().getHours()) {
@@ -52,9 +52,9 @@ function minutesUntilAmPm(label: string, now = new Date()): number | null {
   return Math.round((target.getTime() - now.getTime()) / 60000)
 }
 
-/** Home = Today. Only Next · Priority · Today checklist · one progress signal. */
+/** Phase 2 Home — 5-second briefing: Next · Priority · open Today · quiet streak. */
 export function HomeToday() {
-  const { push } = useStudentNav()
+  const { push, openAskOrbit } = useStudentNav()
   const session = useAuthStore((s) => s.session)
   const linkedStudent = useOrbitStore((s) => s.linkedStudent)
   const classLinked = useOrbitStore((s) => s.classLinked)
@@ -64,7 +64,7 @@ export function HomeToday() {
   const startTask = useOrbitStore((s) => s.startTask)
   const toggleTask = useOrbitStore((s) => s.toggleTask)
   const triggerToast = useOrbitStore((s) => s.triggerToast)
-  const notifications = useOrbitStore((s) => s.notifications)
+  const [showDone, setShowDone] = useState(false)
 
   const name = childDisplayName(linkedStudent, session?.displayName || 'Student').split(' ')[0]
   const streak = presentStreak(attendanceRecords)
@@ -85,215 +85,186 @@ export function HomeToday() {
   const classInMins = nextLive ? minutesUntilAmPm(nextLive.time) : null
   const urgentHw = pending.find((t) => dueUrgency(t.due) === 0) ?? pending[0]
 
-  const todayItems = useMemo(() => {
-    const items: { id: string; done: boolean; title: string; onOpen: () => void }[] = []
-    for (const t of tasks.slice(0, 5)) {
-      items.push({
+  const { openItems, doneItems } = useMemo(() => {
+    const open: { id: string; title: string; onOpen: () => void }[] = []
+    const done: { id: string; title: string; onOpen: () => void }[] = []
+
+    for (const t of tasks) {
+      const entry = {
         id: `hw-${t.id}`,
-        done: t.completed,
         title: `${t.subject}: ${t.task}`,
         onOpen: () => push('homework', { subject: t.subject, taskId: t.id }, 'Homework'),
-      })
+      }
+      if (t.completed) done.push(entry)
+      else open.push(entry)
     }
-    for (const period of timeline.slice(0, 3)) {
-      items.push({
+    for (const period of timeline) {
+      const entry = {
         id: `class-${period.name}-${period.time}`,
-        done: period.status === 'Completed',
-        title: `${period.name} class`,
+        title: `${period.name} · ${period.time}`,
         onOpen: () => push('subject', { subject: period.name }, period.name),
-      })
+      }
+      if (period.status === 'Completed') done.push(entry)
+      else open.push(entry)
     }
-    return items.slice(0, 6)
+    return { openItems: open.slice(0, 5), doneItems: done }
   }, [tasks, timeline, push])
 
-  const topAlert = notifications.find((a) => a.unread && (a.role === 'student' || a.role === 'all'))
-
   return (
-    <div className="space-y-4 pb-4">
+    <div className="space-y-5 pb-6">
       {!classLinked ? <InviteRedeemCard /> : null}
 
       <div className="px-0.5 pt-1">
         <p className="text-[11px] font-bold text-[var(--muted)]">{greeting()}</p>
-        <h1 className="font-display text-2xl font-extrabold text-[var(--fg)] tracking-tight">
-          {name} <span aria-hidden>👋</span>
-        </h1>
-        <p className="text-sm text-[var(--muted)] mt-1">Here&apos;s what matters today</p>
+        <h1 className="font-display text-2xl font-extrabold text-[var(--fg)] tracking-tight">{name}</h1>
+        <p className="text-sm text-[var(--muted)] mt-1">What matters now</p>
       </div>
 
-      {/* NEXT */}
       <SaSection eyebrow="Next">
-        <SaCard className="p-4 space-y-3">
-          {nextLive ? (
-            <>
-              <button
-                type="button"
-                className="w-full text-left"
-                onClick={() => push('subject', { subject: nextLive.name }, nextLive.name)}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-base font-extrabold text-[var(--fg)] truncate">{nextLive.name}</p>
-                    <p className="text-xs text-[var(--muted)] mt-1">
-                      {nextLive.time}
-                      {classInMins != null && classInMins >= 0 ? ` · in ${classInMins} min` : ''}
-                    </p>
-                  </div>
-                  <span className="shrink-0 text-[10px] font-black uppercase tracking-wider text-[var(--accent)] bg-[var(--accent)]/10 px-2 py-1 rounded-lg">
-                    Class
-                  </span>
-                </div>
-              </button>
-              <SaPrimaryButton
-                onClick={() =>
-                  push('study-assistant', { subject: nextLive.name }, 'Ask Orbit')
-                }
-              >
-                Get ready
-                <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-              </SaPrimaryButton>
-            </>
-          ) : (
-            <p className="text-sm font-semibold text-[var(--muted)]">No more classes today — nice work.</p>
-          )}
-        </SaCard>
+        {nextLive ? (
+          <div className="space-y-3 px-0.5">
+            <button
+              type="button"
+              className="w-full text-left"
+              onClick={() => push('subject', { subject: nextLive.name }, nextLive.name)}
+            >
+              <p className="text-lg font-extrabold text-[var(--fg)] leading-snug">{nextLive.name}</p>
+              <p className="text-xs text-[var(--muted)] mt-1">
+                Class · {nextLive.time}
+                {classInMins != null && classInMins >= 0 ? ` · in ${classInMins} min` : ''}
+              </p>
+            </button>
+            <SaPrimaryButton onClick={() => openAskOrbit(`Help me get ready for ${nextLive.name}.`)}>
+              Get ready
+              <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+            </SaPrimaryButton>
+          </div>
+        ) : (
+          <p className="text-sm text-[var(--muted)] px-0.5">No more classes today — nice work.</p>
+        )}
       </SaSection>
 
-      {/* PRIORITY */}
-      <SaSection eyebrow="Your priority">
-        <SaCard
-          className={`p-4 space-y-3 ${
-            urgentHw ? 'border-[var(--accent)]/40 bg-[var(--accent)]/5' : 'border-emerald-500/30 bg-emerald-500/5'
+      <SaSection eyebrow="Priority">
+        <div
+          className={`rounded-2xl px-4 py-4 space-y-3 ${
+            urgentHw
+              ? 'bg-[var(--accent)]/8 border border-[var(--accent)]/25'
+              : 'bg-emerald-500/8 border border-emerald-500/20'
           }`}
         >
           {urgentHw ? (
             <>
               <div>
                 <p className="text-base font-extrabold text-[var(--fg)] leading-snug">
-                  Complete {urgentHw.subject} homework
+                  {urgentHw.subject} homework
                 </p>
                 <p className="text-xs text-[var(--muted)] mt-1">
                   {urgentHw.task} · Due {urgentHw.due} · ~{taskMinutes(urgentHw)} min
                 </p>
               </div>
-              <SaPrimaryButton
-                onClick={() => {
-                  if (!urgentHw.started) {
-                    startTask(urgentHw.id)
-                    triggerToast('Homework started')
-                  }
-                  push(
-                    'homework',
-                    { subject: urgentHw.subject, taskId: urgentHw.id },
-                    'Homework',
-                  )
-                }}
-              >
-                {urgentHw.started ? 'Continue' : 'Start'}
-                <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-              </SaPrimaryButton>
-              {urgentHw.started ? (
-                <button
-                  type="button"
-                  className="text-[11px] font-bold text-[var(--accent2)]"
+              <div className="flex flex-wrap items-center gap-3">
+                <SaPrimaryButton
                   onClick={() => {
-                    toggleTask(urgentHw.id)
-                    triggerToast('Marked done')
+                    if (!urgentHw.started) {
+                      startTask(urgentHw.id)
+                      triggerToast('Homework started')
+                    }
+                    push('homework', { subject: urgentHw.subject, taskId: urgentHw.id }, 'Homework')
                   }}
                 >
-                  Mark as done
-                </button>
-              ) : null}
+                  {urgentHw.started ? 'Continue' : 'Start'}
+                  <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+                </SaPrimaryButton>
+                {urgentHw.started ? (
+                  <button
+                    type="button"
+                    className="text-[11px] font-bold text-[var(--accent)]"
+                    onClick={() => {
+                      toggleTask(urgentHw.id)
+                      triggerToast('Marked done')
+                    }}
+                  >
+                    Mark done
+                  </button>
+                ) : null}
+              </div>
             </>
           ) : (
             <>
               <p className="text-base font-extrabold text-[var(--fg)]">You&apos;re caught up</p>
-              <p className="text-xs text-[var(--muted)]">Explore something in Grow, or try a quick quiz.</p>
+              <p className="text-xs text-[var(--muted)]">Try a challenge in Grow, or revisit a subject.</p>
               <SaPrimaryButton onClick={() => push('gk-quiz')}>
-                Try a quiz
+                Quick challenge
                 <ArrowRight className="h-3.5 w-3.5" aria-hidden />
               </SaPrimaryButton>
             </>
           )}
-        </SaCard>
+        </div>
       </SaSection>
 
-      {/* TODAY checklist */}
       <SaSection
         eyebrow="Today"
         action={
-          <button
-            type="button"
-            className="text-[10px] font-bold text-[var(--accent)]"
-            onClick={() => push('upcoming')}
-          >
-            View all →
+          <button type="button" className="text-[10px] font-bold text-[var(--accent)]" onClick={() => push('upcoming')}>
+            Upcoming →
           </button>
         }
       >
-        <SaCard className="p-2">
-          {todayItems.length === 0 ? (
-            <p className="p-3 text-xs text-emerald-600 dark:text-emerald-300 font-semibold flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4" aria-hidden />
-              Nothing left for today
-            </p>
-          ) : (
-            <ul className="divide-y divide-[var(--border)]">
-              {todayItems.map((item) => (
-                <li key={item.id}>
-                  <button
-                    type="button"
-                    onClick={item.onOpen}
-                    className="w-full flex items-center gap-3 px-3 py-3 text-left"
-                  >
-                    {item.done ? (
+        {openItems.length === 0 ? (
+          <p className="text-xs text-emerald-600 dark:text-emerald-300 font-semibold flex items-center gap-2 px-0.5 py-2">
+            <CheckCircle2 className="h-4 w-4" aria-hidden />
+            Nothing open for today
+          </p>
+        ) : (
+          <ul className="divide-y divide-[var(--border)]">
+            {openItems.map((item) => (
+              <li key={item.id}>
+                <button type="button" onClick={item.onOpen} className="w-full flex items-center gap-3 py-3 text-left px-0.5">
+                  <Circle className="h-4 w-4 text-[var(--muted)] shrink-0" aria-hidden />
+                  <span className="text-sm font-semibold text-[var(--fg)] truncate">{item.title}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {doneItems.length > 0 ? (
+          <div className="pt-1">
+            <button
+              type="button"
+              className="text-[10px] font-bold text-[var(--muted)]"
+              onClick={() => setShowDone((v) => !v)}
+            >
+              {showDone ? 'Hide completed' : `Show ${doneItems.length} completed`}
+            </button>
+            {showDone ? (
+              <ul className="mt-1 divide-y divide-[var(--border)] opacity-60">
+                {doneItems.slice(0, 6).map((item) => (
+                  <li key={item.id}>
+                    <button type="button" onClick={item.onOpen} className="w-full flex items-center gap-3 py-2.5 text-left px-0.5">
                       <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" aria-hidden />
-                    ) : (
-                      <Circle className="h-4 w-4 text-[var(--muted)] shrink-0" aria-hidden />
-                    )}
-                    <span
-                      className={`text-xs font-semibold truncate ${
-                        item.done ? 'text-[var(--muted)] line-through' : 'text-[var(--fg)]'
-                      }`}
-                    >
-                      {item.title}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </SaCard>
+                      <span className="text-xs font-semibold text-[var(--muted)] line-through truncate">{item.title}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
       </SaSection>
 
-      {/* One progress signal */}
-      <SaCard className="p-4 flex items-center gap-3">
-        <span className="h-10 w-10 rounded-2xl bg-orange-500/15 flex items-center justify-center">
-          <Flame className="h-5 w-5 text-orange-500" aria-hidden />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-extrabold text-[var(--fg)]">
-            {streak > 0 ? `You\u2019re on a ${streak}-day streak` : 'Start a presence streak'}
-          </p>
-          <p className="text-[11px] text-[var(--muted)] mt-0.5">Show up tomorrow to keep it going</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => push('school-records')}
-          className="text-[10px] font-bold text-[var(--accent)] shrink-0"
-        >
-          Details →
-        </button>
-      </SaCard>
-
-      {topAlert ? (
-        <SaCard className="p-4 space-y-1" onClick={() => push('alerts')}>
-          <p className="text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-300">
-            Announcement
-          </p>
-          <p className="text-sm font-bold text-[var(--fg)] line-clamp-2">{topAlert.title}</p>
-          <p className="text-[11px] text-[var(--muted)] line-clamp-2">{topAlert.body}</p>
-        </SaCard>
-      ) : null}
+      <div className="flex items-center gap-3 px-0.5 pt-1">
+        <Flame className="h-4 w-4 text-orange-500 shrink-0" aria-hidden />
+        <p className="text-xs text-[var(--muted)] flex-1">
+          {streak > 0 ? (
+            <>
+              <span className="font-bold text-[var(--fg)]">{streak}-day streak</span>
+              {' · show up tomorrow to keep it'}
+            </>
+          ) : (
+            'Start a presence streak by showing up tomorrow'
+          )}
+        </p>
+      </div>
     </div>
   )
 }
