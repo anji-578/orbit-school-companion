@@ -26,7 +26,7 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Lint
+      - name: Lint (ratcheted max-warnings)
         run: npm run lint
 
       - name: Format check
@@ -35,55 +35,53 @@ jobs:
       - name: Boundary check
         run: npm run lint:boundaries
 
-      - name: Boundary rule fires (deliberate violation fixture)
+      - name: Boundary rule fires (component→supabase canary)
         run: npm run check:boundary-fires
 
       - name: Unit tests
         run: npm run test:coverage
 
-      - name: Build
+      - name: Production build
         run: npx vite build
         env:
           ORBIT_STRICT_ENV: '1'
-          # Ensure no client Gemini key is present in CI env
           VITE_GEMINI_API_KEY: ''
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
 
       - name: Dist must not contain secrets
         run: npm run check:dist-secrets
 
+      - name: Dist must not contain demo identity strings
+        run: npm run check:demo-strings
+
       - name: Release Capacitor config must not set server.url
         run: npm run check:cap-release
-
-      - name: Demo/sample markers in production bundle (evidence)
-        run: npm run audit:demo-bundle
 
       - name: Bundle size report
         run: |
           echo "## Bundle sizes" >> "$GITHUB_STEP_SUMMARY"
           du -sh dist dist/assets/* 2>/dev/null | tee -a "$GITHUB_STEP_SUMMARY" || true
 
-      - name: npm audit (report only)
-        continue-on-error: true
-        run: npm audit --omit=dev --audit-level=high || true
-
-      - name: Gitleaks
+      - name: Gitleaks (blocking)
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
 
   sql-security:
     runs-on: ubuntu-latest
     services:
-      postgres:
-        image: postgres:16
+      db:
+        # Real Supabase Postgres image (auth schema + anon/authenticated roles)
+        image: supabase/postgres:15.8.1.060
         env:
           POSTGRES_PASSWORD: postgres
         ports:
           - 5432:5432
         options: >-
           --health-cmd "pg_isready -U postgres"
-          --health-interval 5s
+          --health-interval 10s
           --health-timeout 5s
           --health-retries 10
     steps:
@@ -92,7 +90,15 @@ jobs:
       - name: Install psql client
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
 
+      - name: Wait for DB
+        run: |
+          for i in $(seq 1 30); do
+            pg_isready -h 127.0.0.1 -p 5432 -U postgres && break
+            sleep 2
+          done
+
       - name: Run SECURITY DEFINER + isolation SQL tests
         env:
+          # supabase/postgres default superuser password in many tags is postgres
           DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres
         run: bash scripts/run-sql-security-tests.sh

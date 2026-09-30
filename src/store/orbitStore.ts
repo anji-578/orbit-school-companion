@@ -57,6 +57,9 @@ import { currentDayCode, fetchTimetableByDay, getLocalTimetable, saveTimetableWe
 import { withSample, timetableHasSlots } from '../lib/sampleData'
 import { fetchStaffDirectory } from '../lib/staffApi'
 import { getSupabase, isSupabaseConfigured } from '../lib/supabase'
+import { demoFixturesEnabled } from '@/shared/config/env'
+import { demoLocalAward, fetchXpProjection, recordAndAwardXp } from '@/services/xp/award'
+import type { XpEventType } from '@/domain/xp/rules'
 import { loadSchoolOpsSnapshot } from '../lib/schoolOpsApi'
 import {
   claimDemoLinks,
@@ -315,6 +318,33 @@ interface OrbitState {
 }
 
 let toastTimer: ReturnType<typeof setTimeout> | null = null
+
+async function awardXpEvent(
+  get: () => {
+    linkedStudent: { id: string } | null
+    totalXp: number
+    unlockedBadges: string[]
+    setGamificationProjection: (xp: number, badges: string[]) => void
+  },
+  eventType: XpEventType,
+  refId?: string,
+) {
+  const studentId = get().linkedStudent?.id
+  if (studentId) {
+    const snap = await recordAndAwardXp({ studentId, eventType, refId })
+    if (snap) {
+      get().setGamificationProjection(snap.totalXp, snap.unlockedBadges)
+      return
+    }
+  }
+  if (demoFixturesEnabled()) {
+    const next = demoLocalAward(
+      { totalXp: get().totalXp, unlockedBadges: get().unlockedBadges },
+      eventType,
+    )
+    get().setGamificationProjection(next.totalXp, next.unlockedBadges)
+  }
+}
 
 export const useOrbitStore = create<OrbitState>()(
   persist(
@@ -717,10 +747,7 @@ export const useOrbitStore = create<OrbitState>()(
                   ...s.studentProfile,
                   name: linkedStudent.displayName,
                   grade: linkedClass || s.studentProfile.grade,
-                  school:
-                    sessionEmail.toLowerCase().includes('@demo50.orbit.app')
-                      ? 'Sunrise Demo Academy'
-                      : s.studentProfile.school,
+                  school: s.studentProfile.school,
                 }
               : s.studentProfile
           const nextCompetitions = s.competitions?.length ? s.competitions : initialCompetitions
@@ -756,6 +783,11 @@ export const useOrbitStore = create<OrbitState>()(
             competitions: nextCompetitions,
           }
         })
+        const sid = get().linkedStudent?.id
+        if (sid) {
+          const xp = await fetchXpProjection(sid)
+          if (xp) get().setGamificationProjection(xp.totalXp, xp.unlockedBadges)
+        }
       },
 
       toggleSyllabusSubtopic: (chapterId, subtopicId) => {
@@ -1039,7 +1071,8 @@ export const useOrbitStore = create<OrbitState>()(
         })
         set({ quizScore: correct })
         if (correct === activeQuiz.questions.length) {
-          get().triggerToast('Perfect quiz!')
+          void awardXpEvent(get, 'quiz_perfect', 'quiz')
+          get().triggerToast('Perfect quiz! +100 XP · Quiz Whiz unlocked.')
         }
       },
       setListening: (isListening) => set({ isListening }),
@@ -1141,6 +1174,8 @@ export const useOrbitStore = create<OrbitState>()(
         }
         // Practice only — never write official report-card grades from AI
         set({ scanStep: 'validated' })
+        void awardXpEvent(get, 'scan_practice_pass', 'scan')
+        void awardXpEvent(get, 'scan_practice_scholar', 'scan-badge')
         get().pushNotification({
           role: 'student',
           title: 'Concept practiced',
@@ -1151,7 +1186,7 @@ export const useOrbitStore = create<OrbitState>()(
           title: 'Paper coach practice',
           body: `${childFirstName(get().linkedStudent)} practiced ${insight.subject}. Official marks stay with the teacher.`,
         })
-        get().triggerToast('Practice check passed (report card unchanged).')
+        get().triggerToast('Practice check passed · XP earned (report card unchanged).')
         void scanTarget
       },
 
@@ -1280,9 +1315,11 @@ export const useOrbitStore = create<OrbitState>()(
             },
           }
         })
-        const xp = passed ? 40 + Math.round((score / Math.max(total, 1)) * 40) : 15
-        get().triggerToast(`GK ${level}: ${score}/${total}`)
-        void xp
+        const xpHint = passed ? 40 + Math.round((score / Math.max(total, 1)) * 40) : 15
+        const eventType =
+          !passed ? 'gk_attempt' : level === 'hard' ? 'gk_pass_hard' : level === 'medium' ? 'gk_pass_medium' : 'gk_pass_easy'
+        void awardXpEvent(get, eventType, `gk-${level}`)
+        get().triggerToast(`GK ${level}: ${score}/${total} · +${xpHint} XP`)
       },
 
       loadConfidentialDocs: async () => {
@@ -1330,8 +1367,8 @@ export const useOrbitStore = create<OrbitState>()(
       migrate: (persisted: unknown) => {
         const state = (persisted || {}) as { studentProfile?: { name?: string; grade?: string; school?: string } }
         const profile = state.studentProfile
-        // Drop stale offline demo identity so cloud DEMO50 / linked roster can own the name.
-        if (profile?.name === 'Ananya Rao' || profile?.grade === 'Class 11-A') {
+        // Drop stale offline Class 11-A demo grade so cloud roster can own identity.
+        if (profile?.grade === 'Class 11-A') {
           return {
             ...state,
             studentProfile: {

@@ -3,7 +3,9 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { registerOrbitServiceWorker } from './lib/alerts'
+import { initSentry } from './services/logger/sentry'
 
+initSentry()
 void registerOrbitServiceWorker()
 
 createRoot(document.getElementById('root')!).render(

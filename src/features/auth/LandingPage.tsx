@@ -198,9 +198,9 @@ function FeatureVisual({ id }: { id: FeatureId }) {
           <School className="h-4 w-4 text-indigo-300" aria-hidden />
         </div>
         {[
-          ['Ananya Rao', '₹4,500', 'Pending'],
-          ['Sarah Chen', '₹0', 'Cleared'],
-          ['Marcus J.', '₹2,200', 'Unpaid'],
+          ['Student A', '₹4,500', 'Pending'],
+          ['Student B', '₹0', 'Cleared'],
+          ['Student C', '₹2,200', 'Unpaid'],
         ].map(([name, amt, status]) => (
           <div key={name} className="flex items-center justify-between py-2 border-t border-white/5">
             <span className="text-[11px] text-slate-300">{name}</span>

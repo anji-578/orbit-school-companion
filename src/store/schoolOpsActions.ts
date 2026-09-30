@@ -12,6 +12,42 @@ import {
 import { friendlyError } from '../lib/errors'
 import type { BroadcastMessage, CalendarEvent, HomeworkTask, LeaveRequest, LeaveStatus, NotificationItem } from '../types'
 import { attendancePercent, homeworkPercent } from './orbitHelpers'
+import { homeworkEventType } from '@/domain/xp/rules'
+import { demoLocalAward, recordAndAwardXp } from '@/services/xp/award'
+import { demoFixturesEnabled } from '@/shared/config/env'
+
+async function awardAfterHomework(get: () => {
+  linkedStudent: { id: string } | null
+  totalXp: number
+  unlockedBadges: string[]
+  tasks: HomeworkTask[]
+  setGamificationProjection: (xp: number, badges: string[]) => void
+  triggerToast: (m: string) => void
+}, task: HomeworkTask, allDone: boolean) {
+  const studentId = get().linkedStudent?.id
+  const eventType = homeworkEventType(task.difficulty)
+  const apply = async (type: Parameters<typeof recordAndAwardXp>[0]['eventType'], ref?: string) => {
+    if (studentId) {
+      const snap = await recordAndAwardXp({ studentId, eventType: type, refId: ref })
+      if (snap) {
+        get().setGamificationProjection(snap.totalXp, snap.unlockedBadges)
+        return
+      }
+    }
+    if (demoFixturesEnabled()) {
+      const next = demoLocalAward(
+        { totalXp: get().totalXp, unlockedBadges: get().unlockedBadges },
+        type,
+      )
+      get().setGamificationProjection(next.totalXp, next.unlockedBadges)
+    }
+  }
+  await apply(eventType, String(task.id))
+  if (allDone) {
+    await apply('homework_all_done', 'all')
+    get().triggerToast('All homework complete — Task Master unlocked!')
+  }
+}
 
 /** Homework / leave / broadcast / calendar actions. */
 // oxlint-disable-next-line typescript/no-explicit-any
@@ -88,23 +124,16 @@ export function createSchoolOpsActions(set: any, get: any) {
       const nextCompleted = !before.completed
       set((s: {
         tasks: HomeworkTask[]
-        unlockedBadges: string[]
         attendanceRecords: Parameters<typeof attendancePercent>[0]
       }) => {
         const tasks = s.tasks.map((task) => {
           if (task.id !== id) return task
           return { ...task, completed: nextCompleted }
         })
-        let unlockedBadges = s.unlockedBadges
-        if (tasks.every((t) => t.completed) && !unlockedBadges.includes('Task Master')) {
-          // Badge display is still local until ledger awards land; XP is never mutated here.
-          unlockedBadges = [...unlockedBadges, 'Task Master']
-          queueMicrotask(() => get().triggerToast('All homework complete — Task Master unlocked!'))
-        }
         const studyScore = computeStudyScore(attendancePercent(s.attendanceRecords), homeworkPercent(tasks))
-        return { tasks, unlockedBadges, studyScore }
+        return { tasks, studyScore }
       })
-      void syncToggleHomework(id, nextCompleted, get().linkedStudent?.id).then((result) => {
+      void syncToggleHomework(id, nextCompleted, get().linkedStudent?.id).then(async (result) => {
         if (!result.ok) {
           set((s: {
             tasks: HomeworkTask[]
@@ -119,6 +148,12 @@ export function createSchoolOpsActions(set: any, get: any) {
             }
           })
           get().triggerToast(friendlyError(result.error))
+          return
+        }
+        if (nextCompleted) {
+          const tasks = get().tasks as HomeworkTask[]
+          const allDone = tasks.length > 0 && tasks.every((t) => t.completed)
+          await awardAfterHomework(get, before, allDone)
         }
       })
     },

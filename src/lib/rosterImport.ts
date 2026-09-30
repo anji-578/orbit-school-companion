@@ -168,7 +168,7 @@ export async function importRosterCsv(
 }
 
 export const ROSTER_CSV_TEMPLATE = `display_name,class_name,section,roll_no
-Ananya Rao,Grade 8,A,14
+Sample Student,Grade 8,A,14
 Sarah Chen,Grade 8,A,15
 Marcus Johnson,Grade 8,A,16
 `

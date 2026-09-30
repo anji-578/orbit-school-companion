@@ -1,14 +1,16 @@
+/**
+ * Production-safe empty seeds. Real sample data lives in `@/dev/fixtures/demo`
+ * and is loaded only when demo fixtures are enabled (non-production builds).
+ */
 import type {
   AttendanceRecord,
   BroadcastMessage,
   CalendarEvent,
   Candidate,
-  CoachingItem,
   CompetitionEnrollment,
   FeeItem,
   FleetBus,
   HomeworkTask,
-  JobVacancy,
   LeaveRequest,
   NotificationItem,
   OrbitCompetition,
@@ -18,962 +20,63 @@ import type {
   StudentAcademicProfile,
   StudentGrade,
   SyllabusChapter,
-  SyllabusSubtopic,
-  SyllabusTopic,
   TeacherAcademicProfile,
   TeacherProfile,
 } from '../types'
-import { DEMO_TEACHER_CLASSES } from '../lib/schoolPolicy'
 
-export const STUDENT_NAME = 'Ananya Rao'
-export const CLASS_LABEL = 'Class 11-A · Roll 14'
+export const STUDENT_NAME = ''
+export const CLASS_LABEL = ''
+export const ALL_BADGES: { name: string; desc: string }[] = [
+  { name: 'Streak Keeper', desc: 'Attendance streak' },
+  { name: 'Early Bird', desc: 'Early login' },
+  { name: 'Curious Mind', desc: 'Ask Orbit' },
+  { name: 'Quiz Whiz', desc: 'Perfect quiz' },
+  { name: 'Concept Master', desc: 'Scan practice' },
+  { name: 'Rising Scholar', desc: 'Scan practice' },
+  { name: 'Task Master', desc: 'All homework done' },
+  { name: 'GK Starter', desc: 'GK easy' },
+  { name: 'GK Explorer', desc: 'GK medium' },
+  { name: 'GK Champion', desc: 'GK hard' },
+]
 
-export const extracurricularListing: Record<string, CoachingItem[]> = {
-  sports: [
-    { title: 'Sunrise Cricket Academy', coach: 'Coach Vinay Kumar', phone: '+91 94451 12345', cost: '₹1,500/month', loc: 'Ground A' },
-    { title: 'Elite Football Club', coach: 'Coach Marcus Jenkins', phone: '+91 94451 67890', cost: '₹1,800/month', loc: 'Main Turf' },
-  ],
-  drawing: [
-    { title: 'Creative Minds Painting Academy', coach: 'Instructor Aruna Devi', phone: '+91 94452 11223', cost: '₹1,000/month', loc: 'Art Studio 1' },
-  ],
-  singing: [
-    { title: 'Swarasdhara Classical Vocals', coach: 'Guru K. Swarnalatha', phone: '+91 94453 54321', cost: '₹1,200/month', loc: 'Music Room A' },
-  ],
-  dancing: [
-    { title: 'Kuchipudi Classical Dance', coach: 'Guru Sreeleela Devi', phone: '+91 94454 09876', cost: '₹1,400/month', loc: 'Dance Hall 1' },
-    { title: 'Modern Hip-Hop Studio', coach: 'Choreographer Rakesh', phone: '+91 94454 11223', cost: '₹1,600/month', loc: 'Fitness Studio' },
-  ],
-}
-
-export const subjectSyllabusDatabase: Record<string, SyllabusTopic[]> = {
-  mathSubject: [
-    {
-      name: 'Algebraic Equations',
-      scoring: 92,
-      strength: 'High',
-      subtopics: ['Negative variables shifting', 'Cross multiplication fractions', 'Coefficient balancing'],
-      quizQuery: 'Solve equations transposition algebra',
-      mistakeText: 'Dropped algebraic sign shifting coefficients on June 12 midterm.',
-    },
-    {
-      name: 'Multiplying Fractions',
-      scoring: 86,
-      strength: 'High',
-      subtopics: ['Numerator/Denominator alignment', 'Simplifying coefficients'],
-      quizQuery: 'fractions calculations',
-      mistakeText: 'Unfinished decimal divisions during Chapter 2 test.',
-    },
-  ],
-  scienceSubject: [
-    {
-      name: 'Photosynthesis Leaf Cycles',
-      scoring: 81,
-      strength: 'High',
-      subtopics: ['Chloroplast gas cycles', 'Photosynthesis balancing'],
-      quizQuery: 'photosynthesis cycles botany',
-      mistakeText: 'Confused chloroplast chlorophyll labels during plant cycle evaluation on June 18.',
-    },
-  ],
-  chemLabSubject: [
-    {
-      name: 'Chemical Balancing Coefficients',
-      scoring: 56,
-      strength: 'Needs Practice',
-      subtopics: ['Stoichiometry balancing laws', 'Multiplier recipes stoichiometry'],
-      quizQuery: 'balancing chemical equations coefficient chemistry',
-      mistakeText: 'Treats chemical formulas as immutable instead of stoichiometry multipliers.',
-    },
-  ],
-}
-
+export const initialAttendance: AttendanceRecord[] = []
+export const initialTasks: HomeworkTask[] = []
+export const initialGrades: StudentGrade[] = []
+export const initialRoster: RosterStudent[] = []
+export const initialFees: FeeItem[] = []
+export const initialPaymentHistory: PaymentRecord[] = []
+export const initialBroadcasts: BroadcastMessage[] = []
+export const initialCalendar: CalendarEvent[] = []
+export const initialLeaves: LeaveRequest[] = []
+export const initialCurriculum: SyllabusChapter[] = []
+export const initialCandidates: Candidate[] = []
+export const initialFleet: FleetBus[] = []
+export const initialNotifications: NotificationItem[] = []
+export const initialCompetitions: OrbitCompetition[] = []
+export const initialCompetitionEnrollments: CompetitionEnrollment[] = []
+export const schoolTeachers: TeacherProfile[] = []
+export const softSkills: SoftSkill[] = []
 export const subjectProgressHistory: Record<
   string,
   { exams: string[]; marks: number[]; classAvg: number[]; ranks: number[] }
 > = {
-  mathSubject: {
-    exams: ['Unit Test 1', 'Quarterly', 'Half-Yearly', 'Pre-Board', 'Final Exam'],
-    marks: [40, 42, 45, 48, 49],
-    classAvg: [35, 36, 38, 39, 41],
-    ranks: [14, 10, 6, 2, 1],
-  },
-  scienceSubject: {
-    exams: ['Unit Test 1', 'Quarterly', 'Half-Yearly', 'Pre-Board', 'Final Exam'],
-    marks: [35, 37, 39, 41, 45],
-    classAvg: [32, 33, 34, 34, 36],
-    ranks: [18, 15, 11, 8, 4],
-  },
-  chemLabSubject: {
-    exams: ['Unit Test 1', 'Quarterly', 'Half-Yearly', 'Pre-Board', 'Final Exam'],
-    marks: [22, 24, 25, 28, 41],
-    classAvg: [36, 37, 37, 37, 39],
-    ranks: [42, 39, 38, 35, 12],
-  },
+  chemLabSubject: { exams: [], marks: [], classAvg: [], ranks: [] },
+  mathSubject: { exams: [], marks: [], classAvg: [], ranks: [] },
+  scienceSubject: { exams: [], marks: [], classAvg: [], ranks: [] },
 }
-
-export const schoolTeachers: TeacherProfile[] = [
-  {
-    id: 't_math',
-    name: 'Mrs. Sarah Davis',
-    subjectKey: 'mathSubject',
-    qualification: 'M.Sc. in Mathematics, B.Ed.',
-    phone: '+91 98450 12345',
-    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 't_science',
-    name: 'Dr. Anil Chawla',
-    subjectKey: 'scienceSubject',
-    qualification: 'Ph.D. in Physics, M.Ed.',
-    phone: '+91 98450 67890',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 't_chem',
-    name: 'Prof. Meera Sharma',
-    subjectKey: 'chemLabSubject',
-    qualification: 'M.Sc. Chemistry, B.Ed.',
-    phone: '+91 98450 24680',
-    avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=120&auto=format&fit=crop&q=80',
-  },
-]
-
-export const softSkills: SoftSkill[] = [
-  { label: 'Classroom Focus', score: 4 },
-  { label: 'Handwriting Neatness', score: 3 },
-  { label: 'Listening Skills', score: 5 },
-  { label: 'Working with Friends', score: 4 },
-  { label: 'Problem Solving', score: 3 },
-]
-
-export const ALL_BADGES = [
-  { name: 'Streak Keeper', desc: '5-day study streak' },
-  { name: 'Quiz Whiz', desc: 'Perfect practice quiz' },
-  { name: 'Task Master', desc: 'Clear all homework' },
-  { name: 'Early Bird', desc: 'Arrive before 8 AM' },
-  { name: 'Rising Scholar', desc: 'Jump 10+ ranks' },
-  { name: 'Curious Mind', desc: 'Ask OrbitAI often' },
-  { name: 'Concept Master', desc: 'Pass remediation quiz' },
-  { name: 'GK Starter', desc: 'Clear Easy GK round' },
-  { name: 'GK Explorer', desc: 'Clear Medium GK round' },
-  { name: 'GK Champion', desc: 'Clear Hard GK round' },
-] as const
-
-export const initialAttendance: AttendanceRecord[] = [
-  { date: 'June 1', day: 'Mon', status: 'Present' },
-  { date: 'June 2', day: 'Tue', status: 'Present' },
-  { date: 'June 3', day: 'Wed', status: 'Present' },
-  { date: 'June 4', day: 'Thu', status: 'Present' },
-  { date: 'June 5', day: 'Fri', status: 'Present' },
-  { date: 'June 8', day: 'Mon', status: 'Present' },
-  { date: 'June 9', day: 'Tue', status: 'Present' },
-  { date: 'June 10', day: 'Wed', status: 'Absent', reason: 'Medical Leave (Fever)' },
-  { date: 'June 11', day: 'Thu', status: 'Present' },
-  { date: 'June 12', day: 'Fri', status: 'Present' },
-  { date: 'June 15', day: 'Mon', status: 'Present' },
-  { date: 'June 16', day: 'Tue', status: 'Present' },
-  { date: 'June 17', day: 'Wed', status: 'Present' },
-  { date: 'June 18', day: 'Thu', status: 'Absent', reason: 'Family Event (Approved)' },
-  { date: 'June 19', day: 'Fri', status: 'Present' },
-]
-
-export const initialTasks: HomeworkTask[] = [
-  {
-    id: 1,
-    subject: 'Science',
-    task: 'Solve Chapter 3 balancing equations',
-    due: 'Tomorrow',
-    xp: 100,
-    completed: false,
-    difficulty: 'Hard',
-    estimatedMinutes: 45,
-    started: false,
-  },
-  {
-    id: 2,
-    subject: 'English',
-    task: 'Write story outline on your pet dog',
-    due: 'Due in 2 days',
-    xp: 80,
-    completed: false,
-    difficulty: 'Medium',
-    estimatedMinutes: 25,
-    started: false,
-  },
-  {
-    id: 3,
-    subject: 'Mathematics',
-    task: 'Do Page 40 multiplication questions',
-    due: 'Completed',
-    xp: 50,
-    completed: true,
-    difficulty: 'Easy',
-    estimatedMinutes: 15,
-    started: true,
-  },
-]
-
-export const DEFAULT_PROFILE_PHOTO =
-  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=240&auto=format&fit=crop&q=80'
-
-export const initialStudentProfile: StudentAcademicProfile = {
-  photoUrl: DEFAULT_PROFILE_PHOTO,
-  name: STUDENT_NAME,
-  school: 'Sunrise Public School',
-  grade: 'Class 11-A',
-  interests: ['Space science', 'Creative writing', 'Robotics'],
-  subjects: ['Science', 'Mathematics', 'English'],
-  skills: ['Problem solving', 'Public speaking', 'Note-taking'],
-  languages: ['English', 'Telugu', 'Hindi'],
-  hobbies: ['Reading', 'Sketching'],
-  sports: ['Badminton'],
-  certifications: [
-    {
-      id: 'cert_1',
-      title: 'Junior First Aid',
-      subtitle: 'Red Cross Youth',
-      date: 'March 2026',
-    },
-  ],
-  achievements: [
-    {
-      id: 'ach_1',
-      title: 'Science Fair Runner-up',
-      subtitle: 'School level',
-      date: 'January 2026',
-      meta: '2nd place',
-    },
-  ],
-  competitions: [],
-  projects: [
-    {
-      id: 'proj_1',
-      title: 'Water-quality sensor kit',
-      subtitle: 'Science fair project',
-      date: '2025–26',
-    },
-  ],
-  clubs: [
-    { id: 'club_1', title: 'Astronomy Club', subtitle: 'Secretary' },
-    { id: 'club_2', title: 'Literary Society', subtitle: 'Member' },
-  ],
-  milestones: [
-    {
-      id: 'ms_1',
-      title: 'Moved to Class 11 Science stream',
-      date: 'June 2025',
-    },
-  ],
-}
-
-export const DEFAULT_TEACHER_PHOTO =
-  'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=240&auto=format&fit=crop&q=80'
-
-export const initialTeacherAcademicProfile: TeacherAcademicProfile = {
-  photoUrl: DEFAULT_TEACHER_PHOTO,
-  name: 'Mrs. Sarah Davis',
-  school: 'Sunrise Public School',
-  employeeId: 'T-1042',
-  phone: '+91 98765 43210',
-  email: 'teacher@orbit.app',
-  subjects: ['Science', 'Mathematics'],
-  classes: [...DEMO_TEACHER_CLASSES],
-  qualifications: [
-    {
-      id: 'tq_1',
-      title: 'M.Sc. Physics',
-      subtitle: 'Osmania University',
-      date: '2014',
-    },
-    {
-      id: 'tq_2',
-      title: 'B.Ed.',
-      subtitle: 'State College of Education',
-      date: '2015',
-    },
-  ],
-  achievements: [
-    {
-      id: 'ta_1',
-      title: 'Best Mentor Award',
-      subtitle: 'School level',
-      date: '2025',
-    },
-  ],
-  certifications: [
-    {
-      id: 'tc_1',
-      title: 'CBSE Continuous Professional Development',
-      subtitle: 'Completed',
-      date: '2024',
-    },
-  ],
-}
-
-export const initialCompetitions: OrbitCompetition[] = [
-  {
-    id: 'comp_science_quiz',
-    title: 'Inter-School Science Quiz',
-    category: 'Science',
-    city: 'Bengaluru',
-    priceInr: 199,
-    date: '14 September 2026',
-    participantCount: 500,
-    totalSlots: 500,
-    description: 'Teams of two. Round-robin + finals. School ID required on event day.',
-  },
-  {
-    id: 'comp_spell_bee',
-    title: 'City Spell Bee Championship',
-    category: 'Spell Bee',
-    city: 'Hyderabad',
-    priceInr: 149,
-    date: '28 September 2026',
-    participantCount: 320,
-    totalSlots: 400,
-    description: 'Oral rounds with progressive difficulty. Ages 12–17.',
-  },
-  {
-    id: 'comp_coding',
-    title: 'Junior Coding Hackathon',
-    category: 'Coding',
-    city: 'Bengaluru',
-    priceInr: 299,
-    date: '5 October 2026',
-    participantCount: 180,
-    totalSlots: 200,
-    description: 'Build a mini app in 4 hours. Laptops provided on request.',
-  },
-  {
-    id: 'comp_math',
-    title: 'State Mathematics Olympiad Warm-up',
-    category: 'Mathematics',
-    city: 'Chennai',
-    priceInr: 99,
-    date: '12 October 2026',
-    participantCount: 850,
-    totalSlots: 1000,
-    description: 'Timed paper + tie-breaker. Certificates for top 100.',
-  },
-  {
-    id: 'comp_debate',
-    title: 'Youth Debate Open',
-    category: 'Debate',
-    city: 'Bengaluru',
-    priceInr: 179,
-    date: '19 October 2026',
-    participantCount: 96,
-    totalSlots: 120,
-    description: 'British Parliamentary format. Topics released 48h prior.',
-  },
-  {
-    id: 'comp_chess',
-    title: 'School Chess Rapid',
-    category: 'Chess',
-    city: 'Mysuru',
-    priceInr: 129,
-    date: '2 November 2026',
-    participantCount: 64,
-    totalSlots: 64,
-    description: 'Swiss system, 15+10. FIDE-rated arbiter.',
-  },
-  {
-    id: 'comp_drawing',
-    title: 'Young Artists Canvas Meet',
-    category: 'Drawing',
-    city: 'Bengaluru',
-    priceInr: 159,
-    date: '9 November 2026',
-    participantCount: 210,
-    totalSlots: 250,
-    description: 'Theme announced on-site. Materials included.',
-  },
-  {
-    id: 'comp_speaking',
-    title: 'Public Speaking Showcase',
-    category: 'Public Speaking',
-    city: 'Hyderabad',
-    priceInr: 189,
-    date: '16 November 2026',
-    participantCount: 140,
-    totalSlots: 160,
-    description: '3-minute prepared + 1-minute impromptu.',
-  },
-  {
-    id: 'comp_karate',
-    title: 'Inter-School Karate Kata',
-    category: 'Karate',
-    city: 'Bengaluru',
-    priceInr: 249,
-    date: '23 November 2026',
-    participantCount: 88,
-    totalSlots: 100,
-    description: 'Individual kata. Weight categories on registration.',
-  },
-  {
-    id: 'comp_music',
-    title: 'Campus Music Jam',
-    category: 'Music',
-    city: 'Pune',
-    priceInr: 219,
-    date: '30 November 2026',
-    participantCount: 75,
-    totalSlots: 90,
-    description: 'Solo vocal or instrumental. Backing track allowed.',
-  },
-  {
-    id: 'comp_sports',
-    title: 'Under-17 Badminton Doubles',
-    category: 'Sports',
-    city: 'Bengaluru',
-    priceInr: 349,
-    date: '7 December 2026',
-    participantCount: 48,
-    totalSlots: 64,
-    description: 'Knockout. Pair registration required.',
-  },
-  {
-    id: 'comp_quiz',
-    title: 'General Knowledge Blitz',
-    category: 'Quiz',
-    city: 'Vizag',
-    priceInr: 99,
-    date: '14 December 2026',
-    participantCount: 420,
-    totalSlots: 500,
-    description: 'Buzzer rounds across current affairs & STEM.',
-  },
-]
-
-/** One demo enrollment already paid so parent summary & profile feed show activity. */
-export const initialCompetitionEnrollments: CompetitionEnrollment[] = [
-  {
-    competitionId: 'comp_science_quiz',
-    status: 'result',
-    registeredAt: '2026-08-01',
-    paidAt: '2026-08-01',
-    participatedAt: '2026-08-10',
-    rank: 42,
-    totalParticipants: 500,
-    resultPostedAt: '2026-08-11',
-  },
-  {
-    competitionId: 'comp_spell_bee',
-    status: 'paid',
-    registeredAt: '2026-08-15',
-    paidAt: '2026-08-15',
-  },
-  {
-    competitionId: 'comp_coding',
-    status: 'registered',
-    registeredAt: '2026-08-20',
-  },
-]
-
-export const initialGrades: StudentGrade[] = [
-  {
-    id: 'g1',
-    name: 'Ananya Rao',
-    math: '48/50',
-    science: '41/50',
-    chem: '28/50',
-    comment: 'Excellent progress; Chemistry formulas need slight focus before final term.',
-  },
-  {
-    id: 'g2',
-    name: 'Sarah Jenkins',
-    math: '35/50',
-    science: '41/50',
-    chem: '46/50',
-    comment: 'Outstanding chemistry labs; grammar structures need polish.',
-  },
-]
-
-export const initialRoster: RosterStudent[] = [
-  { id: 's1', name: 'Ananya Rao', present: true, isDemo: true, classLabel: 'Grade 8-A', className: 'Grade 8', section: 'A', rollNo: '12' },
-  { id: 's2', name: 'Sarah Jenkins', present: true, classLabel: 'Grade 8-A', className: 'Grade 8', section: 'A', rollNo: '18' },
-  { id: 's3', name: 'Marcus Vance', present: false, classLabel: 'Grade 8-B', className: 'Grade 8', section: 'B', rollNo: '07' },
-  { id: 's4', name: 'Pranitha K.', present: true, classLabel: 'Grade 8-A', className: 'Grade 8', section: 'A', rollNo: '21' },
-  { id: 's5', name: 'Rohan Mehta', present: true, classLabel: 'Grade 5-A', className: 'Grade 5', section: 'A', rollNo: '04' },
-  { id: 's6', name: 'Diya Nair', present: true, classLabel: 'Grade 5-A', className: 'Grade 5', section: 'A', rollNo: '11' },
-  { id: 's7', name: 'Kabir Shah', present: false, classLabel: 'Grade 9-A', className: 'Grade 9', section: 'A', rollNo: '03' },
-  { id: 's8', name: 'Meera Iyer', present: true, classLabel: 'Grade 10-D', className: 'Grade 10', section: 'D', rollNo: '15' },
-]
-
-export const initialFees: FeeItem[] = [
-  { id: '1', name: 'Q1 Tuition Fee Bill', amount: 35000, status: 'Unpaid', category: 'Tuition' },
-  { id: '2', name: 'School Science Lab Deposit', amount: 4500, status: 'Unpaid', category: 'Science Labs' },
-  { id: '3', name: 'Quarterly School Bus Service', amount: 3000, status: 'Unpaid', category: 'Bus Transit' },
-]
-
-export const initialPaymentHistory: PaymentRecord[] = [
-  { id: 101, name: 'Registration Fee Deposit', amount: 15000, status: 'Paid', date: 'April 02, 2026', receiptId: 'REC-98402' },
-  { id: 102, name: 'School Sports Day Fee', amount: 5000, status: 'Paid', date: 'April 18, 2026', receiptId: 'REC-91845' },
-]
-
-export const initialBroadcasts: BroadcastMessage[] = [
-  {
-    id: 1,
-    target: 'All',
-    title: 'Sports Day Rescheduled',
-    content: 'School annual sports tournament has been shifted to June 28th due to weather conditions.',
-    date: 'Today',
-  },
-  {
-    id: 2,
-    target: 'Parents',
-    title: 'Quarterly PTA Meet',
-    content: 'The interactive Parent Teacher session is scheduled this Saturday in the main hall.',
-    date: 'Yesterday',
-  },
-]
-
-export const initialCalendar: CalendarEvent[] = [
-  { id: 1, title: 'Half-Yearly Exams', category: 'Exams', date: 'July 15, 2026' },
-  { id: 2, title: 'Independence Day Holiday', category: 'Holidays', date: 'August 15, 2026' },
-  { id: 3, title: 'Quarterly PTA Meet', category: 'PTA Meetings', date: 'July 5, 2026' },
-  { id: 4, title: 'Inter-School Cricket Finals', category: 'Extracurricular', date: 'June 28, 2026' },
-]
-
-export const initialLeaves: LeaveRequest[] = [
-  { id: 1, date: '2026-06-25', reason: 'Medical appointment', status: 'Approved', teacherName: 'Mrs. Sarah Davis' },
-  { id: 2, date: '2026-07-02', reason: 'Family function', status: 'Reviewing', teacherName: 'Mrs. Sarah Davis' },
-]
-
-export const initialNotifications: NotificationItem[] = [
-  { id: 1, role: 'all', title: 'Sports Day Rescheduled', body: 'Annual sports tournament moved to June 28.', unread: true, time: '2h ago' },
-  { id: 2, role: 'parent', title: 'Fee Reminder', body: 'Q1 tuition balance of ₹42,500 is still outstanding.', unread: true, time: '5h ago' },
-  { id: 3, role: 'student', title: 'Homework Due', body: 'Chemistry balancing equations due tomorrow.', unread: true, time: '1d ago' },
-  { id: 4, role: 'teacher', title: 'Leave Approved', body: 'Your June 25 leave request was approved.', unread: false, time: '2d ago' },
-  { id: 5, role: 'school', title: 'New Applicant', body: 'Vamsi Krishna applied for Mathematics Expert.', unread: true, time: '3d ago' },
-]
-
-export const teacherVacancies: JobVacancy[] = [
-  { id: 1, title: 'Secondary Mathematics Expert', school: 'Apex Public School', pay: '₹45,000 / month', match: 'Excellent Match', matchPct: 94 },
-  { id: 2, title: 'Primary English Instructor', school: 'Orion International', pay: '₹38,000 / month', match: 'Good Match', matchPct: 78 },
-]
-
-export const initialCandidates: Candidate[] = [
-  { id: 1, name: 'Vamsi Krishna', subject: 'Mathematics', experience: '5 Years', qualification: 'M.Sc Mathematics', status: 'Applied' },
-  { id: 2, name: 'Aruna Kumari', subject: 'English Grammar', experience: '8 Years', qualification: 'M.A English, B.Ed', status: 'Reviewing' },
-]
-
-export const initialFleet: FleetBus[] = [
-  { id: 'bus_14', route: 'Route 14 - Orion Layout', active: true, driver: 'Ramesh Prasad', phone: '+91 98765 43210', position: 55, speed: 38, capacity: '32/40' },
-  { id: 'bus_09', route: 'Route 9 - Pragathi Block', active: true, driver: 'K. Somulu', phone: '+91 98765 11122', position: 25, speed: 32, capacity: '28/40' },
-  { id: 'bus_22', route: 'Route 22 - Pragathi Hills', active: false, driver: 'M. Narasimha', phone: '+91 98765 33344', position: 0, speed: 0, capacity: '0/40' },
-]
-
-export const syllabusTimeline = [
-  { id: 'sy1', subject: 'Mathematics', chapter: 'Multiplying fractions', plannedDate: 'June 22', progress: 100 },
-  { id: 'sy2', subject: 'Science', chapter: 'Plant Respiration cycles', plannedDate: 'June 25', progress: 80 },
-  { id: 'sy3', subject: 'Chemistry Lab', chapter: 'Equation coefficients', plannedDate: 'June 30', progress: 40 },
-]
-
-/** Tiny demo note blob so students see Preview/Download without Storage. */
-function demoNote(title: string) {
-  const body = `${title}\n\nTeacher notes (demo)\n• Key points from today's class\n• Practice Q1–Q5 before next period\n• Ask Orbit AI if stuck`
-  const dataUrl = `data:text/plain;charset=utf-8,${encodeURIComponent(body)}`
-  return {
-    noteName: `${title.replace(/[/\\?%*:|"<>]/g, '-').slice(0, 40)}.txt`,
-    noteDataUrl: dataUrl,
-    noteMime: 'text/plain',
-    noteUploadedAt: '2026-06-20',
-  }
-}
-
-function demoRevision(title: string, subject: string) {
-  const body = [
-    `Summary revision · ${title}`,
-    `Subject: ${subject}`,
-    '',
-    'Quick checklist',
-    '• Definition / formula in your own words',
-    '• One worked example',
-    '• Two practice questions',
-    '• One common mistake to avoid',
-  ].join('\n')
-  return {
-    revisionNotesName: `${title.replace(/[/\\?%*:|"<>]/g, '-').slice(0, 36)}-revision.txt`,
-    revisionNotesUrl: `data:text/plain;charset=utf-8,${encodeURIComponent(body)}`,
-  }
-}
-
-function withLearningLinks(
-  id: string,
-  title: string,
-  subject: string,
-  youtubeUrl: string,
-  extra: Partial<SyllabusSubtopic> = {},
-): SyllabusSubtopic {
-  return {
-    id,
-    title,
-    done: false,
-    youtubeUrl,
-    ...demoRevision(title, subject),
-    ...extra,
-  }
-}
-
-/** Shared Class 11 curriculum — teacher marks progress; students see the same truth. */
-export const initialCurriculum: SyllabusChapter[] = [
-  {
-    id: 'ch_math_algebra',
-    subject: 'Mathematics',
-    subjectKey: 'mathSubject',
-    title: 'Algebraic Equations',
-    plannedDate: '2026-06-15',
-    quizQuery: 'Solve equations transposition algebra',
-    subtopics: [
-      {
-        ...withLearningLinks(
-          'st_m1',
-          'Negative variables shifting',
-          'Mathematics',
-          'https://www.youtube.com/watch?v=Wv6Yc6mYj9A',
-          { done: true, completedAt: '2026-06-10', ...demoNote('Negative variables shifting') },
-        ),
-      },
-      {
-        ...withLearningLinks(
-          'st_m2',
-          'Cross multiplication of fractions',
-          'Mathematics',
-          'https://www.youtube.com/watch?v=Rp6r8jQb5kE',
-          { done: true, completedAt: '2026-06-12', ...demoNote('Cross multiplication') },
-        ),
-      },
-      {
-        ...withLearningLinks(
-          'st_m3',
-          'Coefficient balancing',
-          'Mathematics',
-          'https://www.youtube.com/watch?v=1c5HY3z4k8I',
-          { done: false },
-        ),
-      },
-      {
-        ...withLearningLinks(
-          'st_m4',
-          'Word problems → equations',
-          'Mathematics',
-          'https://www.youtube.com/watch?v=Urc31S2LmAk',
-          { done: false },
-        ),
-      },
-    ],
-  },
-  {
-    id: 'ch_math_fractions',
-    subject: 'Mathematics',
-    subjectKey: 'mathSubject',
-    title: 'Multiplying Fractions',
-    plannedDate: '2026-06-22',
-    quizQuery: 'fractions calculations multiplication',
-    subtopics: [
-      {
-        ...withLearningLinks(
-          'st_m5',
-          'Numerator / denominator alignment',
-          'Mathematics',
-          'https://www.youtube.com/watch?v=uE-1RPDqJAY',
-          { done: true, completedAt: '2026-06-18', ...demoNote('Numerator denominator alignment') },
-        ),
-      },
-      {
-        ...withLearningLinks(
-          'st_m6',
-          'Simplifying before multiplying',
-          'Mathematics',
-          'https://www.youtube.com/watch?v=emR0g1Wb2XQ',
-          { done: true, completedAt: '2026-06-20', ...demoNote('Simplifying before multiplying') },
-        ),
-      },
-      {
-        ...withLearningLinks(
-          'st_m7',
-          'Mixed numbers conversion',
-          'Mathematics',
-          'https://www.youtube.com/watch?v=hT0aewykFr0',
-          { done: true, completedAt: '2026-06-22', ...demoNote('Mixed numbers conversion') },
-        ),
-      },
-    ],
-  },
-  {
-    id: 'ch_sci_photo',
-    subject: 'Science',
-    subjectKey: 'scienceSubject',
-    title: 'Photosynthesis & Leaf Cycles',
-    plannedDate: '2026-06-25',
-    quizQuery: 'photosynthesis cycles botany',
-    subtopics: [
-      {
-        ...withLearningLinks(
-          'st_s1',
-          'Chloroplast structure',
-          'Science',
-          'https://www.youtube.com/watch?v=uIxAhdtrXJY',
-          { done: true, completedAt: '2026-06-20', ...demoNote('Chloroplast structure') },
-        ),
-      },
-      {
-        ...withLearningLinks(
-          'st_s2',
-          'Light vs dark reactions',
-          'Science',
-          'https://www.youtube.com/watch?v=sQK3Yr4SkEk',
-          { done: true, completedAt: '2026-06-22', ...demoNote('Light vs dark reactions') },
-        ),
-      },
-      {
-        ...withLearningLinks(
-          'st_s3',
-          'Gas exchange & stomata',
-          'Science',
-          'https://www.youtube.com/watch?v=D1Ymc311XS8',
-          { done: false },
-        ),
-      },
-      {
-        ...withLearningLinks(
-          'st_s4',
-          'Balancing photosynthesis equation',
-          'Science',
-          'https://www.youtube.com/watch?v=g78utcLQrNg',
-          { done: false },
-        ),
-      },
-    ],
-  },
-  {
-    id: 'ch_chem_bal',
-    subject: 'Chemistry Lab',
-    subjectKey: 'chemLabSubject',
-    title: 'Chemical Balancing Coefficients',
-    plannedDate: '2026-06-30',
-    quizQuery: 'balancing chemical equations coefficient chemistry',
-    subtopics: [
-      {
-        ...withLearningLinks(
-          'st_c1',
-          'Law of conservation of mass',
-          'Chemistry Lab',
-          'https://www.youtube.com/watch?v=i-Ct4q5QZ4w',
-          { done: true, completedAt: '2026-06-24', ...demoNote('Conservation of mass') },
-        ),
-      },
-      {
-        ...withLearningLinks(
-          'st_c2',
-          'Stoichiometry multipliers',
-          'Chemistry Lab',
-          'https://www.youtube.com/watch?v=UL1jmJaUkaQ',
-          { done: false },
-        ),
-      },
-      {
-        ...withLearningLinks(
-          'st_c3',
-          'Redox skeleton equations',
-          'Chemistry Lab',
-          'https://www.youtube.com/watch?v=lQ6Fkf0OW1c',
-          { done: false },
-        ),
-      },
-      {
-        ...withLearningLinks(
-          'st_c4',
-          'Lab: balance 5 practice sheets',
-          'Chemistry Lab',
-          'https://www.youtube.com/watch?v=eNsVaUCzvLA',
-          { done: false },
-        ),
-      },
-    ],
-  },
-  {
-    id: 'ch_eng_grammar',
-    subject: 'English',
-    subjectKey: 'englishSubject',
-    title: 'Tenses & Active Voice',
-    plannedDate: '2026-07-05',
-    quizQuery: 'English tenses active passive voice',
-    subtopics: [
-      {
-        ...withLearningLinks(
-          'st_e1',
-          'Present perfect vs past simple',
-          'English',
-          'https://www.youtube.com/watch?v=nwIKGqg1z9E',
-          { done: false },
-        ),
-      },
-      {
-        ...withLearningLinks(
-          'st_e2',
-          'Active → passive conversion',
-          'English',
-          'https://www.youtube.com/watch?v=4jGGxJ5mPbg',
-          { done: false },
-        ),
-      },
-      {
-        ...withLearningLinks(
-          'st_e3',
-          'Common exam traps',
-          'English',
-          'https://www.youtube.com/watch?v=7E_1oH1wL8E',
-          { done: false },
-        ),
-      },
-    ],
-  },
-]
-
-
-export const timetableByDay: Record<
+export const teacherVacancies: {
+  id: number
+  title: string
+  school: string
+  pay: string
+  match: string
+  matchPct: number
+}[] = []
+export const extracurricularListing: Record<
   string,
-  { theory: { id: string; code: string; name: string; start: string; end: string; room: string; teacher: string }[]; lab: { id: string; code: string; name: string; start: string; end: string; room: string; teacher: string }[] }
-> = {
-  MON: {
-    theory: [
-      { id: 'm1', code: 'A1', name: 'Mathematics', start: '08:00', end: '08:50', room: 'Room 204', teacher: 'Mrs. Davis' },
-      { id: 'm2', code: 'F1', name: 'Science', start: '08:55', end: '09:45', room: 'Room 301', teacher: 'Dr. Chawla' },
-      { id: 'm3', code: 'D1', name: 'English Grammar', start: '09:50', end: '10:40', room: 'Room 105', teacher: 'Mr. Hughes' },
-      { id: 'm4', code: 'TB1', name: 'Social Studies', start: '10:45', end: '11:35', room: 'Room 203', teacher: 'Dr. Swamy' },
-    ],
-    lab: [{ id: 'ml1', code: 'L1', name: 'Science Lab', start: '14:00', end: '14:50', room: 'Lab 2', teacher: 'Prof. Sharma' }],
-  },
-  TUE: {
-    theory: [
-      { id: 't1', code: 'A2', name: 'Mathematics', start: '08:00', end: '08:50', room: 'Room 204', teacher: 'Mrs. Davis' },
-      { id: 't2', code: 'C1', name: 'Chemistry Lab Theory', start: '08:55', end: '09:45', room: 'Room 210', teacher: 'Prof. Sharma' },
-      { id: 't3', code: 'E1', name: 'English Literature', start: '09:50', end: '10:40', room: 'Room 105', teacher: 'Mr. Hughes' },
-      { id: 't4', code: 'P1', name: 'Physical Education', start: '10:45', end: '11:35', room: 'Ground A', teacher: 'Coach Vinay' },
-    ],
-    lab: [{ id: 'tl1', code: 'L2', name: 'Chemistry Lab', start: '14:00', end: '14:50', room: 'Lab 1', teacher: 'Prof. Sharma' }],
-  },
-  WED: {
-    theory: [
-      { id: 'w1', code: 'A3', name: 'Mathematics', start: '08:00', end: '08:50', room: 'Room 204', teacher: 'Mrs. Davis' },
-      { id: 'w2', code: 'F2', name: 'Science', start: '08:55', end: '09:45', room: 'Room 301', teacher: 'Dr. Chawla' },
-      { id: 'w3', code: 'S1', name: 'Social Studies', start: '09:50', end: '10:40', room: 'Room 203', teacher: 'Dr. Swamy' },
-      { id: 'w4', code: 'D2', name: 'English Grammar', start: '10:45', end: '11:35', room: 'Room 105', teacher: 'Mr. Hughes' },
-    ],
-    lab: [{ id: 'wl1', code: 'L3', name: 'Computer Lab', start: '14:00', end: '14:50', room: 'Lab 3', teacher: 'Ms. Priya' }],
-  },
-  THU: {
-    theory: [
-      { id: 'th1', code: 'A4', name: 'Mathematics', start: '08:00', end: '08:50', room: 'Room 204', teacher: 'Mrs. Davis' },
-      { id: 'th2', code: 'F3', name: 'Science', start: '08:55', end: '09:45', room: 'Room 301', teacher: 'Dr. Chawla' },
-      { id: 'th3', code: 'C2', name: 'Chemistry', start: '09:50', end: '10:40', room: 'Room 210', teacher: 'Prof. Sharma' },
-      { id: 'th4', code: 'AR1', name: 'Art Period', start: '10:45', end: '11:35', room: 'Art Studio', teacher: 'Ms. Aruna' },
-    ],
-    lab: [{ id: 'thl1', code: 'L4', name: 'Science Lab', start: '14:00', end: '14:50', room: 'Lab 2', teacher: 'Dr. Chawla' }],
-  },
-  FRI: {
-    theory: [
-      { id: 'f1', code: 'A5', name: 'Mathematics Review', start: '08:00', end: '08:50', room: 'Room 204', teacher: 'Mrs. Davis' },
-      { id: 'f2', code: 'F4', name: 'Science Review', start: '08:55', end: '09:45', room: 'Room 301', teacher: 'Dr. Chawla' },
-      { id: 'f3', code: 'D3', name: 'English Writing', start: '09:50', end: '10:40', room: 'Room 105', teacher: 'Mr. Hughes' },
-      { id: 'f4', code: 'AS1', name: 'Assembly / Mentoring', start: '10:45', end: '11:35', room: 'Main Hall', teacher: 'Class Teacher' },
-    ],
-    lab: [{ id: 'fl1', code: 'L5', name: 'Open Lab Practice', start: '14:00', end: '14:50', room: 'Lab 2', teacher: 'Prof. Sharma' }],
-  },
-}
-
-export const todayTimeline = [
-  { name: 'Mathematics', time: '08:00 AM', room: 'Room 204', status: 'Completed' as const },
-  { name: 'Science', time: '10:00 AM', room: 'Room 301', status: 'Live' as const },
-  { name: 'Chemistry Lab', time: '11:15 AM', room: 'Lab 2', status: 'Upcoming' as const },
-  { name: 'English Grammar', time: '01:00 PM', room: 'Room 105', status: 'Upcoming' as const },
-  { name: 'Social Studies', time: '02:00 PM', room: 'Room 203', status: 'Upcoming' as const },
-]
-
-export const remediationTemplates = {
-  chemistry: {
-    title: 'Science Midterm Answer Sheet — Chemistry',
-    flaggedWeakness: 'Balancing Chemical Coefficients (Chapter 3)',
-    analysisText:
-      'Student understands reactants and products well, but repeatedly gets confused with stoichiometry multiplier coefficients. They treat formula numbers as immutable rather than multiplying entire batches.',
-    modelEscalation: 'Gemini Flash (demo triage)',
-    confidence: 82,
-    analogyText: `### 🥞 Balancing Equations is just a Pancake Recipe!
-
-To make exactly **one stack of pancakes**, you need:
-- **2 Eggs** ($E$)
-- **1 Cup of Flour** ($F$)
-
-$$Recipe: 2E + 1F \\rightarrow 1 Stack$$
-
-You cannot rewrite the pancake itself. You balance by adding **multipliers** in front of ingredients.
-
-$$\\mathbf{2}H_2 + O_2 \\rightarrow \\mathbf{2}H_2O$$`,
-    validationQuestion: "Based on the recipe multiplier rule, balance: ? H₂ + O₂ → 2 H₂O. What is '?'",
-    options: ['1', '2', '3', '4'],
-    correctIndex: 1,
-    successToast: 'Chemistry midterm updated to 48/50! +100 XP · Concept Master unlocked.',
-  },
-  mathematics: {
-    title: 'Algebraic Equations Term Test',
-    flaggedWeakness: 'Negative Number Multiplication & Cross-Inversion',
-    analysisText:
-      'Student frequently drops algebraic minus signs during equation relocations. They simplify linear variables correctly but flip equations incorrectly when cross-multiplying.',
-    modelEscalation: 'Gemini Pro cascade (demo)',
-    confidence: 54,
-    analogyText: `### ⚖️ The Equals Sign is a Playground Seesaw!
-
-An equation is a balanced seesaw.
-- If $+10$ crosses $=$, it becomes $-10$ to keep balance.
-- Two negatives multiply to a positive.
-
-$$-3x + 10 = -5 \\implies -3x = -15 \\implies x = 5$$`,
-    validationQuestion: 'Solve: -3x + 10 = -5. Find x.',
-    options: ['x = -5', 'x = 5', 'x = -15', 'x = 15'],
-    correctIndex: 1,
-    successToast: 'Mathematics midterm updated to 48/50! +100 XP synchronized.',
-  },
-  science: {
-    title: 'Photosynthesis Unit Test',
-    flaggedWeakness: 'Light vs dark reaction products',
-    analysisText:
-      'Student recalls chlorophyll and stomata, but mixes up which gases and energy carriers belong to light vs dark reactions.',
-    modelEscalation: 'Gemini Flash (demo triage)',
-    confidence: 68,
-    analogyText: '',
-    validationQuestion: 'Which gas is released mainly during the light reaction?',
-    options: ['CO₂', 'O₂', 'N₂', 'H₂'],
-    correctIndex: 1,
-    successToast: 'Science practice updated · Concept Master unlocked.',
-  },
-  english: {
-    title: 'Tenses Worksheet',
-    flaggedWeakness: 'Present perfect vs past simple',
-    analysisText:
-      'Student writes fluent sentences but often uses past simple where present perfect is needed for unfinished time.',
-    modelEscalation: 'Gemini Flash (demo triage)',
-    confidence: 71,
-    analogyText: '',
-    validationQuestion: 'Choose the better sentence: "I ___ my homework already."',
-    options: ['did', 'have done', 'do', 'doing'],
-    correctIndex: 1,
-    successToast: 'English concept practiced · +100 XP.',
-  },
-  physics: {
-    title: 'Forces & Motion Quiz',
-    flaggedWeakness: 'Net force vs balanced forces',
-    analysisText:
-      'Student remembers F = ma but treats any force pair as cancelled even when magnitudes differ.',
-    modelEscalation: 'Gemini Flash (demo triage)',
-    confidence: 63,
-    analogyText: '',
-    validationQuestion: 'If two opposite forces are 8 N and 5 N, net force is:',
-    options: ['13 N', '8 N', '5 N', '3 N'],
-    correctIndex: 3,
-    successToast: 'Physics concept practiced · +100 XP.',
-  },
-} as const satisfies Record<
+  { title: string; coach: string; phone: string; cost: string; loc: string }[]
+> = {}
+export const remediationTemplates: Record<
   string,
   {
     title: string
@@ -987,48 +90,143 @@ $$-3x + 10 = -5 \\implies -3x = -15 \\implies x = 5$$`,
     correctIndex: number
     successToast: string
   }
->
-
-export const offlineAiAnswers: Record<string, string> = {
-  default: `### Newton's Second Law — Football Kick
-
-Force is how hard you kick a football.
-- Light tap → small acceleration
-- Strong strike → big acceleration
-
-**Formula:** $F = m \\times a$
-
-Heavier ball needs more force for the same speed-up.`,
-  chemistry: `### Stoichiometry — Kitchen Batch Recipe
-
-Chemical formulas are fixed recipes. You change **how many batches**, not the recipe itself.
-
-$$2H_2 + O_2 \\rightarrow 2H_2O$$`,
-  algebra: `### Algebra — Seesaw Balance
-
-Whatever you do to one side, do to the other. Crossing $=$ flips the sign.`,
+> = {
+  chemistry: {
+    title: 'Practice sheet',
+    flaggedWeakness: 'Review the core idea',
+    analysisText: 'Offline coach placeholder.',
+    modelEscalation: 'offline',
+    confidence: 50,
+    analogyText: '',
+    validationQuestion: 'Which step comes next?',
+    options: ['A', 'B', 'C', 'D'],
+    correctIndex: 0,
+    successToast: 'Practice complete',
+  },
+  mathematics: {
+    title: 'Practice sheet',
+    flaggedWeakness: 'Review the core idea',
+    analysisText: 'Offline coach placeholder.',
+    modelEscalation: 'offline',
+    confidence: 50,
+    analogyText: '',
+    validationQuestion: 'Which step comes next?',
+    options: ['A', 'B', 'C', 'D'],
+    correctIndex: 0,
+    successToast: 'Practice complete',
+  },
+  science: {
+    title: 'Practice sheet',
+    flaggedWeakness: 'Review the core idea',
+    analysisText: 'Offline coach placeholder.',
+    modelEscalation: 'offline',
+    confidence: 50,
+    analogyText: '',
+    validationQuestion: 'Which step comes next?',
+    options: ['A', 'B', 'C', 'D'],
+    correctIndex: 0,
+    successToast: 'Practice complete',
+  },
+  english: {
+    title: 'Practice sheet',
+    flaggedWeakness: 'Review the core idea',
+    analysisText: 'Offline coach placeholder.',
+    modelEscalation: 'offline',
+    confidence: 50,
+    analogyText: '',
+    validationQuestion: 'Which step comes next?',
+    options: ['A', 'B', 'C', 'D'],
+    correctIndex: 0,
+    successToast: 'Practice complete',
+  },
+  physics: {
+    title: 'Practice sheet',
+    flaggedWeakness: 'Review the core idea',
+    analysisText: 'Offline coach placeholder.',
+    modelEscalation: 'offline',
+    confidence: 50,
+    analogyText: '',
+    validationQuestion: 'Which step comes next?',
+    options: ['A', 'B', 'C', 'D'],
+    correctIndex: 0,
+    successToast: 'Practice complete',
+  },
 }
-
+export const timetableByDay: Record<
+  string,
+  {
+    theory: {
+      id: string
+      code: string
+      name: string
+      start: string
+      end: string
+      room: string
+      teacher: string
+    }[]
+    lab: {
+      id: string
+      code: string
+      name: string
+      start: string
+      end: string
+      room: string
+      teacher: string
+    }[]
+  }
+> = {
+  MON: { theory: [], lab: [] },
+  TUE: { theory: [], lab: [] },
+  WED: { theory: [], lab: [] },
+  THU: { theory: [], lab: [] },
+  FRI: { theory: [], lab: [] },
+  SAT: { theory: [], lab: [] },
+}
 export const FALLBACK_QUIZ = {
-  topic: 'Stoichiometry & Coefficient Balancing',
+  title: 'Recap',
+  topic: 'General',
   questions: [
     {
       id: 1,
-      question: "What coefficient balances: ? H₂ + O₂ → 2 H₂O?",
-      options: ['1', '2', '3', '4'],
-      answerIndex: 1,
-    },
-    {
-      id: 2,
-      question: 'Why can\'t you rewrite H₂O as H₂O₂ when balancing?',
-      options: ['Atoms change identity', 'It becomes a different compound', 'Oxygen is scarce', 'Hydrogen is diatomic'],
-      answerIndex: 1,
-    },
-    {
-      id: 3,
-      question: 'Balancing equations mainly adjusts…',
-      options: ['Subscripts inside formulas', 'Multipliers in front of formulas', 'Atomic numbers', 'Product names'],
+      question: 'Which habit helps most before a test?',
+      options: ['Cram overnight', 'Short spaced review', 'Skip sleep', 'Ignore notes'],
       answerIndex: 1,
     },
   ],
+}
+export const offlineAiAnswers: Record<string, string> = {
+  default: 'I can help once you are online with Orbit AI.',
+}
+
+export const initialStudentProfile: StudentAcademicProfile = {
+  photoUrl: '',
+  name: '',
+  school: '',
+  grade: '',
+  interests: [],
+  subjects: [],
+  skills: [],
+  languages: [],
+  hobbies: [],
+  sports: [],
+  certifications: [],
+  achievements: [],
+  competitions: [],
+  projects: [],
+  clubs: [],
+  milestones: [],
+}
+
+export const initialTeacherAcademicProfile: TeacherAcademicProfile = {
+  photoUrl: '',
+  name: '',
+  school: '',
+  employeeId: '',
+  phone: '',
+  email: '',
+  subjects: [],
+  classes: [],
+  qualifications: [],
+  achievements: [],
+  certifications: [],
 }

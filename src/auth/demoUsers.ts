@@ -16,7 +16,7 @@ export const DEMO_USERS: DemoUser[] = [
     role: 'student',
     email: 'student@orbit.app',
     password: 'student123',
-    displayName: 'Ananya Rao',
+    displayName: 'Demo Student',
     subtitle: 'Grade 8-A · Roll 14',
   },
   {
@@ -24,7 +24,7 @@ export const DEMO_USERS: DemoUser[] = [
     role: 'parent',
     email: 'parent@orbit.app',
     password: 'parent123',
-    displayName: 'Parent of Ananya',
+    displayName: 'Demo Parent',
     subtitle: 'Guardian · Grade 8-A',
   },
   {

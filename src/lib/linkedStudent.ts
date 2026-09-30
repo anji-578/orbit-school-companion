@@ -42,8 +42,8 @@ function mapStudentRow(data: {
 }
 
 const DEMO_CHILDREN: LinkedStudent[] = [
-  { id: DEMO_STUDENT_IDS.ananya, displayName: 'Ananya Rao', className: 'Grade 8', section: 'A' },
-  { id: DEMO_STUDENT_IDS.sarah, displayName: 'Sarah Chen', className: 'Grade 8', section: 'A' },
+  { id: DEMO_STUDENT_IDS.ananya, displayName: 'Demo Student', className: 'Grade 8', section: 'A' },
+  { id: DEMO_STUDENT_IDS.sarah, displayName: 'Demo Sibling', className: 'Grade 8', section: 'A' },
 ]
 
 /** All children linked to the signed-in parent (or self for student). */

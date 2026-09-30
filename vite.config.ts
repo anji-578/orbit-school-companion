@@ -1,12 +1,11 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { sentryVitePlugin } from '@sentry/vite-plugin'
 import path from 'node:path'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  // Client code must never reference VITE_GEMINI_* (Vite would inline secrets).
-  // Fail closed in CI; warn locally so developers can keep a legacy .env while migrating.
   if (mode === 'production' && env.VITE_GEMINI_API_KEY?.trim()) {
     const msg =
       'VITE_GEMINI_API_KEY is set. Remove it — use server-only GEMINI_API_KEY with /api/gemini.'
@@ -16,9 +15,27 @@ export default defineConfig(({ mode }) => {
     console.warn(`[vite] ${msg}`)
   }
 
+  const sentryPlugins =
+    env.SENTRY_AUTH_TOKEN && env.SENTRY_ORG && env.SENTRY_PROJECT
+      ? [
+          sentryVitePlugin({
+            org: env.SENTRY_ORG,
+            project: env.SENTRY_PROJECT,
+            authToken: env.SENTRY_AUTH_TOKEN,
+            sourcemaps: {
+              filesToDeleteAfterUpload: ['**/*.map'],
+            },
+          }),
+        ]
+      : []
+
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [react(), tailwindcss(), ...sentryPlugins],
     base: './',
+    build: {
+      // Maps uploaded to Sentry then deleted; never served publicly when token is configured.
+      sourcemap: Boolean(env.SENTRY_AUTH_TOKEN),
+    },
     resolve: {
       alias: {
         '@/app': path.resolve(__dirname, 'src/app'),

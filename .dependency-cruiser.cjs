@@ -5,17 +5,21 @@ module.exports = {
       name: 'domain-no-react-io',
       severity: 'error',
       comment: 'domain must stay pure',
-      from: { path: '^src/domain' },
+      from: { path: '^src/domain', pathNot: '\\.test\\.(ts|tsx)$' },
       to: {
         path: '^(src/(app|features|services)|node_modules/(react|@supabase|zustand))',
       },
     },
     {
       name: 'no-supabase-in-components',
-      severity: 'warn',
-      comment: 'Phase 3 tightens to error; components should use hooks',
-      from: { path: '^src/features/.+/components|^src/features/student-app' },
-      to: { path: 'supabase|lib/supabase|lib/gemini' },
+      severity: 'error',
+      comment: 'Components must use feature hooks, not services/supabase or lib/supabase/gemini',
+      from: {
+        path: '^src/features/.+/components|^src/features/student-app|^src/features/student/|^src/features/shared/',
+      },
+      to: {
+        path: 'services/supabase|lib/supabase\\.ts|lib/gemini',
+      },
     },
   ],
   options: {

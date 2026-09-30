@@ -2,7 +2,7 @@ import { useRef, useState, useMemo } from 'react'
 import { CheckCircle2, Info, Loader2, Mic, MicOff, RefreshCw, Send, Volume2, VolumeX, XCircle } from 'lucide-react'
 import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
-import { askOrbitTutor, generateOrbitQuiz, isAiConfigured } from '../../lib/gemini'
+import { askOrbitTutor, generateOrbitQuiz, isAiConfigured } from '@/services/ai/client'
 import type { TutorAnswer } from '../../lib/aiGuardrails'
 import { renderFormattedContent } from '../../lib/markdown'
 import { startVoiceRecognition, speakText } from '../../lib/speech'
@@ -62,6 +62,31 @@ export function StudyAssistant() {
     }
     if (result.answer.refuse) {
       triggerToast(t('aiRefusedToast'))
+    } else {
+      const studentId = useOrbitStore.getState().linkedStudent?.id
+      void (async () => {
+        const { recordAndAwardXp, demoLocalAward } = await import('@/services/xp/award')
+        const { demoFixturesEnabled } = await import('@/shared/config/env')
+        if (studentId) {
+          const snap = await recordAndAwardXp({
+            studentId,
+            eventType: 'ask_orbit_helpful',
+            refId: 'ask',
+          })
+          if (snap) {
+            useOrbitStore.getState().setGamificationProjection(snap.totalXp, snap.unlockedBadges)
+            return
+          }
+        }
+        if (demoFixturesEnabled()) {
+          const s = useOrbitStore.getState()
+          const next = demoLocalAward(
+            { totalXp: s.totalXp, unlockedBadges: s.unlockedBadges },
+            'ask_orbit_helpful',
+          )
+          s.setGamificationProjection(next.totalXp, next.unlockedBadges)
+        }
+      })()
     }
   }
 

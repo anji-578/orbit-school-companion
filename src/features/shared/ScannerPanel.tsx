@@ -17,7 +17,7 @@ import {
 import type { LucideIcon } from 'lucide-react'
 import { useOrbitStore } from '../../store/orbitStore'
 import { translate } from '../../i18n'
-import { askOrbitAi } from '../../lib/gemini'
+import { askOrbitAi } from '@/services/ai/client'
 import { renderFormattedContent } from '../../lib/markdown'
 import { Panel, Card, Eyebrow } from '../../components/ui/primitives'
 import type { ScanTarget } from '../../types'

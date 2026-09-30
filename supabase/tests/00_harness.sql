@@ -1,28 +1,19 @@
--- Minimal schema for SECURITY DEFINER / RLS isolation tests (CI Postgres).
--- Does not require full Supabase Auth; stubs auth.uid() via request.jwt.claim.sub.
+-- Harness for supabase/postgres image (real auth schema + roles).
+-- Does NOT stub auth.uid() when already provided by the image.
 
 create extension if not exists pgcrypto;
 
-create schema if not exists auth;
-
-create or replace function auth.uid()
-returns uuid
-language sql
-stable
+-- Ensure JWT claim helper works like PostgREST (supabase images include auth.uid)
+create or replace function public.test_set_auth(uid uuid, role_name text default 'authenticated')
+returns void
+language plpgsql
 as $$
-  select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid;
+begin
+  perform set_config('request.jwt.claim.sub', uid::text, true);
+  perform set_config('request.jwt.claim.role', role_name, true);
+  perform set_config('role', role_name, true);
+end;
 $$;
-
-do $$ begin
-  create role authenticated nologin;
-exception when duplicate_object then null;
-end $$;
-do $$ begin
-  create role anon nologin;
-exception when duplicate_object then null;
-end $$;
-
-grant usage on schema public to authenticated, anon;
 
 do $$ begin
   create type public.orbit_role as enum ('student', 'parent', 'teacher', 'school');
@@ -33,6 +24,7 @@ create table if not exists public.schools (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   code text unique,
+  is_demo boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -82,7 +74,6 @@ alter table public.profiles enable row level security;
 alter table public.students enable row level security;
 alter table public.attendance enable row level security;
 alter table public.homework_completions enable row level security;
-
 alter table public.students force row level security;
 alter table public.attendance force row level security;
 alter table public.homework_completions force row level security;
@@ -103,4 +94,5 @@ create policy homework_completions_select_own on public.homework_completions
     student_id in (select id from public.students where profile_id = auth.uid())
   );
 
+grant usage on schema public to authenticated, anon;
 grant select on public.schools, public.profiles, public.students, public.attendance, public.homework_completions to authenticated;

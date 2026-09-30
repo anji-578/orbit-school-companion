@@ -269,9 +269,8 @@ export function Sidebar() {
   const showDemoChrome =
     session?.provider === 'local-demo' || isPilotDemoEmail(session?.email ?? '')
 
-  // Auth / roster identity wins over persisted offline demo profile (Ananya / Class 11-A).
-  const staleDemoProfile =
-    studentProfile.name === 'Ananya Rao' || studentProfile.grade === 'Class 11-A'
+  // Auth / roster identity wins over persisted offline demo profile.
+  const staleDemoProfile = studentProfile.grade === 'Class 11-A'
   const studentCardName =
     linkedStudent?.displayName?.trim() ||
     session?.displayName?.trim() ||

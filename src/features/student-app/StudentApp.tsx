@@ -9,6 +9,7 @@ import { AskOrbitSheet } from './components/AskOrbitSheet'
 import { ErrorBoundary } from '@/app/providers/ErrorBoundary'
 import { startOfflineQueuePolling } from '@/services/offline/mutation-queue'
 import { useNow } from '@/shared/lib/useNow'
+import { loadDemoFixturesIfEnabled } from '@/dev/loadDemoFixtures'
 
 function StudentAppBody() {
   const { current, deepFocus, tab } = useStudentNav()
@@ -24,6 +25,7 @@ function StudentAppBody() {
 
   useEffect(() => {
     void hydrateFromSupabase()
+    void loadDemoFixturesIfEnabled()
   }, [hydrateFromSupabase])
 
   useEffect(() => startOfflineQueuePolling(), [])

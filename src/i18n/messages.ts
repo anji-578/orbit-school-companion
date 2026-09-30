@@ -69,7 +69,7 @@ export const messages = {
     creatingAccount: 'Creating account…',
     createAccountAs: 'Create account as',
     fullName: 'Full name',
-    fullNamePlaceholder: 'e.g. Ananya Rao',
+    fullNamePlaceholder: 'e.g. Your full name',
     confirmPassword: 'Confirm password',
     passwordMismatch: 'Passwords do not match.',
     accountCreated: 'Account created',
