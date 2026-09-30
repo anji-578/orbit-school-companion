@@ -20,6 +20,7 @@ import { childClassLabel, childDisplayName } from '../../lib/linkedStudent'
 import { Panel, Card } from '../../components/ui/primitives'
 import type { StudentAcademicProfile, ProfileListItem } from '../../types'
 import { ConfidentialDocsSection } from './ConfidentialDocsSection'
+import { isDemoAccount } from '@/dev/isDemoAccount'
 
 export function AcademicProfile() {
   const lang = useOrbitStore((s) => s.lang)
@@ -30,7 +31,7 @@ export function AcademicProfile() {
   const displayName = childDisplayName(linkedStudent, session?.displayName || studentProfile.name)
   const displayGrade = childClassLabel(linkedStudent) || studentProfile.grade
   const displaySchool =
-    session?.email?.toLowerCase().includes('@demo50.orbit.app')
+    isDemoAccount(session?.email)
       ? 'Sunrise Demo Academy'
       : studentProfile.school
 

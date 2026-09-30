@@ -133,11 +133,16 @@ Dark glass panels, role-colored accents, and a sidebar that switches by persona.
 | School | `admin@orbit.app` | `admin123` |
 
 ```bash
-npm install
-npm run dev
+npm ci
+cp .env.example .env   # fill local values; never commit .env
+npm run dev            # http://127.0.0.1:5173
+npm run check          # typecheck · lint · format · boundaries · unit tests · build
 ```
 
-Setup for contributors (Supabase, env, deploy) lives in [`docs/DEVELOPERS.md`](docs/DEVELOPERS.md).
+- Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+- Contributing: [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md)
+- Runbook: [`docs/RUNBOOK.md`](docs/RUNBOOK.md)
+- Full setup (Supabase, deploy): [`docs/DEVELOPERS.md`](docs/DEVELOPERS.md)
 
 ---
 

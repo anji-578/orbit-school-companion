@@ -214,4 +214,4 @@ Moves are **`git mv` first** (Phase 2); logic extraction follows with characteri
 
 ---
 
-*Phase 0 complete. Do not start Phase 1 until instructed.*
+*Phases 1–9 substrate landed 2026-09-30. See `docs/PHASES_1_9_REPORT.md`.*

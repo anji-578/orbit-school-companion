@@ -4,16 +4,18 @@
  *   VITE_SUPABASE_ANON_KEY=
  *
  * Until then, auth uses local demo users in auth/demoUsers.ts
+ *
+ * Always use static import.meta.env.VITE_* access (never assign import.meta.env).
  */
 export function isSupabaseConfigured(): boolean {
-  const env = import.meta.env as Record<string, string | undefined>
-  return Boolean(env.VITE_SUPABASE_URL?.trim() && env.VITE_SUPABASE_ANON_KEY?.trim())
+  const url = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim() || ''
+  const anon = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim() || ''
+  return Boolean(url && anon)
 }
 
 export function getSupabaseConfig() {
-  const env = import.meta.env as Record<string, string | undefined>
   return {
-    url: env.VITE_SUPABASE_URL?.trim() ?? '',
-    anonKey: env.VITE_SUPABASE_ANON_KEY?.trim() ?? '',
+    url: (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim() ?? '',
+    anonKey: (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim() ?? '',
   }
 }

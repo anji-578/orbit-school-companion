@@ -6,13 +6,17 @@ import { StudentTopBar } from './StudentTopBar'
 import { StudentBottomNav } from './StudentBottomNav'
 import { StudentScreen } from './StudentScreen'
 import { AskOrbitSheet } from './components/AskOrbitSheet'
+import { ErrorBoundary } from '@/app/providers/ErrorBoundary'
+import { startOfflineQueuePolling } from '@/services/offline/mutation-queue'
+import { useNow } from '@/shared/lib/useNow'
 
 function StudentAppBody() {
-  const { current, deepFocus } = useStudentNav()
+  const { current, deepFocus, tab } = useStudentNav()
   const hydrateFromSupabase = useOrbitStore((s) => s.hydrateFromSupabase)
-  const tickBus = useOrbitStore((s) => s.tickBus)
   const setRole = useOrbitStore((s) => s.setRole)
   const role = useOrbitStore((s) => s.role)
+  // Minute clock for future countdown widgets; pauses when backgrounded.
+  useNow(60_000)
 
   useEffect(() => {
     if (role !== 'student') setRole('student')
@@ -22,10 +26,7 @@ function StudentAppBody() {
     void hydrateFromSupabase()
   }, [hydrateFromSupabase])
 
-  useEffect(() => {
-    const id = window.setInterval(() => tickBus(), 900)
-    return () => window.clearInterval(id)
-  }, [tickBus])
+  useEffect(() => startOfflineQueuePolling(), [])
 
   useEffect(() => {
     document.documentElement.style.setProperty('--accent', '#2563eb')
@@ -37,7 +38,9 @@ function StudentAppBody() {
       <StudentTopBar />
       <main className="flex-1 min-h-0 overflow-y-auto orbit-scroll student-main">
         <div className="max-w-lg mx-auto w-full px-4 py-4 fade-up">
-          <StudentScreen dest={current.dest} />
+          <ErrorBoundary label={`tab:${tab}`}>
+            <StudentScreen dest={current.dest} />
+          </ErrorBoundary>
         </div>
       </main>
       {!deepFocus ? <StudentBottomNav /> : null}
@@ -51,7 +54,9 @@ function StudentAppBody() {
 export function StudentApp() {
   return (
     <StudentNavProvider>
-      <StudentAppBody />
+      <ErrorBoundary label="student-app">
+        <StudentAppBody />
+      </ErrorBoundary>
     </StudentNavProvider>
   )
 }

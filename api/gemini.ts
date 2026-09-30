@@ -23,7 +23,8 @@ const cors = {
 }
 
 function getKey() {
-  return envFirst('GEMINI_API_KEY', 'VITE_GEMINI_API_KEY')
+  // Server-only. Never fall back to VITE_ (client) key material.
+  return envFirst('GEMINI_API_KEY')
 }
 
 type ImagePart = { mimeType: string; data: string }

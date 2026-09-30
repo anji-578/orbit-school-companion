@@ -6,10 +6,22 @@
   "scripts": {
     "dev": "vite",
     "dev:share": "vite --host",
-    "build": "tsc -b && tsc -p tsconfig.api.json && vite build",
+    "typecheck": "tsc -b && tsc -p tsconfig.api.json",
+    "build": "npm run typecheck && vite build",
     "lint": "oxlint",
+    "lint:boundaries": "depcruise --config .dependency-cruiser.cjs src",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\" \"docs/**/*.md\" \"*.md\"",
+    "format:check": "prettier --check \"src/app/**/*.{ts,tsx}\" \"src/domain/**/*.{ts,tsx}\" \"src/services/**/*.{ts,tsx}\" \"src/shared/**/*.{ts,tsx}\" \"src/dev/**/*.{ts,tsx}\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:smoke": "node scripts/smoke-hardening.mjs",
+    "test:razorpay": "node scripts/verify-razorpay-local.mjs",
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm run lint:boundaries && npm run test && vite build",
     "preview": "vite preview --host",
     "cap:sync": "npm run build && npx cap sync android",
+    "cap:release:check": "node scripts/check-capacitor-release.mjs",
     "android:open": "npx cap open android",
     "android:run": "npx cap run android",
     "android:emu": "bash scripts/android-emulator.sh",
@@ -17,8 +29,19 @@
     "pilot100:provision": "node scripts/provision-pilot100.mjs",
     "pilot100:teardown": "node scripts/teardown-pilot100.mjs",
     "demo50:generate": "node scripts/generate-demo50.mjs",
-    "test:smoke": "node scripts/smoke-hardening.mjs",
-    "test:razorpay": "node scripts/verify-razorpay-local.mjs"
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "src/**/*.{ts,tsx}": [
+      "prettier --write",
+      "oxlint"
+    ],
+    "src/app/**/*.{ts,tsx}": [
+      "prettier --write"
+    ],
+    "docs/**/*.md": [
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",
@@ -28,23 +51,36 @@
     "@capacitor/keyboard": "^8.0.5",
     "@capacitor/status-bar": "^8.0.3",
     "@supabase/supabase-js": "^2.111.0",
+    "@tanstack/react-query": "^5.104.0",
     "lucide-react": "^1.27.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "web-push": "^3.6.7",
+    "zod": "^4.6.5",
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/vite": "^4.3.3",
-    "@types/node": "^24.13.2",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
+    "@types/node": "^24.19.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@types/web-push": "^3.6.4",
     "@vitejs/plugin-react": "^6.0.3",
+    "@vitest/coverage-v8": "^5.0.2",
+    "dependency-cruiser": "^18.4.0",
+    "husky": "^9.1.7",
+    "jsdom": "^29.1.1",
+    "lint-staged": "^16.4.0",
     "oxlint": "^1.71.0",
+    "prettier": "^3.9.9",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.2",
     "vite": "^8.1.1",
+    "vitest": "^5.0.2",
     "xlsx": "^0.18.5"
   }
 }

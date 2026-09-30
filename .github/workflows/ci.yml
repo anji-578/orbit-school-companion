@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Boundary check
+        run: npm run lint:boundaries
+
+      - name: Unit tests
+        run: npm run test:coverage
+
+      - name: Build
+        run: npx vite build
+
+      - name: Bundle size report
+        run: |
+          echo "## Bundle sizes" >> "$GITHUB_STEP_SUMMARY"
+          du -sh dist dist/assets/* 2>/dev/null | tee -a "$GITHUB_STEP_SUMMARY" || true
+
+      - name: npm audit (report only)
+        continue-on-error: true
+        run: npm audit --omit=dev --audit-level=high || true
+
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true

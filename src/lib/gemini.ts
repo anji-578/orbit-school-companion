@@ -10,21 +10,6 @@ import {
 } from './aiGuardrails'
 import { getSupabase } from './supabase'
 
-/**
- * Model fallbacks for new AI Studio accounts (AQ. auth keys).
- * gemini-2.5-flash returns 404 for many new users; 2.0-flash often hits free-tier quota.
- */
-const GEMINI_MODELS = [
-  'gemini-flash-latest',
-  'gemini-3.6-flash',
-  'gemini-3.5-flash-lite',
-  'gemini-flash-lite-latest',
-] as const
-
-function endpointFor(model: string) {
-  return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
-}
-
 export interface AiTextResult {
   text: string
   source: 'live' | 'offline'
@@ -37,42 +22,9 @@ export interface AiQuizResult {
   error?: string
 }
 
-function getApiKey(): string {
-  const env = import.meta.env as Record<string, string | undefined>
-  return (env.VITE_GEMINI_API_KEY ?? '').trim()
-}
-
 export function isAiConfigured(): boolean {
-  // Production uses /api/gemini proxy; local can use VITE_GEMINI_API_KEY.
-  return getApiKey().length > 0 || Boolean(import.meta.env.PROD)
-}
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
-export async function fetchWithRetry(
-  url: string,
-  options: RequestInit,
-  retries = 2,
-): Promise<Response> {
-  let lastError: unknown = null
-  for (let attempt = 0; attempt <= retries; attempt += 1) {
-    try {
-      const response = await fetch(url, options)
-      if (response.ok) return response
-      if (response.status >= 400 && response.status < 500) {
-        return response
-      }
-      lastError = new Error(`Gemini request failed with status ${response.status}`)
-    } catch (err) {
-      lastError = err
-    }
-    if (attempt < retries) {
-      await delay(2 ** attempt * 500)
-    }
-  }
-  throw lastError instanceof Error ? lastError : new Error('Gemini request failed')
+  // AI is available via /api/gemini; offline fallbacks remain when proxy fails.
+  return true
 }
 
 async function authHeaders(): Promise<Record<string, string>> {
@@ -148,75 +100,9 @@ async function callGemini(
   image?: { base64: string; mimeType: string },
   temperature?: number,
 ): Promise<{ ok: true; text: string; model?: string } | { ok: false; error: string }> {
-  // Prefer server proxy so the API key is not required in the browser bundle.
   const proxied = await callViaProxy(prompt, system, jsonMode, image, temperature)
   if (proxied.ok) return proxied
-
-  const key = getApiKey()
-  if (!key) return { ok: false, error: proxied.error || 'Missing VITE_GEMINI_API_KEY' }
-
-  const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [
-    { text: prompt },
-  ]
-  if (image?.base64) {
-    parts.unshift({
-      inlineData: {
-        mimeType: image.mimeType || 'image/jpeg',
-        data: image.base64,
-      },
-    })
-  }
-
-  const body: Record<string, unknown> = {
-    systemInstruction: { parts: [{ text: system }] },
-    contents: [{ role: 'user', parts }],
-    generationConfig: {
-      temperature: temperature ?? (jsonMode ? 0.2 : 0.45),
-      maxOutputTokens: 2048,
-      ...(jsonMode ? { responseMimeType: 'application/json' } : {}),
-    },
-  }
-
-  const errors: string[] = [proxied.error]
-
-  for (const model of GEMINI_MODELS) {
-    try {
-      const response = await fetchWithRetry(
-        endpointFor(model),
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-goog-api-key': key,
-          },
-          body: JSON.stringify(body),
-        },
-        1,
-      )
-
-      const payload: unknown = await response.json().catch(() => null)
-      if (!response.ok) {
-        const msg =
-          payload && typeof payload === 'object' && 'error' in payload
-            ? String((payload as { error?: { message?: string } }).error?.message ?? response.status)
-            : `HTTP ${response.status}`
-        errors.push(`${model}: ${msg}`)
-        if (response.status === 404 || response.status === 429 || response.status === 503) continue
-        return { ok: false, error: msg }
-      }
-
-      const text = extractTextFromCandidates(payload)
-      if (!text) {
-        errors.push(`${model}: empty response`)
-        continue
-      }
-      return { ok: true, text, model }
-    } catch (err) {
-      errors.push(`${model}: ${err instanceof Error ? err.message : 'Network error'}`)
-    }
-  }
-
-  return { ok: false, error: errors.filter(Boolean)[0] ?? 'All Gemini models failed' }
+  return { ok: false, error: proxied.error || 'AI proxy unavailable' }
 }
 
 function pickOfflineAnswer(prompt: string): string {
@@ -246,22 +132,7 @@ function pickOfflineAnswer(prompt: string): string {
   return offlineAiAnswers.default
 }
 
-function extractTextFromCandidates(payload: unknown): string | null {
-  if (!payload || typeof payload !== 'object') return null
-  const candidates = (payload as { candidates?: unknown }).candidates
-  if (!Array.isArray(candidates) || candidates.length === 0) return null
-  const first = candidates[0] as { content?: { parts?: { text?: string }[] } }
-  const parts = first?.content?.parts
-  if (!Array.isArray(parts)) return null
-  const text = parts.map((p) => p?.text ?? '').join('').trim()
-  return text.length > 0 ? text : null
-}
-
 export async function askOrbitAi(prompt: string, system: string): Promise<AiTextResult> {
-  if (!isAiConfigured()) {
-    return { text: pickOfflineAnswer(prompt), source: 'offline', error: 'API key not configured' }
-  }
-
   const result = await callGemini(prompt, system, false)
   if (!result.ok) {
     return { text: pickOfflineAnswer(prompt), source: 'offline', error: result.error }

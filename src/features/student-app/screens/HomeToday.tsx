@@ -5,36 +5,14 @@ import { useOrbitStore } from '../../../store/orbitStore'
 import { childDisplayName } from '../../../lib/linkedStudent'
 import { currentDayCode, deriveTodayTimeline } from '../../../lib/timetableApi'
 import { InviteRedeemCard } from '../../../components/ui/InviteRedeemCard'
-import type { HomeworkTask } from '../../../types'
 import { useStudentNav } from '../StudentNavContext'
+import { presentStreak } from '@/domain/streak/present-streak'
+import { selectUrgentHomework, taskMinutes } from '@/domain/priority/homework-priority'
 
 function greeting(hour = new Date().getHours()) {
   if (hour < 12) return 'Good morning'
   if (hour < 17) return 'Good afternoon'
   return 'Good evening'
-}
-
-function presentStreak(records: { status: string }[]): number {
-  let streak = 0
-  for (let i = records.length - 1; i >= 0; i--) {
-    if (records[i]?.status === 'Present') streak += 1
-    else break
-  }
-  return streak
-}
-
-function taskMinutes(task: HomeworkTask): number {
-  if (task.estimatedMinutes != null) return task.estimatedMinutes
-  if (task.difficulty === 'Hard') return 45
-  if (task.difficulty === 'Easy') return 15
-  return 25
-}
-
-function dueUrgency(due: string): number {
-  const d = due.toLowerCase()
-  if (d.includes('tomorrow') || d.includes('today')) return 0
-  if (d.includes('2 day')) return 1
-  return 2
 }
 
 function minutesUntilAmPm(label: string, now = new Date()): number | null {
@@ -65,21 +43,13 @@ export function HomeToday() {
   const name = childDisplayName(linkedStudent, session?.displayName || 'Student').split(' ')[0]
   const streak = presentStreak(attendanceRecords)
 
-  const pending = useMemo(
-    () =>
-      [...tasks.filter((t) => !t.completed)].sort(
-        (a, b) => dueUrgency(a.due) - dueUrgency(b.due) || taskMinutes(b) - taskMinutes(a),
-      ),
-    [tasks],
-  )
-
   const timeline = useMemo(
     () => deriveTodayTimeline(timetableByDay[currentDayCode()]),
     [timetableByDay],
   )
   const nextLive = timeline.find((item) => item.status !== 'Completed')
   const classInMins = nextLive ? minutesUntilAmPm(nextLive.time) : null
-  const urgentHw = pending.find((t) => dueUrgency(t.due) === 0) ?? pending[0]
+  const urgentHw = useMemo(() => selectUrgentHomework(tasks), [tasks])
 
   const todayItems = useMemo(() => {
     type Item = { id: string; done: boolean; title: string; onOpen: () => void }
@@ -170,8 +140,9 @@ export function HomeToday() {
                 type="button"
                 className="home-cta mt-4"
                 onClick={() => {
-                  if (!urgentHw.started) {
-                    startTask(urgentHw.id)
+                  const taskId = Number(urgentHw.id)
+                  if (!urgentHw.started && Number.isFinite(taskId)) {
+                    startTask(taskId)
                     triggerToast('Homework started')
                   }
                   push('homework', { subject: urgentHw.subject, taskId: urgentHw.id }, 'Homework')

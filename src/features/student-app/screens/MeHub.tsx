@@ -3,6 +3,7 @@ import { Award, Briefcase, ChevronRight, FileText, GraduationCap, Trophy } from 
 import { useAuthStore } from '../../../auth/authStore'
 import { useOrbitStore } from '../../../store/orbitStore'
 import { childClassLabel, childDisplayName } from '../../../lib/linkedStudent'
+import { isDemoAccount } from '@/dev/isDemoAccount'
 import { SaSection } from '../components/SaUi'
 import { useStudentNav } from '../StudentNavContext'
 
@@ -41,10 +42,7 @@ export function MeHub() {
 
   const name = childDisplayName(linkedStudent, session?.displayName || studentProfile.name)
   const grade = childClassLabel(linkedStudent) || studentProfile.grade
-  const school =
-    session?.email?.toLowerCase().includes('@demo50.orbit.app')
-      ? 'Sunrise Demo Academy'
-      : studentProfile.school
+  const school = isDemoAccount(session?.email) ? 'Sunrise Demo Academy' : studentProfile.school
   const streak = presentStreak(attendanceRecords)
 
   const learning = useMemo(() => {

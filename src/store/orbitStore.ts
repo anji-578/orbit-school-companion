@@ -1340,8 +1340,8 @@ export const useOrbitStore = create<OrbitState>()(
       })),
     }),
     {
-      name: 'orbit-school-v1',
-      version: 2,
+      name: 'orbit-school-v2',
+      version: 3,
       migrate: (persisted: unknown) => {
         const state = (persisted || {}) as { studentProfile?: { name?: string; grade?: string; school?: string } }
         const profile = state.studentProfile
@@ -1359,33 +1359,15 @@ export const useOrbitStore = create<OrbitState>()(
         }
         return state
       },
+      // Phase 3: persist UI/prefs only — never server-derived collections.
       partialize: (s) => ({
         lang: s.lang,
         theme: s.theme,
-        attendanceRecords: s.attendanceRecords,
-        tasks: s.tasks,
-        studentGrades: s.studentGrades,
-        roster: s.roster,
+        studentProfile: s.studentProfile,
         unlockedBadges: s.unlockedBadges,
         totalXp: s.totalXp,
-        fees: s.fees,
-        paymentHistory: s.paymentHistory,
-        outstandingFees: s.outstandingFees,
-        paymentReceipt: s.paymentReceipt,
-        schoolPaymentSettings: s.schoolPaymentSettings,
-        paymentSubmissions: s.paymentSubmissions,
-        broadcasts: s.broadcasts,
-        calendarEvents: s.calendarEvents,
-        leaves: s.leaves,
-        curriculum: s.curriculum,
-        candidates: s.candidates,
-        notifications: s.notifications,
-        studyScore: s.studyScore,
-        studentProfile: s.studentProfile,
-        competitions: s.competitions,
-        competitionEnrollments: s.competitionEnrollments,
         gkProgress: s.gkProgress,
-        // Metadata only — file bytes stay in private Storage / IndexedDB
+        studyScore: s.studyScore,
         confidentialDocs: s.confidentialDocs,
         teacherClasses: s.teacherClasses,
         teacherActiveClass: s.teacherActiveClass,

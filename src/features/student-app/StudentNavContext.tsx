@@ -1,18 +1,29 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
-import type { StudentDestination, StudentNavFrame, StudentNavParams, StudentTab } from './studentNav'
-import { tabForDestination } from './studentNav'
+import { useEffect, useMemo, useReducer, useCallback, useRef, type ReactNode } from 'react'
+import { createContext, useContext } from 'react'
+import type { StudentDestination, StudentNavParams, StudentTab } from './studentNav'
+import {
+  deepFocus as computeDeepFocus,
+  handleHardwareBack,
+  initialNavState,
+  studentNavReducer,
+  type NavState,
+} from '@/app/nav/student-nav-reducer'
+import { resolveOrbitDeepLink } from '@/app/nav/deep-link'
+import { logger } from '@/services/logger'
+
+const NAV_PERSIST_KEY = 'orbit-student-nav-v1'
+const NAV_TTL_MS = 1000 * 60 * 60 * 12
 
 type StudentNavValue = {
   tab: StudentTab
-  stack: StudentNavFrame[]
+  stack: NavState['stack']
   setTab: (tab: StudentTab) => void
   push: (dest: StudentDestination, params?: StudentNavParams, title?: string) => void
   pop: () => void
   resetToTab: (tab: StudentTab) => void
-  current: StudentNavFrame
+  current: NavState['stack'][number]
   canGoBack: boolean
   params: StudentNavParams
-  /** Hide bottom nav on Level 3+ focus stacks */
   deepFocus: boolean
   askOrbitOpen: boolean
   askOrbitSeed: string
@@ -22,73 +33,97 @@ type StudentNavValue = {
 
 const StudentNavContext = createContext<StudentNavValue | null>(null)
 
-const TAB_ROOT: Record<StudentTab, StudentDestination> = {
-  home: 'home',
-  learn: 'learn',
-  grow: 'grow',
-  me: 'me',
+function loadPersistedNav(): NavState | null {
+  try {
+    const raw = localStorage.getItem(NAV_PERSIST_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as { savedAt: number; state: NavState }
+    if (!parsed?.state || Date.now() - parsed.savedAt > NAV_TTL_MS) return null
+    if (!parsed.state.stack?.length) return null
+    return parsed.state
+  } catch {
+    return null
+  }
 }
 
-function rootFrame(tab: StudentTab): StudentNavFrame {
-  return { dest: TAB_ROOT[tab] }
+function persistNav(state: NavState) {
+  try {
+    localStorage.setItem(NAV_PERSIST_KEY, JSON.stringify({ savedAt: Date.now(), state }))
+  } catch {
+    /* quota */
+  }
 }
 
 export function StudentNavProvider({ children }: { children: ReactNode }) {
-  const [tab, setTabState] = useState<StudentTab>('home')
-  const [stack, setStack] = useState<StudentNavFrame[]>([rootFrame('home')])
-  const [askOrbitOpen, setAskOrbitOpen] = useState(false)
-  const [askOrbitSeed, setAskOrbitSeed] = useState('')
+  const [state, dispatch] = useReducer(
+    studentNavReducer,
+    undefined,
+    () => loadPersistedNav() ?? initialNavState('home'),
+  )
+  const stateRef = useRef(state)
+  stateRef.current = state
 
-  const setTab = useCallback((next: StudentTab) => {
-    setTabState(next)
-    setStack([rootFrame(next)])
-    setAskOrbitOpen(false)
-  }, [])
+  useEffect(() => {
+    persistNav(state)
+  }, [state])
 
-  const resetToTab = setTab
-
-  const push = useCallback((dest: StudentDestination, params?: StudentNavParams, title?: string) => {
-    const nextTab = tabForDestination(dest)
-    setTabState(nextTab)
-    setStack((prev) => {
-      const root = rootFrame(nextTab)
-      if (dest === root.dest && !params) return [root]
-      const base = prev[0]?.dest === root.dest ? prev : [root]
-      const nextFrame: StudentNavFrame = { dest, params, title }
-      const last = base[base.length - 1]
-      if (last?.dest === dest && JSON.stringify(last.params ?? {}) === JSON.stringify(params ?? {})) {
-        return base
+  useEffect(() => {
+    const handles: Array<{ remove: () => Promise<void> }> = []
+    void (async () => {
+      try {
+        const { App } = await import('@capacitor/app')
+        handles.push(
+          await App.addListener('backButton', ({ canGoBack }) => {
+            const result = handleHardwareBack(stateRef.current)
+            if (result.exitApp) {
+              if (!canGoBack) void App.exitApp()
+              return
+            }
+            dispatch({ type: 'restore', state: result.state })
+          }),
+        )
+        handles.push(
+          await App.addListener('appUrlOpen', ({ url }) => {
+            const link = resolveOrbitDeepLink(url)
+            if (!link.ok) return
+            dispatch({
+              type: 'push',
+              dest: link.dest,
+              params: link.params,
+              title: link.title,
+            })
+          }),
+        )
+      } catch {
+        /* web */
       }
-      return [...base, nextFrame]
-    })
+    })()
+    return () => {
+      for (const h of handles) void h.remove()
+    }
   }, [])
 
-  const pop = useCallback(() => {
-    setStack((prev) => {
-      if (prev.length <= 1) return prev
-      return prev.slice(0, -1)
-    })
+  const setTab = useCallback((tab: StudentTab) => dispatch({ type: 'setTab', tab }), [])
+  const resetToTab = setTab
+  const push = useCallback((dest: StudentDestination, params?: StudentNavParams, title?: string) => {
+    dispatch({ type: 'push', dest, params, title })
   }, [])
-
+  const pop = useCallback(() => dispatch({ type: 'pop' }), [])
   const openAskOrbit = useCallback((seed?: string) => {
-    setAskOrbitSeed(seed ?? '')
-    setAskOrbitOpen(true)
+    dispatch({ type: 'openAskOrbit', seed })
+    logger.debug('ask_orbit_open')
   }, [])
+  const closeAskOrbit = useCallback(() => dispatch({ type: 'closeAskOrbit' }), [])
 
-  const closeAskOrbit = useCallback(() => {
-    setAskOrbitOpen(false)
-    setAskOrbitSeed('')
-  }, [])
-
-  const current = stack[stack.length - 1] ?? rootFrame('home')
-  const canGoBack = stack.length > 1
+  const current = state.stack[state.stack.length - 1] ?? { dest: 'home' as const }
+  const canGoBack = state.stack.length > 1
   const params = current.params ?? {}
-  const deepFocus = stack.length >= 3
+  const deepFocus = computeDeepFocus(state.stack)
 
   const value = useMemo(
     () => ({
-      tab,
-      stack,
+      tab: state.tab,
+      stack: state.stack,
       setTab,
       push,
       pop,
@@ -97,14 +132,16 @@ export function StudentNavProvider({ children }: { children: ReactNode }) {
       canGoBack,
       params,
       deepFocus,
-      askOrbitOpen,
-      askOrbitSeed,
+      askOrbitOpen: state.askOrbitOpen,
+      askOrbitSeed: state.askOrbitSeed,
       openAskOrbit,
       closeAskOrbit,
     }),
     [
-      tab,
-      stack,
+      state.tab,
+      state.stack,
+      state.askOrbitOpen,
+      state.askOrbitSeed,
       setTab,
       push,
       pop,
@@ -113,8 +150,6 @@ export function StudentNavProvider({ children }: { children: ReactNode }) {
       canGoBack,
       params,
       deepFocus,
-      askOrbitOpen,
-      askOrbitSeed,
       openAskOrbit,
       closeAskOrbit,
     ],

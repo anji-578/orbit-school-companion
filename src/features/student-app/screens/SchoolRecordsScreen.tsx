@@ -1,6 +1,6 @@
 import { BookOpen, CalendarCheck, ChevronRight, GraduationCap, Users } from 'lucide-react'
 import { useOrbitStore } from '../../../store/orbitStore'
-import { SaCard, SaSection } from '../components/SaUi'
+import { SaSection } from '../components/SaUi'
 import { useStudentNav } from '../StudentNavContext'
 
 /** Administrative records — secondary to identity on Me. */
