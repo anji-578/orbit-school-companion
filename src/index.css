@@ -901,6 +901,27 @@ html[data-theme='light'] .landing-feat-tab.is-active svg {
   touch-action: manipulation;
 }
 
+/* Premium Home hero image fade into greeting */
+.mask-home-hero {
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 28%, #000 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 28%, #000 100%);
+}
+
+.home-premium {
+  animation: home-premium-in 420ms ease both;
+}
+
+@keyframes home-premium-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (min-width: 640px) {
   .student-app {
     /* Phone-first column on desktop preview */
