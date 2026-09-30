@@ -901,25 +901,140 @@ html[data-theme='light'] .landing-feat-tab.is-active svg {
   touch-action: manipulation;
 }
 
-/* Premium Home hero image fade into greeting */
-.mask-home-hero {
-  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 28%, #000 100%);
-  mask-image: linear-gradient(90deg, transparent 0%, #000 28%, #000 100%);
+/* Home glance — soft cards, quiet hierarchy, gradient CTAs */
+.student-app {
+  --home-muted: #8b93a7;
+  --home-divider: rgba(255, 255, 255, 0.06);
+  --home-card: #121826;
+  --home-card-border: rgba(255, 255, 255, 0.075);
 }
 
-.home-premium {
-  animation: home-premium-in 420ms ease both;
+html[data-theme='light'] .student-app {
+  --home-muted: #64748b;
+  --home-divider: rgba(15, 23, 42, 0.08);
+  --home-card: #ffffff;
+  --home-card-border: rgba(15, 23, 42, 0.08);
 }
 
-@keyframes home-premium-in {
+.student-app.orbit-root {
+  background:
+    radial-gradient(900px 420px at 80% -8%, rgba(37, 99, 235, 0.14), transparent 55%),
+    linear-gradient(180deg, #070a12 0%, #0a0e18 48%, #070a12 100%);
+}
+
+html[data-theme='light'] .student-app.orbit-root {
+  background:
+    radial-gradient(900px 420px at 80% -8%, rgba(37, 99, 235, 0.1), transparent 55%),
+    linear-gradient(180deg, #f7f9fc 0%, #eef2f8 100%);
+}
+
+.home-glance {
+  animation: home-glance-in 380ms ease both;
+}
+
+@keyframes home-glance-in {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.home-eyebrow {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--home-muted);
+}
+
+.home-card {
+  border-radius: 1.05rem;
+  background: var(--home-card);
+  border: 1px solid var(--home-card-border);
+  box-shadow: 0 10px 28px -22px rgba(0, 0, 0, 0.55);
+}
+
+.home-badge {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #60a5fa;
+  background: rgba(37, 99, 235, 0.16);
+  border: 1px solid rgba(96, 165, 250, 0.22);
+  border-radius: 999px;
+  padding: 0.28rem 0.55rem;
+}
+
+.home-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border-radius: 0.8rem;
+  padding: 0.7rem 1.05rem;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(90deg, #2563eb 0%, #38bdf8 100%);
+  box-shadow: 0 8px 18px -10px rgba(37, 99, 235, 0.85);
+  transition: transform 140ms ease, filter 140ms ease;
+}
+
+.home-cta:active {
+  transform: scale(0.985);
+  filter: brightness(0.98);
+}
+
+.home-link {
+  font-size: 11px;
+  font-weight: 700;
+  color: #60a5fa;
+}
+
+.home-icon-btn {
+  height: 2.25rem;
+  width: 2.25rem;
+  border-radius: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--home-card-border);
+  background: color-mix(in srgb, var(--home-card) 88%, transparent);
+  color: var(--fg);
+}
+
+.home-logo-mark {
+  position: relative;
+  height: 1.7rem;
+  width: 1.7rem;
+  border-radius: 999px;
+  background: radial-gradient(circle at 35% 30%, #60a5fa, #2563eb 55%, #1d4ed8 100%);
+  box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.25), 0 0 16px rgba(37, 99, 235, 0.45);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.home-logo-ring {
+  height: 0.72rem;
+  width: 0.72rem;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.92);
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.35);
+}
+
+.student-topbar {
+  border-bottom: 1px solid transparent;
+}
+
+.student-app .student-bottom-nav {
+  background: color-mix(in srgb, #0c101c 92%, transparent);
+  border-top-color: var(--home-card-border);
 }
 
 @media (min-width: 640px) {
