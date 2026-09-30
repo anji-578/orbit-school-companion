@@ -4,7 +4,7 @@ Honest matrix. No UI redesign. Anything without pasted proof stays **NOT MET**.
 
 ## Commits
 
-- (this push) Round 3 closure
+- `09237d1` Round 3 closure
 - `64c6d6a` prior closure pass
 - `6dc8882` phases 1–9 substrate
 
