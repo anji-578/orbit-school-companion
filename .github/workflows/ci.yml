@@ -35,11 +35,27 @@ jobs:
       - name: Boundary check
         run: npm run lint:boundaries
 
+      - name: Boundary rule fires (deliberate violation fixture)
+        run: npm run check:boundary-fires
+
       - name: Unit tests
         run: npm run test:coverage
 
       - name: Build
         run: npx vite build
+        env:
+          ORBIT_STRICT_ENV: '1'
+          # Ensure no client Gemini key is present in CI env
+          VITE_GEMINI_API_KEY: ''
+
+      - name: Dist must not contain secrets
+        run: npm run check:dist-secrets
+
+      - name: Release Capacitor config must not set server.url
+        run: npm run check:cap-release
+
+      - name: Demo/sample markers in production bundle (evidence)
+        run: npm run audit:demo-bundle
 
       - name: Bundle size report
         run: |
@@ -55,3 +71,28 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
+
+  sql-security:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install psql client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Run SECURITY DEFINER + isolation SQL tests
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres
+        run: bash scripts/run-sql-security-tests.sh

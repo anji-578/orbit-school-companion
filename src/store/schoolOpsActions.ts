@@ -88,7 +88,6 @@ export function createSchoolOpsActions(set: any, get: any) {
       const nextCompleted = !before.completed
       set((s: {
         tasks: HomeworkTask[]
-        totalXp: number
         unlockedBadges: string[]
         attendanceRecords: Parameters<typeof attendancePercent>[0]
       }) => {
@@ -96,30 +95,26 @@ export function createSchoolOpsActions(set: any, get: any) {
           if (task.id !== id) return task
           return { ...task, completed: nextCompleted }
         })
-        let totalXp = s.totalXp
-        totalXp = Math.max(0, totalXp + (before.completed ? -before.xp : before.xp))
         let unlockedBadges = s.unlockedBadges
         if (tasks.every((t) => t.completed) && !unlockedBadges.includes('Task Master')) {
+          // Badge display is still local until ledger awards land; XP is never mutated here.
           unlockedBadges = [...unlockedBadges, 'Task Master']
           queueMicrotask(() => get().triggerToast('All homework complete — Task Master unlocked!'))
         }
         const studyScore = computeStudyScore(attendancePercent(s.attendanceRecords), homeworkPercent(tasks))
-        return { tasks, totalXp, unlockedBadges, studyScore }
+        return { tasks, unlockedBadges, studyScore }
       })
       void syncToggleHomework(id, nextCompleted, get().linkedStudent?.id).then((result) => {
         if (!result.ok) {
           set((s: {
             tasks: HomeworkTask[]
-            totalXp: number
             attendanceRecords: Parameters<typeof attendancePercent>[0]
           }) => {
             const tasks = s.tasks.map((task) =>
               task.id === id ? { ...task, completed: before.completed } : task,
             )
-            const totalXp = Math.max(0, s.totalXp + (nextCompleted ? -before.xp : before.xp))
             return {
               tasks,
-              totalXp,
               studyScore: computeStudyScore(attendancePercent(s.attendanceRecords), homeworkPercent(tasks)),
             }
           })

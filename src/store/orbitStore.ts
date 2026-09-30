@@ -1,7 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import {
-  ALL_BADGES,
   initialAttendance,
   initialBroadcasts,
   initialCalendar,
@@ -301,8 +300,8 @@ interface OrbitState {
   saveTimetable: (className: string, week: TimetableByDay) => Promise<boolean>
   setLifecycleSubject: (key: string) => void
   setLifecycleMetric: (m: 'marks' | 'ranks') => void
-  unlockBadge: (name: string) => void
-  addXp: (amount: number) => void
+  /** Server projection only — never invent XP/badges on the client. */
+  setGamificationProjection: (totalXp: number, unlockedBadges: string[]) => void
 
   updateStudentProfile: (profile: Partial<StudentAcademicProfile>) => void
   registerForCompetition: (competitionId: string) => void
@@ -333,8 +332,8 @@ export const useOrbitStore = create<OrbitState>()(
       tasks: initialTasks,
       studentGrades: initialGrades,
       roster: initialRoster,
-      unlockedBadges: ['Streak Keeper', 'Early Bird', 'Curious Mind'],
-      totalXp: 430,
+      unlockedBadges: [],
+      totalXp: 0,
 
       studentProfile: initialStudentProfile,
       competitions: initialCompetitions,
@@ -968,8 +967,8 @@ export const useOrbitStore = create<OrbitState>()(
           tasks: initialTasks,
           studentGrades: initialGrades,
           roster: initialRoster,
-          unlockedBadges: ['Streak Keeper', 'Early Bird', 'Curious Mind'],
-          totalXp: 430,
+          unlockedBadges: [],
+          totalXp: 0,
           fees: initialFees,
           feesHasMore: false,
           paymentHistory: initialPaymentHistory,
@@ -1040,9 +1039,7 @@ export const useOrbitStore = create<OrbitState>()(
         })
         set({ quizScore: correct })
         if (correct === activeQuiz.questions.length) {
-          get().addXp(100)
-          get().unlockBadge('Quiz Whiz')
-          get().triggerToast('Perfect quiz! +100 XP · Quiz Whiz unlocked.')
+          get().triggerToast('Perfect quiz!')
         }
       },
       setListening: (isListening) => set({ isListening }),
@@ -1144,9 +1141,6 @@ export const useOrbitStore = create<OrbitState>()(
         }
         // Practice only — never write official report-card grades from AI
         set({ scanStep: 'validated' })
-        get().addXp(100)
-        get().unlockBadge('Concept Master')
-        get().unlockBadge('Rising Scholar')
         get().pushNotification({
           role: 'student',
           title: 'Concept practiced',
@@ -1157,7 +1151,7 @@ export const useOrbitStore = create<OrbitState>()(
           title: 'Paper coach practice',
           body: `${childFirstName(get().linkedStudent)} practiced ${insight.subject}. Official marks stay with the teacher.`,
         })
-        get().triggerToast('Practice check passed · XP earned (report card unchanged).')
+        get().triggerToast('Practice check passed (report card unchanged).')
         void scanTarget
       },
 
@@ -1203,13 +1197,7 @@ export const useOrbitStore = create<OrbitState>()(
       setLifecycleSubject: (selectedLifecycleSubject) => set({ selectedLifecycleSubject }),
       setLifecycleMetric: (selectedLifecycleMetric) => set({ selectedLifecycleMetric }),
 
-      unlockBadge: (name) => {
-        if (!ALL_BADGES.some((b) => b.name === name)) return
-        set((s) =>
-          s.unlockedBadges.includes(name) ? s : { unlockedBadges: [...s.unlockedBadges, name] },
-        )
-      },
-      addXp: (amount) => set((s) => ({ totalXp: s.totalXp + amount })),
+      setGamificationProjection: (totalXp, unlockedBadges) => set({ totalXp, unlockedBadges }),
 
       updateStudentProfile: (profile) => set((s) => ({
         studentProfile: { ...s.studentProfile, ...profile }
@@ -1293,11 +1281,8 @@ export const useOrbitStore = create<OrbitState>()(
           }
         })
         const xp = passed ? 40 + Math.round((score / Math.max(total, 1)) * 40) : 15
-        get().addXp(xp)
-        if (passed) {
-          get().unlockBadge(level === 'hard' ? 'GK Champion' : level === 'medium' ? 'GK Explorer' : 'GK Starter')
-        }
-        get().triggerToast(`GK ${level}: ${score}/${total} · +${xp} XP`)
+        get().triggerToast(`GK ${level}: ${score}/${total}`)
+        void xp
       },
 
       loadConfidentialDocs: async () => {
@@ -1359,13 +1344,11 @@ export const useOrbitStore = create<OrbitState>()(
         }
         return state
       },
-      // Phase 3: persist UI/prefs only — never server-derived collections.
+      // Phase 3/4: persist UI/prefs only — never server-derived XP/collections.
       partialize: (s) => ({
         lang: s.lang,
         theme: s.theme,
         studentProfile: s.studentProfile,
-        unlockedBadges: s.unlockedBadges,
-        totalXp: s.totalXp,
         gkProgress: s.gkProgress,
         studyScore: s.studyScore,
         confidentialDocs: s.confidentialDocs,

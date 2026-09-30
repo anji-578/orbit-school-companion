@@ -35,8 +35,6 @@ export function StudyAssistant() {
   const setSpeaking = useOrbitStore((s) => s.setSpeaking)
   const clearAiPanel = useOrbitStore((s) => s.clearAiPanel)
   const triggerToast = useOrbitStore((s) => s.triggerToast)
-  const unlockBadge = useOrbitStore((s) => s.unlockBadge)
-  const addXp = useOrbitStore((s) => s.addXp)
   const timetableByDay = useOrbitStore((s) => s.timetableByDay)
 
   const recognitionRef = useRef<VoiceRecognitionHandle | null>(null)
@@ -64,9 +62,6 @@ export function StudyAssistant() {
     }
     if (result.answer.refuse) {
       triggerToast(t('aiRefusedToast'))
-    } else {
-      unlockBadge('Curious Mind')
-      addXp(10)
     }
   }
 
