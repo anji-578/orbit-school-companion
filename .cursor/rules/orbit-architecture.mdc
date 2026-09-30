@@ -1,0 +1,26 @@
+---
+description: Orbit Student architecture, boundaries and quality rules
+globs: ["src/**/*.ts", "src/**/*.tsx", "supabase/**/*"]
+alwaysApply: true
+---
+# Architecture
+- Layers: app -> features -> (domain, services, shared). domain is pure TypeScript: no React, no IO, no Supabase, no Date.now() without an injected clock.
+- Features expose a public API through index.ts. Never import another feature's internals.
+- Components never call Supabase, fetch, or Gemini. They use feature hooks. Hooks call repositories. Repositories call services.
+- Server state lives in TanStack Query. Zustand holds UI/session/preferences only. Never persist server data.
+- All external data is validated with Zod at the boundary and mapped to domain types once.
+- All AI calls go through the authenticated server proxy. The client never holds a model key.
+- XP, badges and streak are computed server-side from events. The client only displays them.
+- Sample/demo data lives in src/dev and is excluded from production builds.
+
+# Code quality
+- TypeScript strict. No any, no @ts-ignore, no non-null assertions without a justified comment.
+- Files under 300 lines; functions under 60 lines; one exported component per file.
+- No console.log in src. Use services/logger. No secrets in code, logs or commits.
+- Every new domain function ships with unit tests. Every migration ships with RLS tests.
+- Times are Asia/Kolkata for school logic; store UTC; convert at the edge.
+
+# Process
+- Do not change UI, styling or copy unless the task explicitly says so.
+- Small conventional commits. Run `npm run check` before finishing any task.
+- List assumptions and decisions in every summary. Ask before destructive or irreversible changes.
