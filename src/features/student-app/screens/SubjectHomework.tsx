@@ -15,9 +15,7 @@ export function SubjectHomework() {
   const triggerToast = useOrbitStore((s) => s.triggerToast)
 
   const scoped = useMemo(() => {
-    const list = subject
-      ? tasks.filter((t) => t.subject.toLowerCase() === subject.toLowerCase())
-      : tasks
+    const list = subject ? tasks.filter((t) => t.subject.toLowerCase() === subject.toLowerCase()) : tasks
     return {
       pending: list.filter((t) => !t.completed),
       done: list.filter((t) => t.completed),
@@ -26,7 +24,7 @@ export function SubjectHomework() {
 
   const focus =
     params.taskId != null
-      ? scoped.pending.find((t) => String(t.id) === String(params.taskId)) ?? scoped.pending[0]
+      ? (scoped.pending.find((t) => String(t.id) === String(params.taskId)) ?? scoped.pending[0])
       : scoped.pending[0]
 
   if (!scoped.pending.length && !scoped.done.length) {
@@ -36,7 +34,9 @@ export function SubjectHomework() {
         body="When your teacher assigns work, it will show up here."
         action={
           subject ? (
-            <SaPrimaryButton onClick={() => openAskOrbit(`Help me revise ${subject}.`)}>Ask Orbit</SaPrimaryButton>
+            <SaPrimaryButton onClick={() => openAskOrbit(`Help me revise ${subject}.`)}>
+              Ask Orbit
+            </SaPrimaryButton>
           ) : undefined
         }
       />
@@ -48,7 +48,9 @@ export function SubjectHomework() {
       {focus ? (
         <div className="rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 p-4 space-y-3">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-wider text-[var(--muted)]">{focus.subject}</p>
+            <p className="text-[10px] font-black uppercase tracking-wider text-[var(--muted)]">
+              {focus.subject}
+            </p>
             <p className="text-base font-extrabold text-[var(--fg)] mt-1 leading-snug">{focus.task}</p>
             <p className="text-[11px] text-[var(--muted)] mt-1">
               Due {focus.due} · {focus.difficulty} · +{focus.xp} XP
@@ -88,7 +90,9 @@ export function SubjectHomework() {
 
       <SaSection eyebrow="Open">
         {scoped.pending.length === 0 ? (
-          <p className="text-xs text-emerald-600 dark:text-emerald-300 font-semibold px-0.5">All caught up in this subject.</p>
+          <p className="text-xs text-emerald-600 dark:text-emerald-300 font-semibold px-0.5">
+            All caught up in this subject.
+          </p>
         ) : (
           <ul className="divide-y divide-[var(--border)]">
             {scoped.pending.map((task) => (
@@ -117,7 +121,9 @@ export function SubjectHomework() {
             {scoped.done.map((task) => (
               <li key={task.id} className="flex items-center gap-3 py-2.5 px-0.5">
                 <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" aria-hidden />
-                <span className="text-xs font-semibold text-[var(--muted)] line-through truncate">{task.task}</span>
+                <span className="text-xs font-semibold text-[var(--muted)] line-through truncate">
+                  {task.task}
+                </span>
               </li>
             ))}
           </ul>

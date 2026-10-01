@@ -45,7 +45,10 @@ export function SubjectTopics() {
         if (resourcesOnly && resourceSubs.length === 0) return null
 
         return (
-          <article key={chapter.id} className="rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-4 space-y-3">
+          <article
+            key={chapter.id}
+            className="rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-4 space-y-3"
+          >
             <div className="flex items-start gap-3">
               <span className="h-9 w-9 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center shrink-0">
                 <BookOpen className="h-4 w-4 text-[var(--accent)]" aria-hidden />
@@ -114,7 +117,8 @@ export function SubjectTopics() {
         )
       })}
 
-      {resourcesOnly && chapters.every((c) => !c.subtopics.some((s) => s.noteDataUrl || resolveYoutubeUrl(s))) ? (
+      {resourcesOnly &&
+      chapters.every((c) => !c.subtopics.some((s) => s.noteDataUrl || resolveYoutubeUrl(s))) ? (
         <SaEmpty title="No resources yet" body="Teacher notes and videos will appear here when shared." />
       ) : null}
 

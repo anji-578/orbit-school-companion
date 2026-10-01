@@ -1,21 +1,21 @@
 @import "tailwindcss";
-@import "./styles/orbit-design.css";
+@import "./styles/orbit-theme.css";
 
 :root {
   color-scheme: dark;
-  --accent: #1e7bff;
-  --accent2: #38bdf8;
-  --brand-navy: #0a1020;
-  --brand-royal: #1e7bff;
-  --bg-base: #0a1020;
-  --fg: #ffffff;
+  --accent: var(--o-primary);
+  --accent2: var(--o-primary-hi);
+  --brand-navy: var(--o-bg);
+  --brand-royal: var(--o-primary);
+  --bg-base: var(--o-bg);
+  --fg: var(--o-text);
   --surface: rgba(255, 255, 255, 0.035);
-  --surface-strong: rgba(14, 23, 44, 0.88);
-  --border: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.14);
-  --header-bg: rgba(10, 16, 32, 0.88);
-  --panel: #0e172c;
-  --muted: #94a3b8;
+  --surface-strong: var(--o-surface);
+  --border: var(--o-border);
+  --border-strong: var(--o-border-strong);
+  --header-bg: color-mix(in srgb, var(--o-bg) 88%, transparent);
+  --panel: var(--o-surface);
+  --muted: var(--o-muted);
   --health-good: #22c55e;
   --health-warn: #f59e0b;
   --ai-hint: #a78bfa;
@@ -45,12 +45,12 @@ body {
   overflow: hidden;
   background: var(--bg-base);
   color: var(--fg);
-  font-family: var(--font-sans), 'Noto Sans Telugu', system-ui, sans-serif;
+  font-family: var(--font-body);
   transition: background 500ms ease, color 400ms ease;
 }
 
 .orbit-root {
-  font-family: var(--font-sans), 'Noto Sans Telugu', system-ui, sans-serif;
+  font-family: var(--font-body);
   background:
     radial-gradient(1100px 600px at 85% -10%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 60%),
     radial-gradient(900px 700px at -10% 100%, color-mix(in srgb, var(--accent2) 8%, transparent), transparent 55%),
@@ -67,7 +67,7 @@ html[data-theme='light'] .orbit-root {
 }
 
 .font-display {
-  font-family: var(--font-heading), 'Noto Sans Telugu', sans-serif;
+  font-family: var(--font-display);
 }
 
 .font-brand {
@@ -919,8 +919,9 @@ html[data-theme='light'] .student-app {
 
 .student-app.orbit-root {
   background:
-    radial-gradient(900px 420px at 80% -8%, rgba(30, 123, 255, 0.16), transparent 55%),
-    linear-gradient(180deg, #060b16 0%, #0a1020 48%, #060b16 100%);
+    radial-gradient(900px 420px at 80% -8%, color-mix(in srgb, var(--o-primary) 18%, transparent), transparent 55%),
+    linear-gradient(180deg, var(--o-bg) 0%, var(--o-bg-glow) 42%, var(--o-bg) 100%);
+  scroll-padding-top: 4.5rem;
 }
 
 html[data-theme='light'] .student-app.orbit-root {
@@ -1038,13 +1039,23 @@ html[data-theme='light'] .student-app.orbit-root {
   border-top-color: var(--home-card-border);
 }
 
-.student-tab-btn.is-active .student-tab-icon {
-  color: #1e7bff;
-  filter: drop-shadow(0 0 10px rgba(30, 123, 255, 0.55));
+.student-tab-btn {
+  outline: none;
+}
+
+.student-tab-btn:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+
+.student-tab-btn.is-active .student-tab-icon-wrap {
+  background: color-mix(in srgb, var(--o-primary) 18%, transparent);
+  color: var(--o-primary);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--o-primary) 28%, transparent);
 }
 
 .student-tab-btn.is-active .student-tab-label {
-  color: #1e7bff;
+  color: var(--o-primary);
 }
 
 @media (min-width: 640px) {

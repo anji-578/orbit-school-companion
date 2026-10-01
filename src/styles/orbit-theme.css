@@ -1,0 +1,123 @@
+/*
+  Orbit UI tokens (Tailwind 4).
+  Import AFTER `@import "tailwindcss";` in src/index.css.
+  Variables are namespaced --o-* so they never collide with the legacy --surface / --border / --muted in index.css.
+  Migrate screens to --o-* one at a time; delete the legacy tokens when nothing references them.
+*/
+
+:root,
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --o-bg: #060b18;
+  --o-bg-glow: #0b1a3a;
+  --o-surface: #0d1526;
+  --o-surface-2: #111c33;
+  --o-border: rgba(255, 255, 255, 0.08);
+  --o-border-strong: rgba(255, 255, 255, 0.14);
+  --o-text: #f2f5fb;
+  --o-muted: #8fa0bf;
+  --o-faint: #5f6f8f;
+  --o-track: rgba(255, 255, 255, 0.1);
+  --o-primary: #1e7bff;
+  --o-primary-hi: #1ba6ff;
+  --o-danger: #ff3b5c;
+  --o-success: #1fd186;
+  --o-note-bg: rgba(20, 32, 70, 0.75);
+  --o-shadow-card: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 12px 32px rgba(0, 0, 0, 0.35);
+  --o-shadow-glow: 0 8px 24px rgba(30, 123, 255, 0.35);
+}
+
+html[data-theme="light"] {
+  color-scheme: light;
+  --o-bg: #f4f7fc;
+  --o-bg-glow: #dce8ff;
+  --o-surface: #ffffff;
+  --o-surface-2: #f0f4fb;
+  --o-border: rgba(11, 20, 48, 0.1);
+  --o-border-strong: rgba(11, 20, 48, 0.18);
+  --o-text: #0b1430;
+  --o-muted: #5b6b8c;
+  --o-faint: #8a97b3;
+  --o-track: rgba(11, 20, 48, 0.09);
+  --o-primary: #1e6bff;
+  --o-primary-hi: #1494f5;
+  --o-danger: #e5254b;
+  --o-success: #0e9f5e;
+  --o-note-bg: rgba(255, 255, 255, 0.85);
+  --o-shadow-card: 0 1px 0 rgba(255, 255, 255, 0.8) inset, 0 10px 28px rgba(20, 40, 90, 0.1);
+  --o-shadow-glow: 0 8px 22px rgba(30, 107, 255, 0.28);
+}
+
+/* Subject identity: the same colours on every screen (card, tile, bar, calendar row). */
+:root {
+  --o-math-from: #173a86;   --o-math-to: #0b1a3d;   --o-math-accent: #3d7bff;   --o-math-tile: #4a86ff #2444d6;
+  --o-sci-from: #0f4a38;    --o-sci-to: #0a2321;    --o-sci-accent: #1fd186;    --o-sci-tile: #25d68f #0e9e66;
+  --o-chem-from: #5a2a14;   --o-chem-to: #2b1510;   --o-chem-accent: #ff7a33;   --o-chem-tile: #ff9048 #f0561a;
+  --o-eng-from: #5a163f;    --o-eng-to: #2a0f28;    --o-eng-accent: #ff3d8b;    --o-eng-tile: #ff5c9f #e02472;
+}
+html[data-theme="light"] {
+  --o-math-from: #5c8cff;   --o-math-to: #2c57e0;
+  --o-sci-from: #2ccb8b;    --o-sci-to: #0f9463;
+  --o-chem-from: #ff9a55;   --o-chem-to: #ea5b1e;
+  --o-eng-from: #ff6ba6;    --o-eng-to: #d92572;
+}
+
+/* Expose as Tailwind utilities: bg-o-surface, text-o-muted, border-o-border, rounded-card, font-display ... */
+@theme inline {
+  --color-o-bg: var(--o-bg);
+  --color-o-surface: var(--o-surface);
+  --color-o-surface-2: var(--o-surface-2);
+  --color-o-border: var(--o-border);
+  --color-o-text: var(--o-text);
+  --color-o-muted: var(--o-muted);
+  --color-o-faint: var(--o-faint);
+  --color-o-track: var(--o-track);
+  --color-o-primary: var(--o-primary);
+  --color-o-primary-hi: var(--o-primary-hi);
+  --color-o-danger: var(--o-danger);
+  --color-o-success: var(--o-success);
+
+  --font-display: "Plus Jakarta Sans", "Noto Sans Telugu", system-ui, sans-serif;
+  --font-body: "Inter", "Noto Sans Telugu", system-ui, sans-serif;
+
+  --radius-chip: 10px;
+  --radius-tile: 14px;
+  --radius-button: 14px;
+  --radius-card: 22px;
+  --radius-hero: 26px;
+
+  --shadow-card: var(--o-shadow-card);
+  --shadow-glow: var(--o-shadow-glow);
+}
+
+/* Shared recipes (use instead of re-inventing per screen) */
+.o-card {
+  background: linear-gradient(180deg, var(--o-surface-2), var(--o-surface));
+  border: 1px solid var(--o-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--o-shadow-card);
+}
+.o-label {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--o-muted);
+}
+.o-btn-primary {
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: var(--radius-button);
+  color: #fff;
+  font-weight: 600;
+  background: linear-gradient(90deg, var(--o-primary), var(--o-primary-hi));
+  box-shadow: var(--o-shadow-glow);
+  transition: transform 140ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.o-btn-primary:active { transform: scale(0.98); }
+.o-focus:focus-visible { outline: 2px solid var(--o-primary); outline-offset: 3px; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

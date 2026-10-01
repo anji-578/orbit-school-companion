@@ -31,7 +31,9 @@ export function AskOrbitSheet() {
       >
         <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-[var(--border)] shrink-0">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--muted)]">Ask Orbit</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--muted)]">
+              Ask Orbit
+            </p>
             <p className="text-sm font-bold text-[var(--fg)]">Study help in context</p>
           </div>
           <button

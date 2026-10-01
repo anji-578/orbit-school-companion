@@ -40,7 +40,10 @@ export function InterestsDetail() {
 
   return (
     <div className="space-y-4 pb-4">
-      <SaSection eyebrow="Discover" title={`What would you like to explore? (${interests.length}/${MAX_INTERESTS})`}>
+      <SaSection
+        eyebrow="Discover"
+        title={`What would you like to explore? (${interests.length}/${MAX_INTERESTS})`}
+      >
         <SaCard className="p-4">
           <div className="flex flex-wrap gap-2">
             {INTEREST_POOL.map((item) => (

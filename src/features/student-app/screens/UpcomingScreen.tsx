@@ -22,7 +22,9 @@ export function UpcomingScreen() {
 
   const pending = useMemo(
     () =>
-      [...tasks.filter((t) => !t.completed)].sort((a, b) => dueUrgency(a.due) - dueUrgency(b.due)).slice(0, 8),
+      [...tasks.filter((t) => !t.completed)]
+        .sort((a, b) => dueUrgency(a.due) - dueUrgency(b.due))
+        .slice(0, 8),
     [tasks],
   )
 
@@ -55,7 +57,10 @@ export function UpcomingScreen() {
 
       <SaSection eyebrow="Homework">
         {pending.length === 0 ? (
-          <SaEmpty title="No open homework" body="You're clear — revisit a subject if you want extra practice." />
+          <SaEmpty
+            title="No open homework"
+            body="You're clear — revisit a subject if you want extra practice."
+          />
         ) : (
           <div className="space-y-2">
             {pending.map((t) => (
@@ -74,7 +79,11 @@ export function UpcomingScreen() {
       <SaSection
         eyebrow="Calendar"
         action={
-          <button type="button" className="text-[10px] font-bold text-[var(--accent)]" onClick={() => push('calendar')}>
+          <button
+            type="button"
+            className="text-[10px] font-bold text-[var(--accent)]"
+            onClick={() => push('calendar')}
+          >
             Full calendar →
           </button>
         }

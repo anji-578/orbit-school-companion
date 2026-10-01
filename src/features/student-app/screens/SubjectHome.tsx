@@ -1,5 +1,14 @@
 import { useMemo } from 'react'
-import { ArrowRight, BookOpen, Camera, ClipboardList, FileText, FolderOpen, LineChart, MessageCircle } from 'lucide-react'
+import {
+  ArrowRight,
+  BookOpen,
+  Camera,
+  ClipboardList,
+  FileText,
+  FolderOpen,
+  LineChart,
+  MessageCircle,
+} from 'lucide-react'
 import { useOrbitStore } from '../../../store/orbitStore'
 import { chapterProgress } from '../../../store/orbitHelpers'
 import { SaPrimaryButton, SaSection } from '../components/SaUi'
@@ -38,7 +47,9 @@ export function SubjectHome() {
             {subject.slice(0, 1)}
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-black uppercase tracking-wider text-[var(--muted)]">Current topic</p>
+            <p className="text-[10px] font-black uppercase tracking-wider text-[var(--muted)]">
+              Current topic
+            </p>
             <p className="text-base font-extrabold text-[var(--fg)] mt-0.5 leading-snug">
               {currentChapter?.title ?? 'No topic yet'}
             </p>
@@ -136,7 +147,11 @@ function SubjectLink({
   onClick: () => void
 }) {
   return (
-    <button type="button" onClick={onClick} className="w-full flex items-center gap-3 py-3.5 text-left px-0.5">
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full flex items-center gap-3 py-3.5 text-left px-0.5"
+    >
       <span className="h-9 w-9 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center shrink-0">
         <Icon className="h-4 w-4 text-[var(--accent)]" aria-hidden />
       </span>

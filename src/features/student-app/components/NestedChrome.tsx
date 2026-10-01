@@ -10,15 +10,7 @@ export function NestedChrome({ children, hint }: { children: ReactNode; hint?: s
   )
 }
 
-export function SaEmpty({
-  title,
-  body,
-  action,
-}: {
-  title: string
-  body?: string
-  action?: ReactNode
-}) {
+export function SaEmpty({ title, body, action }: { title: string; body?: string; action?: ReactNode }) {
   return (
     <div className="rounded-2xl border border-dashed border-[var(--border)] px-4 py-8 text-center space-y-2">
       <p className="text-sm font-bold text-[var(--fg)]">{title}</p>

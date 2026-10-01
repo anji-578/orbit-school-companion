@@ -1,0 +1,51 @@
+[
+  {
+    "slug": "streak-keeper",
+    "title": "Streak Keeper",
+    "hint": "Show up 3 days in a row",
+    "accent": "#FF9A3D",
+    "glyph": "flame"
+  },
+  {
+    "slug": "early-bird",
+    "title": "Early Bird",
+    "hint": "Start before the first bell",
+    "accent": "#FFC93D",
+    "glyph": "sun"
+  },
+  {
+    "slug": "curious-mind",
+    "title": "Curious Mind",
+    "hint": "Ask Orbit a great question",
+    "accent": "#7C8CFF",
+    "glyph": "compass"
+  },
+  {
+    "slug": "homework-pro",
+    "title": "Homework Pro",
+    "hint": "Complete 50 tasks",
+    "accent": "#B47CFF",
+    "glyph": "star"
+  },
+  {
+    "slug": "nature-champion",
+    "title": "Nature Champion",
+    "hint": "Join the tree plantation drive",
+    "accent": "#3DE0A0",
+    "glyph": "leaf"
+  },
+  {
+    "slug": "team-player",
+    "title": "Team Player",
+    "hint": "Join a club",
+    "accent": "#4DA3FF",
+    "glyph": "users"
+  },
+  {
+    "slug": "runner-up",
+    "title": "Science Fair Runner-up",
+    "hint": "Place at a school competition",
+    "accent": "#FF6FA5",
+    "glyph": "award"
+  }
+]

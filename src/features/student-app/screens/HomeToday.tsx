@@ -1,27 +1,25 @@
 import { useMemo } from 'react'
-import {
-  ArrowRight,
-  BookOpen,
-  CalendarDays,
-  ChevronRight,
-  Circle,
-  ClipboardList,
-  Clock3,
-  Flame,
-  Gamepad2,
-  MapPin,
-  Target,
-} from 'lucide-react'
+import { InviteRedeemCard } from '../../../components/ui/InviteRedeemCard'
 import { useAuthStore } from '../../../auth/authStore'
 import { useOrbitStore } from '../../../store/orbitStore'
 import { childDisplayName } from '../../../lib/linkedStudent'
 import { currentDayCode, deriveTodayTimeline } from '../../../lib/timetableApi'
-import { InviteRedeemCard } from '../../../components/ui/InviteRedeemCard'
 import { useStudentNav } from '../StudentNavContext'
 import { presentStreak } from '@/domain/streak/present-streak'
 import { selectUrgentHomework, taskMinutes } from '@/domain/priority/homework-priority'
 import { SaPrimaryButton, SaSection, SaViewAll } from '../components/SaUi'
-import { subjectTheme } from '../subjectTheme'
+import {
+  EmptyState,
+  FloatingChip,
+  HeroBanner,
+  ICON,
+  IconTile,
+  ProgressRing,
+  StatTile,
+  TagChip,
+  subjectIcon,
+  subjectTone,
+} from '@/shared/ui/orbit'
 
 function greeting(hour = new Date().getHours()) {
   if (hour < 12) return 'Good morning'
@@ -56,17 +54,15 @@ export function HomeToday() {
 
   const name = childDisplayName(linkedStudent, session?.displayName || 'Student').split(' ')[0]
   const streak = presentStreak(attendanceRecords)
-  const timeline = useMemo(
-    () => deriveTodayTimeline(timetableByDay[currentDayCode()]),
-    [timetableByDay],
-  )
+  const timeline = useMemo(() => deriveTodayTimeline(timetableByDay[currentDayCode()]), [timetableByDay])
   const nextLive = timeline.find((item) => item.status !== 'Completed')
   const classInMins = nextLive ? minutesUntilAmPm(nextLive.time) : null
   const urgentHw = useMemo(() => selectUrgentHomework(tasks), [tasks])
   const openHw = tasks.filter((t) => !t.completed).length
-  const classesToday = timeline.length
-  const assessments = calendarEvents.filter((e) => e.category === 'Exams').length
-  const nextTheme = nextLive ? subjectTheme(nextLive.name) : subjectTheme('Math')
+  const Arrow = ICON.chrome.arrow
+  const Time = ICON.meta.time
+  const Place = ICON.meta.place
+  const Target = ICON.grow.skills
 
   const todayItems = useMemo(() => {
     type Item = {
@@ -74,8 +70,7 @@ export function HomeToday() {
       done: boolean
       title: string
       meta: string
-      badge: string
-      badgeTone: string
+      kind: 'class' | 'homework' | 'study'
       onOpen: () => void
     }
     const items: Item[] = []
@@ -85,8 +80,7 @@ export function HomeToday() {
         done: false,
         title: `${period.name} class`,
         meta: period.time,
-        badge: 'CLASS',
-        badgeTone: 'bg-blue-500/15 text-blue-300',
+        kind: 'class',
         onOpen: () => push('subject', { subject: period.name }, period.name),
       })
     }
@@ -96,129 +90,136 @@ export function HomeToday() {
         done: false,
         title: t.task,
         meta: `${t.subject} · Due ${t.due}`,
-        badge: 'HOMEWORK',
-        badgeTone: 'bg-emerald-500/15 text-emerald-300',
+        kind: 'homework',
         onOpen: () => push('homework', { subject: t.subject, taskId: t.id }, 'Homework'),
       })
     }
     return items.slice(0, 3)
   }, [tasks, timeline, push])
 
-  const stats = [
-    { icon: ClipboardList, value: openHw, label: 'Homework to complete', tone: 'text-rose-400', go: () => push('upcoming') },
-    { icon: BookOpen, value: classesToday, label: 'Classes today', tone: 'text-orbit-primary', go: () => push('schedule') },
-    { icon: CalendarDays, value: assessments, label: 'Assessment upcoming', tone: 'text-amber-400', go: () => push('assessments') },
-    { icon: Flame, value: streak, label: 'Day streak', tone: 'text-violet-400', go: () => push('school-records') },
-  ]
-
   return (
     <div className="space-y-6 pb-8">
       {!classLinked ? <InviteRedeemCard /> : null}
 
-      <header className="relative overflow-hidden rounded-card border border-white/[0.08] bg-orbit-surface">
-        <img
-          src="/brand/orbit-home-hero.jpg"
-          alt=""
-          className="pointer-events-none absolute inset-y-0 right-0 h-full w-[48%] object-cover opacity-70"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-orbit-surface via-orbit-surface/90 to-transparent" />
-        <div className="relative space-y-2 p-4 pr-[42%]">
-          <p className="font-heading text-[1.55rem] font-bold leading-tight text-white">
-            {greeting()}
-            <br />
-            {name}
-          </p>
-          <p className="text-[13px] leading-snug text-orbit-text-secondary">
-            A new day to learn, grow and do something amazing!
-          </p>
-        </div>
-      </header>
+      <HeroBanner
+        eyebrow={greeting()}
+        title={`${name} 👋`}
+        subtitle="A new day to learn, grow and do something amazing!"
+        artSrc="/art/hero-home.svg"
+        chips={
+          <div className="pointer-events-none absolute right-2 top-16 flex flex-col gap-2">
+            <FloatingChip icon={ICON.tab.learn} line1="Learn" line2="Today" tone="blue" rotate={-7} />
+            <FloatingChip icon={ICON.tab.grow} line1="Grow" line2="Explore" tone="green" rotate={6} />
+            <FloatingChip icon={ICON.tool.askOrbit} line1="Be" line2="You" tone="purple" rotate={5} />
+          </div>
+        }
+      />
 
-      <SaSection eyebrow="Next class">
-        <div className="orbit-card relative overflow-hidden">
-          <img
-            src="/brand/student-motivation-banner.png"
-            alt=""
-            className="pointer-events-none absolute inset-y-0 right-0 h-full w-28 object-cover opacity-35"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-orbit-surface via-orbit-surface/95 to-orbit-surface/40" />
-          <div className="relative space-y-3">
-            <div className="flex items-start justify-between gap-2">
-              <span className="orbit-eyebrow">Next class</span>
-              <span className="rounded-full bg-orbit-primary/20 px-2.5 py-1 text-[10px] font-bold tracking-wide text-orbit-accent">
-                CLASS
-              </span>
-            </div>
-            {nextLive ? (
-              <>
-                <div className="flex items-start gap-3">
-                  <span
-                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-icon text-lg font-bold text-white"
-                    style={{ background: nextTheme.accent }}
-                  >
-                    {nextTheme.label || nextLive.name.slice(0, 1)}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="font-heading text-base font-bold text-white">{nextLive.name}</p>
-                    <p className="mt-0.5 text-[13px] text-orbit-text-secondary">Ready when you are</p>
-                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-orbit-text-muted">
-                      <span className="inline-flex items-center gap-1">
-                        <Clock3 className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
-                        {nextLive.time}
-                        {classInMins != null && classInMins >= 0 ? ` · in ${classInMins} min` : ''}
-                      </span>
-                      <span className="inline-flex items-center gap-1">
-                        <MapPin className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
-                        Online class
-                      </span>
-                    </div>
+      {nextLive ? (
+        <SaSection eyebrow="Next class" first>
+          <div className="o-card relative overflow-hidden p-4">
+            <img
+              src="/art/hero-learn.svg"
+              alt=""
+              width={120}
+              height={90}
+              className="pointer-events-none absolute -right-2 bottom-0 h-24 w-auto opacity-40"
+              aria-hidden
+            />
+            <div className="relative space-y-3">
+              <div className="flex justify-end">
+                <TagChip label="CLASS" tone="blue" />
+              </div>
+              <div className="flex items-start gap-3">
+                <IconTile
+                  {...(subjectTone(nextLive.name) === 'math'
+                    ? { glyph: 'π' }
+                    : { icon: subjectIcon(nextLive.name) })}
+                  tone={subjectTone(nextLive.name)}
+                  size="xl"
+                  label={nextLive.name}
+                />
+                <div className="min-w-0">
+                  <p className="font-display text-[20px] font-bold text-o-text">{nextLive.name}</p>
+                  <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-o-muted">
+                    <span className="inline-flex items-center gap-1">
+                      <Time className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+                      {nextLive.time}
+                      {classInMins != null && classInMins >= 0 ? ` · in ${classInMins} min` : ''}
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <Place className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+                      Online class
+                    </span>
                   </div>
                 </div>
-                <SaPrimaryButton onClick={() => openAskOrbit(`Help me get ready for ${nextLive.name}.`)}>
-                  Get ready <ArrowRight className="h-4 w-4" strokeWidth={1.75} aria-hidden />
-                </SaPrimaryButton>
-              </>
-            ) : (
-              <p className="text-sm text-orbit-text-secondary">No more classes today — nice work.</p>
-            )}
+              </div>
+              <SaPrimaryButton onClick={() => openAskOrbit(`Help me get ready for ${nextLive.name}.`)}>
+                Get ready <Arrow className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+              </SaPrimaryButton>
+            </div>
           </div>
-        </div>
-      </SaSection>
+        </SaSection>
+      ) : null}
 
-      <div className="grid grid-cols-2 gap-3">
-        {stats.map(({ icon: Icon, value, label, tone, go }) => (
-          <button key={label} type="button" onClick={go} className="orbit-card-interactive flex items-start gap-2.5 text-left">
-            <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${tone}`} strokeWidth={1.75} aria-hidden />
-            <span className="min-w-0 flex-1">
-              <span className="block font-heading text-xl font-bold leading-none text-white">{value}</span>
-              <span className="mt-1 block text-[11px] leading-snug text-orbit-text-secondary">{label}</span>
-            </span>
-            <ChevronRight className="h-4 w-4 shrink-0 text-orbit-text-muted" strokeWidth={1.75} aria-hidden />
-          </button>
-        ))}
+      <div className="flex gap-2">
+        <StatTile
+          icon={ICON.stat.homework}
+          tone="red"
+          value={openHw}
+          label="Homework to complete"
+          onClick={() => push('upcoming')}
+        />
+        <StatTile
+          icon={ICON.stat.classes}
+          tone="blue"
+          value={timeline.length}
+          label="Classes today"
+          onClick={() => push('schedule')}
+        />
+        <StatTile
+          icon={ICON.stat.assessment}
+          tone="amber"
+          value={calendarEvents.filter((e) => e.category === 'Exams').length}
+          label="Assessment upcoming"
+          onClick={() => push('assessments')}
+        />
+        <StatTile
+          icon={ICON.stat.streak}
+          tone="purple"
+          value={streak}
+          label="Day streak"
+          onClick={() => push('school-records')}
+        />
       </div>
 
       <SaSection eyebrow="Your priority">
-        <div className="orbit-card relative overflow-hidden border-emerald-500/20 bg-gradient-to-br from-[#0B2A22] to-[#091715]">
-          {urgentHw ? (
-            <div className="relative space-y-3">
-              <div className="flex items-start gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-icon bg-emerald-500/20">
-                  <Target className="h-5 w-5 text-emerald-400" strokeWidth={1.75} aria-hidden />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="font-heading text-base font-bold text-white">Finish the worksheet</p>
-                  <p className="mt-0.5 text-[13px] text-orbit-text-secondary">
-                    {urgentHw.subject} · {urgentHw.task}
-                  </p>
-                  <p className="mt-2 text-[11px] text-orbit-text-muted">
-                    ~{taskMinutes(urgentHw)} min · Due {urgentHw.due}
-                  </p>
-                </div>
-                <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-full border-2 border-emerald-400/40 text-center">
-                  <span className="text-xs font-bold text-white">{urgentHw.started ? '1/2' : '0/1'}</span>
-                </div>
+        {urgentHw ? (
+          <div
+            className="o-card relative overflow-hidden border-[color-mix(in_srgb,var(--o-sci-accent)_28%,transparent)] p-4"
+            style={{ background: 'linear-gradient(135deg, var(--o-sci-from), var(--o-sci-to))' }}
+          >
+            <img
+              src="/art/plant.svg"
+              alt=""
+              className="pointer-events-none absolute right-0 top-0 h-full w-[55%] object-contain opacity-50"
+              style={{ maskImage: 'linear-gradient(90deg,transparent,#000)' }}
+              aria-hidden
+            />
+            <div className="relative flex items-start gap-3">
+              <IconTile icon={Target} tone="green" size="lg" />
+              <div className="min-w-0 flex-1">
+                <p className="font-display text-[19px] font-bold text-o-text">Finish the worksheet</p>
+                <p className="mt-1 text-[13px] text-o-muted">
+                  {urgentHw.subject} · {urgentHw.task}
+                </p>
+                <p className="mt-2 text-[12px] text-o-muted">
+                  ~{taskMinutes(urgentHw)} min · Due {urgentHw.due}
+                </p>
               </div>
+              <ProgressRing value={urgentHw.started ? 1 : 0} total={1} size={56} label="Progress" />
+            </div>
+            <div className="relative mt-3">
               <SaPrimaryButton
                 onClick={() => {
                   const taskId = Number(urgentHw.id)
@@ -229,57 +230,55 @@ export function HomeToday() {
                   push('homework', { subject: urgentHw.subject, taskId: urgentHw.id }, 'Homework')
                 }}
               >
-                Continue <ArrowRight className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+                Continue <Arrow className="h-4 w-4" strokeWidth={1.75} aria-hidden />
               </SaPrimaryButton>
             </div>
-          ) : (
-            <p className="text-sm text-orbit-text-secondary">Nothing urgent — you&apos;re clear for now.</p>
-          )}
-        </div>
+          </div>
+        ) : (
+          <EmptyState
+            art="/art/caught-up.svg"
+            title="You're all caught up!"
+            body="Want to try a quick quiz or explore something new?"
+            action={
+              <SaPrimaryButton onClick={() => push('gk-quiz')}>
+                Try a quiz <Arrow className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+              </SaPrimaryButton>
+            }
+          />
+        )}
       </SaSection>
 
       <SaSection
         eyebrow="Today's to-do"
-        action={<SaViewAll label={`View all (${todayItems.length}) →`} onClick={() => push('upcoming')} />}
+        action={<SaViewAll label={`View all (${todayItems.length})`} onClick={() => push('upcoming')} />}
       >
-        <div className="orbit-card space-y-1 p-2">
+        <div className="o-card divide-y divide-o-border p-1">
           {todayItems.length === 0 ? (
-            <p className="px-2 py-3 text-sm text-orbit-text-secondary">Nothing left for today.</p>
+            <p className="px-3 py-4 text-sm text-o-muted">Nothing left for today.</p>
           ) : (
-            todayItems.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={item.onOpen}
-                className="flex w-full items-center gap-3 rounded-icon px-2 py-3 text-left transition hover:bg-white/[0.03]"
-              >
-                <Circle className="h-[18px] w-[18px] shrink-0 text-orbit-text-muted" strokeWidth={1.75} aria-hidden />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold text-white">{item.title}</span>
-                  <span className="mt-0.5 block truncate text-[11px] text-orbit-text-secondary">{item.meta}</span>
-                </span>
-                <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold tracking-wide ${item.badgeTone}`}>
-                  {item.badge}
-                </span>
-                <ChevronRight className="h-4 w-4 shrink-0 text-orbit-text-muted" strokeWidth={1.75} aria-hidden />
-              </button>
-            ))
+            todayItems.map((item) => {
+              const tone = item.kind === 'class' ? 'blue' : item.kind === 'homework' ? 'green' : 'purple'
+              const ItemIcon = ICON.item[item.kind]
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={item.onOpen}
+                  className="o-focus flex min-h-[60px] w-full items-center gap-3 px-3 py-2.5 text-left active:scale-[0.98]"
+                >
+                  <span className="inline-flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full border border-o-border-strong" />
+                  <IconTile icon={ItemIcon} tone={tone} size="md" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-o-text">{item.title}</span>
+                    <span className="mt-0.5 block truncate text-[12px] text-o-muted">{item.meta}</span>
+                  </span>
+                  <TagChip label={item.kind.toUpperCase()} tone={tone} />
+                </button>
+              )
+            })
           )}
         </div>
       </SaSection>
-
-      <div className="orbit-card flex items-center gap-3 border-violet-500/25 bg-gradient-to-r from-[#1C1438] to-[#0E172C]">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-icon bg-violet-500/20">
-          <Gamepad2 className="h-5 w-5 text-violet-300" strokeWidth={1.75} aria-hidden />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold text-white">You&apos;re all caught up!</p>
-          <p className="mt-0.5 text-[11px] text-orbit-text-secondary">Want to try a quick quiz or explore something new?</p>
-        </div>
-        <button type="button" onClick={() => push('gk-quiz')} className="orbit-btn-primary shrink-0 px-3 py-2 text-xs">
-          Try a quiz <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
-        </button>
-      </div>
     </div>
   )
 }

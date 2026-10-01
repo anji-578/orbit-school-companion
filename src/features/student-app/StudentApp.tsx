@@ -36,10 +36,10 @@ function StudentAppBody() {
   }, [])
 
   return (
-    <div className="student-app orbit-root h-dvh w-full flex flex-col relative antialiased selection:bg-[var(--accent)] selection:text-white">
+    <div className="student-app orbit-root relative flex h-dvh w-full flex-col antialiased selection:bg-o-primary selection:text-white">
       <StudentTopBar />
-      <main className="flex-1 min-h-0 overflow-y-auto orbit-scroll student-main">
-        <div className="max-w-lg mx-auto w-full px-4 py-4 fade-up">
+      <main className="student-main orbit-scroll min-h-0 flex-1 overflow-y-auto">
+        <div className="fade-up mx-auto w-full max-w-lg px-5 py-4">
           <ErrorBoundary label={`tab:${tab}`}>
             <StudentScreen dest={current.dest} />
           </ErrorBoundary>
