@@ -1,0 +1,41 @@
+---
+description: Orbit student UI design system. Apply when editing student-app screens or shared UI.
+globs: src/features/student-app/**/*.tsx,src/styles/**/*.css,src/index.css
+alwaysApply: false
+---
+
+# Orbit UI rules
+
+## Product feel
+- Premium consumer app for students, never an admin dashboard.
+- Mobile first: design at 390px, max content width ~430px, then scale up.
+- One primary action per card.
+
+## Canvas and surfaces
+- Canvas: `bg-orbit-bg` (#0A1020). Never pure black or light gray for student shells.
+- Cards: `orbit-card` / `rounded-card` (20px) + `border-white/[0.08]`. Never flat grey borders (`border-gray-700`).
+- Raised blocks: `bg-orbit-surface-raised` (#131F3B).
+
+## Section headers
+- Use `.orbit-eyebrow` (11px bold uppercase tracking-eyebrow text-slate-400).
+- Pair with electric blue `.orbit-link` ("View all →") on the right when there is a list.
+
+## Subjects and categories
+- Math → `.card-math`, Science → `.card-science`, Chemistry → `.card-chem`, English → `.card-english`.
+- Grow explore: `.card-category-interests|clubs|competitions|skills`.
+
+## Buttons and type
+- Primary CTA: `.orbit-btn-primary` (#1E7BFF + `shadow-glow-primary`).
+- Fonts: Plus Jakarta Sans headings (`font-heading`), Inter body (`font-sans`).
+- Tokens live in `design-tokens.json` and `src/styles/orbit-design.css`. Prefer semantic classes over raw hex in new code.
+
+## Nav
+- Bottom nav active tab: electric blue icon + soft glow, not a heavy filled pill.
+- Top bar: ORBIT mark + bell (badge) + theme + logout on root tabs.
+
+## Motion
+- Prefer one entrance per screen; press scale ~0.98 on primary buttons.
+- Respect `prefers-reduced-motion`.
+
+## Copy
+- Sentence case. Verbs first on buttons. Deadlines as "Due tomorrow", not alarm words.

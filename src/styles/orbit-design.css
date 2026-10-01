@@ -1,0 +1,227 @@
+/* Orbit Design System — Tailwind v4 theme + component primitives.
+   Source of truth: /design-tokens.json */
+
+@theme {
+  --color-orbit-deep: #060b16;
+  --color-orbit-bg: #0a1020;
+  --color-orbit-surface: #0e172c;
+  --color-orbit-surface-raised: #131f3b;
+  --color-orbit-primary: #1e7bff;
+  --color-orbit-primary-hover: #3b8dff;
+  --color-orbit-primary-active: #0062ff;
+  --color-orbit-accent: #38bdf8;
+  --color-orbit-text: #ffffff;
+  --color-orbit-text-secondary: #94a3b8;
+  --color-orbit-text-muted: #64748b;
+  --color-orbit-border: rgb(255 255 255 / 0.08);
+  --color-orbit-border-hover: rgb(255 255 255 / 0.14);
+
+  --color-subject-math: #2563eb;
+  --color-subject-math-icon: #3b82f6;
+  --color-subject-math-from: #0f1f3d;
+  --color-subject-math-to: #0a1326;
+  --color-subject-science: #059669;
+  --color-subject-science-icon: #10b981;
+  --color-subject-science-from: #0b2a22;
+  --color-subject-science-to: #091715;
+  --color-subject-chem: #d97706;
+  --color-subject-chem-icon: #f97316;
+  --color-subject-chem-from: #2e1a11;
+  --color-subject-chem-to: #150f0d;
+  --color-subject-english: #e11d48;
+  --color-subject-english-icon: #f43f5e;
+  --color-subject-english-from: #2e1022;
+  --color-subject-english-to: #160a13;
+
+  --color-category-interests-icon: #8b5cf6;
+  --color-category-interests-from: #1c1438;
+  --color-category-interests-to: #0e0c22;
+  --color-category-clubs-icon: #10b981;
+  --color-category-clubs-from: #0c2621;
+  --color-category-clubs-to: #081614;
+  --color-category-competitions-icon: #f59e0b;
+  --color-category-competitions-from: #2b1a12;
+  --color-category-competitions-to: #140d0a;
+  --color-category-skills-icon: #ec4899;
+  --color-category-skills-from: #2b1224;
+  --color-category-skills-to: #140a12;
+
+  --font-heading: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Inter', 'Noto Sans Telugu', ui-sans-serif, system-ui, sans-serif;
+
+  --radius-card: 20px;
+  --radius-icon: 12px;
+  --radius-btn: 14px;
+
+  --tracking-eyebrow: 0.12em;
+
+  --shadow-orbit-card: 0 10px 30px -10px rgb(0 0 0 / 0.5);
+  --shadow-glow-primary: 0 0 24px -2px rgb(30 123 255 / 0.45);
+  --shadow-glow-accent: 0 0 20px -2px rgb(56 189 248 / 0.4);
+}
+
+.orbit-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  border: 1px solid rgb(255 255 255 / 0.08);
+  background-color: var(--color-orbit-surface);
+  padding: 1rem;
+  background-image: linear-gradient(180deg, rgb(255 255 255 / 0.03) 0%, rgb(255 255 255 / 0) 100%);
+}
+
+.orbit-card-interactive {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  border-radius: var(--radius-card);
+  border: 1px solid rgb(255 255 255 / 0.08);
+  background-color: var(--color-orbit-surface);
+  padding: 1rem;
+  background-image: linear-gradient(180deg, rgb(255 255 255 / 0.03) 0%, rgb(255 255 255 / 0) 100%);
+  cursor: pointer;
+  transition:
+    border-color 0.3s ease,
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.orbit-card-interactive:hover {
+  border-color: rgb(255 255 255 / 0.16);
+  box-shadow: var(--shadow-orbit-card);
+  transform: translateY(-2px);
+}
+
+.orbit-card-interactive:active {
+  transform: scale(0.99);
+}
+
+.orbit-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 14px;
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.orbit-link {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-orbit-primary);
+}
+
+.orbit-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: var(--radius-btn);
+  background-color: var(--color-orbit-primary);
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #fff;
+  box-shadow: var(--shadow-glow-primary);
+  transition:
+    background-color 0.2s ease,
+    transform 0.15s ease;
+}
+
+.orbit-btn-primary:hover {
+  background-color: var(--color-orbit-primary-hover);
+}
+
+.orbit-btn-primary:active {
+  transform: scale(0.98);
+}
+
+.orbit-icon-btn {
+  display: inline-flex;
+  height: 2.5rem;
+  width: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 1px solid rgb(255 255 255 / 0.08);
+  background: rgb(255 255 255 / 0.04);
+  color: var(--color-orbit-text-secondary);
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.orbit-icon-btn:hover {
+  border-color: rgb(255 255 255 / 0.16);
+  color: #fff;
+}
+
+.card-math,
+.card-science,
+.card-chem,
+.card-english,
+.card-category-interests,
+.card-category-clubs,
+.card-category-competitions,
+.card-category-skills {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  border-radius: var(--radius-card);
+  border: 1px solid rgb(255 255 255 / 0.08);
+  padding: 1rem;
+  cursor: pointer;
+  transition:
+    border-color 0.3s ease,
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.card-math:hover,
+.card-science:hover,
+.card-chem:hover,
+.card-english:hover,
+.card-category-interests:hover,
+.card-category-clubs:hover,
+.card-category-competitions:hover,
+.card-category-skills:hover {
+  border-color: rgb(255 255 255 / 0.16);
+  box-shadow: var(--shadow-orbit-card);
+  transform: translateY(-2px);
+}
+
+.card-math {
+  border-color: rgb(59 130 246 / 0.2);
+  background: linear-gradient(135deg, rgb(15 31 61 / 0.9) 0%, rgb(10 19 38 / 0.96) 100%);
+}
+
+.card-science {
+  border-color: rgb(16 185 129 / 0.2);
+  background: linear-gradient(135deg, rgb(11 42 34 / 0.9) 0%, rgb(9 23 21 / 0.96) 100%);
+}
+
+.card-chem {
+  border-color: rgb(249 115 22 / 0.2);
+  background: linear-gradient(135deg, rgb(46 26 17 / 0.9) 0%, rgb(21 15 13 / 0.96) 100%);
+}
+
+.card-english {
+  border-color: rgb(244 63 94 / 0.2);
+  background: linear-gradient(135deg, rgb(46 16 34 / 0.9) 0%, rgb(22 10 19 / 0.96) 100%);
+}
+
+.card-category-interests {
+  background: linear-gradient(160deg, #1c1438 0%, #0e0c22 100%);
+}
+
+.card-category-clubs {
+  background: linear-gradient(160deg, #0c2621 0%, #081614 100%);
+}
+
+.card-category-competitions {
+  background: linear-gradient(160deg, #2b1a12 0%, #140d0a 100%);
+}
+
+.card-category-skills {
+  background: linear-gradient(160deg, #2b1224 0%, #140a12 100%);
+}

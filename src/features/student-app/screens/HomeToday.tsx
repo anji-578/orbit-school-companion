@@ -1,5 +1,17 @@
 import { useMemo } from 'react'
-import { ArrowRight, CheckCircle2, Circle, Flame } from 'lucide-react'
+import {
+  ArrowRight,
+  BookOpen,
+  CalendarDays,
+  ChevronRight,
+  Circle,
+  ClipboardList,
+  Clock3,
+  Flame,
+  Gamepad2,
+  MapPin,
+  Target,
+} from 'lucide-react'
 import { useAuthStore } from '../../../auth/authStore'
 import { useOrbitStore } from '../../../store/orbitStore'
 import { childDisplayName } from '../../../lib/linkedStudent'
@@ -8,6 +20,8 @@ import { InviteRedeemCard } from '../../../components/ui/InviteRedeemCard'
 import { useStudentNav } from '../StudentNavContext'
 import { presentStreak } from '@/domain/streak/present-streak'
 import { selectUrgentHomework, taskMinutes } from '@/domain/priority/homework-priority'
+import { SaPrimaryButton, SaSection, SaViewAll } from '../components/SaUi'
+import { subjectTheme } from '../subjectTheme'
 
 function greeting(hour = new Date().getHours()) {
   if (hour < 12) return 'Good morning'
@@ -28,7 +42,6 @@ function minutesUntilAmPm(label: string, now = new Date()): number | null {
   return Math.round((target.getTime() - now.getTime()) / 60000)
 }
 
-/** Home — refined glance briefing matching the Orbit product mock. */
 export function HomeToday() {
   const { push, openAskOrbit } = useStudentNav()
   const session = useAuthStore((s) => s.session)
@@ -37,12 +50,12 @@ export function HomeToday() {
   const timetableByDay = useOrbitStore((s) => s.timetableByDay)
   const tasks = useOrbitStore((s) => s.tasks)
   const attendanceRecords = useOrbitStore((s) => s.attendanceRecords)
+  const calendarEvents = useOrbitStore((s) => s.calendarEvents)
   const startTask = useOrbitStore((s) => s.startTask)
   const triggerToast = useOrbitStore((s) => s.triggerToast)
 
   const name = childDisplayName(linkedStudent, session?.displayName || 'Student').split(' ')[0]
   const streak = presentStreak(attendanceRecords)
-
   const timeline = useMemo(
     () => deriveTodayTimeline(timetableByDay[currentDayCode()]),
     [timetableByDay],
@@ -50,95 +63,163 @@ export function HomeToday() {
   const nextLive = timeline.find((item) => item.status !== 'Completed')
   const classInMins = nextLive ? minutesUntilAmPm(nextLive.time) : null
   const urgentHw = useMemo(() => selectUrgentHomework(tasks), [tasks])
+  const openHw = tasks.filter((t) => !t.completed).length
+  const classesToday = timeline.length
+  const assessments = calendarEvents.filter((e) => e.category === 'Exams').length
+  const nextTheme = nextLive ? subjectTheme(nextLive.name) : subjectTheme('Math')
 
   const todayItems = useMemo(() => {
-    type Item = { id: string; done: boolean; title: string; onOpen: () => void }
-    const open: Item[] = []
-    const done: Item[] = []
-
-    for (const t of tasks) {
-      const entry: Item = {
-        id: `hw-${t.id}`,
-        done: t.completed,
-        title: `${t.subject}: ${t.task}`,
-        onOpen: () => push('homework', { subject: t.subject, taskId: t.id }, 'Homework'),
-      }
-      ;(t.completed ? done : open).push(entry)
+    type Item = {
+      id: string
+      done: boolean
+      title: string
+      meta: string
+      badge: string
+      badgeTone: string
+      onOpen: () => void
     }
-    for (const period of timeline) {
-      const entry: Item = {
+    const items: Item[] = []
+    for (const period of timeline.filter((p) => p.status !== 'Completed').slice(0, 2)) {
+      items.push({
         id: `class-${period.name}-${period.time}`,
-        done: period.status === 'Completed',
+        done: false,
         title: `${period.name} class`,
+        meta: period.time,
+        badge: 'CLASS',
+        badgeTone: 'bg-blue-500/15 text-blue-300',
         onOpen: () => push('subject', { subject: period.name }, period.name),
-      }
-      ;(period.status === 'Completed' ? done : open).push(entry)
+      })
     }
-
-    // Mock order: open work first, then one completed, then remaining open classes
-    return [...open.slice(0, 3), ...done.slice(0, 1), ...open.slice(3, 5)].slice(0, 6)
+    for (const t of tasks.filter((x) => !x.completed).slice(0, 2)) {
+      items.push({
+        id: `hw-${t.id}`,
+        done: false,
+        title: t.task,
+        meta: `${t.subject} · Due ${t.due}`,
+        badge: 'HOMEWORK',
+        badgeTone: 'bg-emerald-500/15 text-emerald-300',
+        onOpen: () => push('homework', { subject: t.subject, taskId: t.id }, 'Homework'),
+      })
+    }
+    return items.slice(0, 3)
   }, [tasks, timeline, push])
 
+  const stats = [
+    { icon: ClipboardList, value: openHw, label: 'Homework to complete', tone: 'text-rose-400', go: () => push('upcoming') },
+    { icon: BookOpen, value: classesToday, label: 'Classes today', tone: 'text-orbit-primary', go: () => push('schedule') },
+    { icon: CalendarDays, value: assessments, label: 'Assessment upcoming', tone: 'text-amber-400', go: () => push('assessments') },
+    { icon: Flame, value: streak, label: 'Day streak', tone: 'text-violet-400', go: () => push('school-records') },
+  ]
+
   return (
-    <div className="home-glance space-y-5 pb-8">
+    <div className="space-y-6 pb-8">
       {!classLinked ? <InviteRedeemCard /> : null}
 
-      <header className="pt-1 px-0.5">
-        <p className="text-[13px] font-medium text-[var(--home-muted)]">{greeting()}</p>
-        <h1 className="mt-1 text-[1.75rem] font-bold tracking-tight text-[var(--fg)] leading-none">
-          {name} <span aria-hidden>👋</span>
-        </h1>
-        <p className="mt-2 text-[13px] text-[var(--home-muted)]">Here&apos;s what matters today</p>
+      <header className="relative overflow-hidden rounded-card border border-white/[0.08] bg-orbit-surface">
+        <img
+          src="/brand/orbit-home-hero.jpg"
+          alt=""
+          className="pointer-events-none absolute inset-y-0 right-0 h-full w-[48%] object-cover opacity-70"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-orbit-surface via-orbit-surface/90 to-transparent" />
+        <div className="relative space-y-2 p-4 pr-[42%]">
+          <p className="font-heading text-[1.55rem] font-bold leading-tight text-white">
+            {greeting()}
+            <br />
+            {name}
+          </p>
+          <p className="text-[13px] leading-snug text-orbit-text-secondary">
+            A new day to learn, grow and do something amazing!
+          </p>
+        </div>
       </header>
 
-      <section className="space-y-2.5">
-        <p className="home-eyebrow px-0.5">Next</p>
-        <div className="home-card p-4">
-          {nextLive ? (
-            <>
-              <div className="flex items-start justify-between gap-3">
-                <button
-                  type="button"
-                  className="min-w-0 text-left"
-                  onClick={() => push('subject', { subject: nextLive.name }, nextLive.name)}
-                >
-                  <p className="text-[1.05rem] font-bold text-[var(--fg)] leading-snug">{nextLive.name}</p>
-                  <p className="mt-1.5 text-[12px] text-[var(--home-muted)]">
-                    {nextLive.time}
-                    {classInMins != null && classInMins >= 0 ? ` · in ${classInMins} min` : ''}
-                  </p>
-                </button>
-                <span className="home-badge shrink-0">Class</span>
-              </div>
-              <button
-                type="button"
-                className="home-cta mt-4"
-                onClick={() => openAskOrbit(`Help me get ready for ${nextLive.name}.`)}
-              >
-                Get ready
-                <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-              </button>
-            </>
-          ) : (
-            <p className="text-[13px] text-[var(--home-muted)]">No more classes today — nice work.</p>
-          )}
+      <SaSection eyebrow="Next class">
+        <div className="orbit-card relative overflow-hidden">
+          <img
+            src="/brand/student-motivation-banner.png"
+            alt=""
+            className="pointer-events-none absolute inset-y-0 right-0 h-full w-28 object-cover opacity-35"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-orbit-surface via-orbit-surface/95 to-orbit-surface/40" />
+          <div className="relative space-y-3">
+            <div className="flex items-start justify-between gap-2">
+              <span className="orbit-eyebrow">Next class</span>
+              <span className="rounded-full bg-orbit-primary/20 px-2.5 py-1 text-[10px] font-bold tracking-wide text-orbit-accent">
+                CLASS
+              </span>
+            </div>
+            {nextLive ? (
+              <>
+                <div className="flex items-start gap-3">
+                  <span
+                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-icon text-lg font-bold text-white"
+                    style={{ background: nextTheme.accent }}
+                  >
+                    {nextTheme.label || nextLive.name.slice(0, 1)}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="font-heading text-base font-bold text-white">{nextLive.name}</p>
+                    <p className="mt-0.5 text-[13px] text-orbit-text-secondary">Ready when you are</p>
+                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-orbit-text-muted">
+                      <span className="inline-flex items-center gap-1">
+                        <Clock3 className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+                        {nextLive.time}
+                        {classInMins != null && classInMins >= 0 ? ` · in ${classInMins} min` : ''}
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <MapPin className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+                        Online class
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <SaPrimaryButton onClick={() => openAskOrbit(`Help me get ready for ${nextLive.name}.`)}>
+                  Get ready <ArrowRight className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+                </SaPrimaryButton>
+              </>
+            ) : (
+              <p className="text-sm text-orbit-text-secondary">No more classes today — nice work.</p>
+            )}
+          </div>
         </div>
-      </section>
+      </SaSection>
 
-      <section className="space-y-2.5">
-        <p className="home-eyebrow px-0.5">Your priority</p>
-        <div className="home-card p-4">
+      <div className="grid grid-cols-2 gap-3">
+        {stats.map(({ icon: Icon, value, label, tone, go }) => (
+          <button key={label} type="button" onClick={go} className="orbit-card-interactive flex items-start gap-2.5 text-left">
+            <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${tone}`} strokeWidth={1.75} aria-hidden />
+            <span className="min-w-0 flex-1">
+              <span className="block font-heading text-xl font-bold leading-none text-white">{value}</span>
+              <span className="mt-1 block text-[11px] leading-snug text-orbit-text-secondary">{label}</span>
+            </span>
+            <ChevronRight className="h-4 w-4 shrink-0 text-orbit-text-muted" strokeWidth={1.75} aria-hidden />
+          </button>
+        ))}
+      </div>
+
+      <SaSection eyebrow="Your priority">
+        <div className="orbit-card relative overflow-hidden border-emerald-500/20 bg-gradient-to-br from-[#0B2A22] to-[#091715]">
           {urgentHw ? (
-            <>
-              <p className="text-[1.05rem] font-bold text-[var(--fg)] leading-snug">
-                Complete {urgentHw.subject} homework
-              </p>
-              <p className="mt-1.5 text-[12px] text-[var(--home-muted)] leading-relaxed">
-                {urgentHw.task} · Due {urgentHw.due} · ~{taskMinutes(urgentHw)} min
-              </p>
-              <button
-                type="button"
-                className="home-cta mt-4"
+            <div className="relative space-y-3">
+              <div className="flex items-start gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-icon bg-emerald-500/20">
+                  <Target className="h-5 w-5 text-emerald-400" strokeWidth={1.75} aria-hidden />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="font-heading text-base font-bold text-white">Finish the worksheet</p>
+                  <p className="mt-0.5 text-[13px] text-orbit-text-secondary">
+                    {urgentHw.subject} · {urgentHw.task}
+                  </p>
+                  <p className="mt-2 text-[11px] text-orbit-text-muted">
+                    ~{taskMinutes(urgentHw)} min · Due {urgentHw.due}
+                  </p>
+                </div>
+                <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-full border-2 border-emerald-400/40 text-center">
+                  <span className="text-xs font-bold text-white">{urgentHw.started ? '1/2' : '0/1'}</span>
+                </div>
+              </div>
+              <SaPrimaryButton
                 onClick={() => {
                   const taskId = Number(urgentHw.id)
                   if (!urgentHw.started && Number.isFinite(taskId)) {
@@ -148,78 +229,57 @@ export function HomeToday() {
                   push('homework', { subject: urgentHw.subject, taskId: urgentHw.id }, 'Homework')
                 }}
               >
-                {urgentHw.started ? 'Continue' : 'Start'}
-                <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-              </button>
-            </>
+                Continue <ArrowRight className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+              </SaPrimaryButton>
+            </div>
           ) : (
-            <>
-              <p className="text-[1.05rem] font-bold text-[var(--fg)]">You&apos;re caught up</p>
-              <p className="mt-1.5 text-[12px] text-[var(--home-muted)]">
-                Nothing urgent — try a quick challenge when you&apos;re ready.
-              </p>
-              <button type="button" className="home-cta mt-4" onClick={() => push('gk-quiz')}>
-                Try a quiz
-                <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-              </button>
-            </>
+            <p className="text-sm text-orbit-text-secondary">Nothing urgent — you&apos;re clear for now.</p>
           )}
         </div>
-      </section>
+      </SaSection>
 
-      <section className="space-y-2.5">
-        <div className="flex items-end justify-between gap-2 px-0.5">
-          <p className="home-eyebrow">Today</p>
-          <button type="button" className="home-link" onClick={() => push('upcoming')}>
-            View all →
-          </button>
-        </div>
-        <div className="home-card overflow-hidden">
+      <SaSection
+        eyebrow="Today's to-do"
+        action={<SaViewAll label={`View all (${todayItems.length}) →`} onClick={() => push('upcoming')} />}
+      >
+        <div className="orbit-card space-y-1 p-2">
           {todayItems.length === 0 ? (
-            <p className="px-4 py-5 text-[13px] text-[var(--home-muted)]">Nothing left for today.</p>
+            <p className="px-2 py-3 text-sm text-orbit-text-secondary">Nothing left for today.</p>
           ) : (
-            <ul>
-              {todayItems.map((item, i) => (
-                <li key={item.id} className={i > 0 ? 'border-t border-[var(--home-divider)]' : ''}>
-                  <button
-                    type="button"
-                    onClick={item.onOpen}
-                    className="w-full flex items-center gap-3 px-4 py-3.5 text-left"
-                  >
-                    {item.done ? (
-                      <CheckCircle2 className="h-[18px] w-[18px] text-emerald-500 shrink-0" aria-hidden />
-                    ) : (
-                      <Circle className="h-[18px] w-[18px] text-[var(--home-muted)]/70 shrink-0" aria-hidden />
-                    )}
-                    <span
-                      className={`text-[13px] font-medium truncate ${
-                        item.done ? 'text-[var(--home-muted)] line-through' : 'text-[var(--fg)]'
-                      }`}
-                    >
-                      {item.title}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+            todayItems.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={item.onOpen}
+                className="flex w-full items-center gap-3 rounded-icon px-2 py-3 text-left transition hover:bg-white/[0.03]"
+              >
+                <Circle className="h-[18px] w-[18px] shrink-0 text-orbit-text-muted" strokeWidth={1.75} aria-hidden />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-semibold text-white">{item.title}</span>
+                  <span className="mt-0.5 block truncate text-[11px] text-orbit-text-secondary">{item.meta}</span>
+                </span>
+                <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold tracking-wide ${item.badgeTone}`}>
+                  {item.badge}
+                </span>
+                <ChevronRight className="h-4 w-4 shrink-0 text-orbit-text-muted" strokeWidth={1.75} aria-hidden />
+              </button>
+            ))
           )}
         </div>
-      </section>
+      </SaSection>
 
-      <section className="home-card p-4 flex items-center gap-3">
-        <span className="h-10 w-10 rounded-xl bg-orange-500/12 flex items-center justify-center shrink-0">
-          <Flame className="h-5 w-5 text-orange-400" aria-hidden />
+      <div className="orbit-card flex items-center gap-3 border-violet-500/25 bg-gradient-to-r from-[#1C1438] to-[#0E172C]">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-icon bg-violet-500/20">
+          <Gamepad2 className="h-5 w-5 text-violet-300" strokeWidth={1.75} aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-[14px] font-bold text-[var(--fg)]">
-            {streak > 0 ? `You\u2019re on a ${streak}-day streak` : 'Start a presence streak'}
-          </p>
-          <p className="mt-0.5 text-[11px] text-[var(--home-muted)]">Show up tomorrow to keep it going</p>
+          <p className="text-sm font-bold text-white">You&apos;re all caught up!</p>
+          <p className="mt-0.5 text-[11px] text-orbit-text-secondary">Want to try a quick quiz or explore something new?</p>
         </div>
-        <button type="button" className="home-link shrink-0" onClick={() => push('school-records')}>
-          Details →
+        <button type="button" onClick={() => push('gk-quiz')} className="orbit-btn-primary shrink-0 px-3 py-2 text-xs">
+          Try a quiz <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
         </button>
-      </section>
+      </div>
     </div>
   )
 }

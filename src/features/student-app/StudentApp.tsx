@@ -31,8 +31,8 @@ function StudentAppBody() {
   useEffect(() => startOfflineQueuePolling(), [])
 
   useEffect(() => {
-    document.documentElement.style.setProperty('--accent', '#2563eb')
-    document.documentElement.style.setProperty('--accent2', '#38bdf8')
+    document.documentElement.style.setProperty('--accent', '#1E7BFF')
+    document.documentElement.style.setProperty('--accent2', '#38BDF8')
   }, [])
 
   return (

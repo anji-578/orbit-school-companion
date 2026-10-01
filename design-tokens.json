@@ -1,0 +1,113 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "name": "Orbit Design System",
+  "version": "1.0.0",
+  "color": {
+    "background": {
+      "deep": { "value": "#060B16", "description": "Base app background floor" },
+      "canvas": { "value": "#0A1020", "description": "Main screen background navy" },
+      "surface": { "value": "#0E172C", "description": "Default card background surface" },
+      "surface-raised": { "value": "#131F3B", "description": "Nested cards, inputs, secondary blocks" },
+      "surface-glass": { "value": "rgba(14, 23, 44, 0.75)", "description": "Backdrop blur glass surface" }
+    },
+    "border": {
+      "subtle": { "value": "rgba(255, 255, 255, 0.08)", "description": "Default 1px card stroke" },
+      "medium": { "value": "rgba(255, 255, 255, 0.14)", "description": "Interactive/hover border" },
+      "focused": { "value": "rgba(30, 123, 255, 0.50)", "description": "Active selection border" }
+    },
+    "brand": {
+      "primary": { "value": "#1E7BFF", "description": "Electric brand blue CTA and indicators" },
+      "primary-hover": { "value": "#3B8DFF" },
+      "primary-active": { "value": "#0062FF" },
+      "primary-glow": { "value": "rgba(30, 123, 255, 0.35)" }
+    },
+    "subjects": {
+      "math": {
+        "accent": { "value": "#2563EB" },
+        "icon": { "value": "#3B82F6" },
+        "gradient-from": { "value": "#0F1F3D" },
+        "gradient-to": { "value": "#0A1326" },
+        "glow": { "value": "rgba(59, 130, 246, 0.25)" }
+      },
+      "science": {
+        "accent": { "value": "#059669" },
+        "icon": { "value": "#10B981" },
+        "gradient-from": { "value": "#0B2A22" },
+        "gradient-to": { "value": "#091715" },
+        "glow": { "value": "rgba(16, 185, 129, 0.25)" }
+      },
+      "chemistry": {
+        "accent": { "value": "#D97706" },
+        "icon": { "value": "#F97316" },
+        "gradient-from": { "value": "#2E1A11" },
+        "gradient-to": { "value": "#150F0D" },
+        "glow": { "value": "rgba(249, 115, 22, 0.25)" }
+      },
+      "english": {
+        "accent": { "value": "#E11D48" },
+        "icon": { "value": "#F43F5E" },
+        "gradient-from": { "value": "#2E1022" },
+        "gradient-to": { "value": "#160A13" },
+        "glow": { "value": "rgba(244, 63, 94, 0.25)" }
+      }
+    },
+    "category": {
+      "interests": {
+        "icon": { "value": "#8B5CF6" },
+        "gradient-from": { "value": "#1C1438" },
+        "gradient-to": { "value": "#0E0C22" }
+      },
+      "clubs": {
+        "icon": { "value": "#10B981" },
+        "gradient-from": { "value": "#0C2621" },
+        "gradient-to": { "value": "#081614" }
+      },
+      "competitions": {
+        "icon": { "value": "#F59E0B" },
+        "gradient-from": { "value": "#2B1A12" },
+        "gradient-to": { "value": "#140D0A" }
+      },
+      "skills": {
+        "icon": { "value": "#EC4899" },
+        "gradient-from": { "value": "#2B1224" },
+        "gradient-to": { "value": "#140A12" }
+      }
+    },
+    "text": {
+      "primary": { "value": "#FFFFFF" },
+      "secondary": { "value": "#94A3B8" },
+      "muted": { "value": "#64748B" },
+      "accent": { "value": "#38BDF8" }
+    }
+  },
+  "typography": {
+    "fontFamily": {
+      "heading": { "value": "'Plus Jakarta Sans', sans-serif" },
+      "body": { "value": "'Inter', sans-serif" }
+    },
+    "fontSize": {
+      "display": { "value": "32px", "lineHeight": "38px", "fontWeight": "700" },
+      "h1": { "value": "24px", "lineHeight": "30px", "fontWeight": "700" },
+      "h2": { "value": "18px", "lineHeight": "24px", "fontWeight": "600" },
+      "body": { "value": "14px", "lineHeight": "20px", "fontWeight": "400" },
+      "caption": { "value": "12px", "lineHeight": "16px", "fontWeight": "400" },
+      "eyebrow": { "value": "11px", "lineHeight": "14px", "fontWeight": "700", "letterSpacing": "0.12em" }
+    }
+  },
+  "spacing": {
+    "grid": { "value": "8px" },
+    "card-padding": { "value": "16px" },
+    "section-gap": { "value": "24px" }
+  },
+  "radii": {
+    "card": { "value": "20px" },
+    "chip": { "value": "9999px" },
+    "icon-box": { "value": "12px" },
+    "button": { "value": "14px" }
+  },
+  "shadows": {
+    "card": { "value": "0 10px 30px -10px rgba(0, 0, 0, 0.5)" },
+    "glow-blue": { "value": "0 0 20px 0 rgba(30, 123, 255, 0.35)" },
+    "glow-cyan": { "value": "0 0 16px 0 rgba(6, 182, 212, 0.40)" }
+  }
+}

@@ -16,7 +16,7 @@ export function SaCard({
     <Tag
       type={onClick ? 'button' : undefined}
       onClick={onClick}
-      className={`student-card w-full text-left rounded-2xl border border-[var(--border-strong)] bg-[var(--panel)] shadow-[0_8px_24px_rgba(11,31,68,0.06)] ${className}`}
+      className={`orbit-card w-full text-left ${onClick ? 'orbit-card-interactive' : ''} ${className}`}
     >
       {children}
     </Tag>
@@ -35,14 +35,12 @@ export function SaSection({
   children: ReactNode
 }) {
   return (
-    <section className="space-y-2.5">
+    <section className="space-y-3">
       {(eyebrow || title || action) && (
         <div className="flex items-end justify-between gap-2 px-0.5">
           <div className="min-w-0">
-            {eyebrow ? (
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--muted)]">{eyebrow}</p>
-            ) : null}
-            {title ? <h2 className="text-sm font-extrabold text-[var(--fg)] mt-0.5">{title}</h2> : null}
+            {eyebrow ? <p className="orbit-eyebrow">{eyebrow}</p> : null}
+            {title ? <h2 className="font-heading text-lg font-semibold text-white mt-0.5">{title}</h2> : null}
           </div>
           {action}
         </div>
@@ -68,25 +66,21 @@ export function SaRow({
   accent?: string
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="w-full flex items-center gap-3 p-3.5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] hover:border-[var(--accent)]/35 transition text-left"
-    >
+    <button type="button" onClick={onClick} className="orbit-card-interactive flex w-full items-center gap-3 text-left">
       {Icon ? (
         <span
-          className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
-          style={{ background: accent ? `${accent}22` : 'color-mix(in srgb, var(--accent) 14%, transparent)' }}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-icon"
+          style={{ background: accent ? `${accent}22` : 'rgb(30 123 255 / 0.14)' }}
         >
-          <Icon className="h-5 w-5" style={{ color: accent || 'var(--accent)' }} aria-hidden />
+          <Icon className="h-5 w-5" strokeWidth={1.75} style={{ color: accent || '#1E7BFF' }} aria-hidden />
         </span>
       ) : null}
-      <span className="flex-1 min-w-0">
-        <span className="block text-sm font-bold text-[var(--fg)] truncate">{title}</span>
-        {subtitle ? <span className="block text-[11px] text-[var(--muted)] mt-0.5 truncate">{subtitle}</span> : null}
-        {meta ? <span className="block text-[10px] text-[var(--muted)] mt-0.5">{meta}</span> : null}
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-semibold text-white">{title}</span>
+        {subtitle ? <span className="mt-0.5 block truncate text-[12px] text-orbit-text-secondary">{subtitle}</span> : null}
+        {meta ? <span className="mt-0.5 block text-[11px] text-orbit-text-muted">{meta}</span> : null}
       </span>
-      <ChevronRight className="h-4 w-4 text-[var(--muted)] shrink-0" aria-hidden />
+      <ChevronRight className="h-4 w-4 shrink-0 text-orbit-text-muted" strokeWidth={1.75} aria-hidden />
     </button>
   )
 }
@@ -104,10 +98,10 @@ export function SaChip({
     <button
       type="button"
       onClick={onClick}
-      className={`shrink-0 rounded-full px-3.5 py-1.5 text-[11px] font-bold border transition ${
+      className={`shrink-0 rounded-full border px-3.5 py-1.5 text-[11px] font-semibold transition ${
         active
-          ? 'bg-[var(--accent)] text-white border-[var(--accent)]'
-          : 'bg-[var(--panel)] text-[var(--muted)] border-[var(--border)]'
+          ? 'border-orbit-primary bg-orbit-primary text-white'
+          : 'border-white/[0.08] bg-orbit-surface-raised text-orbit-text-secondary'
       }`}
     >
       {children}
@@ -125,13 +119,16 @@ export function SaPrimaryButton({
   className?: string
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold text-white ${className}`}
-      style={{ background: 'linear-gradient(135deg, var(--accent), var(--accent2))' }}
-    >
+    <button type="button" onClick={onClick} className={`orbit-btn-primary ${className}`}>
       {children}
+    </button>
+  )
+}
+
+export function SaViewAll({ label = 'View all →', onClick }: { label?: string; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className="orbit-link">
+      {label}
     </button>
   )
 }
