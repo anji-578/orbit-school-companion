@@ -11,6 +11,9 @@ const forbidden = [
   'Ananya Rao',
   'Sunrise Demo Academy',
   'Parent of Ananya',
+  'Linear Equations',
+  'Mrs. Sharma',
+  'home-fx-math',
 ]
 
 function walk(dir, out = []) {

@@ -24,6 +24,9 @@ function StudentAppBody() {
   }, [role, setRole])
 
   useEffect(() => {
+    if (import.meta.env.DEV && window.location.pathname.startsWith('/dev/student')) {
+      return
+    }
     void hydrateFromSupabase()
     void loadDemoFixturesIfEnabled()
   }, [hydrateFromSupabase])
