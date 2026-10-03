@@ -134,6 +134,13 @@ export async function supabaseSignUp(
     return { ok: false, error: 'Password must be at least 6 characters.' }
   }
 
+  if (selectedRole !== 'student' && selectedRole !== 'parent') {
+    return {
+      ok: false,
+      error: 'Teacher and school accounts are created by your school, not self-signup.',
+    }
+  }
+
   const signedUp = await supabase.auth.signUp({
     email,
     password: input.password,

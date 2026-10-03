@@ -103,7 +103,11 @@ export default async function handler(req: Request) {
 
   // Internal secret path still needs an explicit school via student or fails closed for SMS fan-out
   if (secretOk && !schoolId && payload.studentId) {
-    const { data: stu } = await admin.from('students').select('school_id').eq('id', payload.studentId).maybeSingle()
+    const { data: stu } = await admin
+      .from('students')
+      .select('school_id')
+      .eq('id', payload.studentId)
+      .maybeSingle()
     schoolId = (stu?.school_id as string | undefined) || null
   }
 
@@ -158,9 +162,7 @@ export default async function handler(req: Request) {
     if (recipientIds.size) pushQuery = pushQuery.in('user_id', [...recipientIds])
   } else if (schoolId) {
     const { data: members } = await admin.from('profiles').select('id').eq('school_id', schoolId).limit(500)
-    const ids = (members ?? [])
-      .map((m: { id?: string }) => m.id as string)
-      .filter(Boolean)
+    const ids = (members ?? []).map((m: { id?: string }) => m.id as string).filter(Boolean)
     if (ids.length) pushQuery = pushQuery.in('user_id', ids)
   } else {
     return json({ error: 'school or studentId required for fan-out' }, 400)
@@ -207,20 +209,51 @@ export default async function handler(req: Request) {
     const phones = new Set<string>()
     if (payload.smsPhone?.trim() && callerRole === 'school') phones.add(payload.smsPhone.trim())
 
-    const { data: schoolMembers } = await admin.from('profiles').select('id').eq('school_id', schoolId)
-    const memberIds = (schoolMembers ?? []).map((m: { id?: string }) => m.id as string)
-    if (memberIds.length) {
-      const { data: prefs } = await admin
-        .from('alert_preferences')
-        .select('user_id, phone_e164, sms_enabled, notify_absent, notify_fees, notify_leave')
-        .eq('sms_enabled', true)
-        .in('user_id', memberIds)
-      for (const pref of prefs ?? []) {
-        if (!pref.phone_e164) continue
-        if (eventType === 'absent' && pref.notify_absent === false) continue
-        if (eventType === 'fees' && pref.notify_fees === false) continue
-        if (eventType === 'leave' && pref.notify_leave === false) continue
-        phones.add(String(pref.phone_e164))
+    if (!phones.size && studentId) {
+      const { data: student } = await admin
+        .from('students')
+        .select('profile_id')
+        .eq('id', studentId)
+        .maybeSingle()
+      const prefUserIds = new Set<string>()
+      if (student?.profile_id) prefUserIds.add(student.profile_id as string)
+      const { data: parents } = await admin
+        .from('parent_links')
+        .select('parent_profile_id')
+        .eq('student_id', studentId)
+      for (const p of parents ?? []) {
+        if (p.parent_profile_id) prefUserIds.add(p.parent_profile_id as string)
+      }
+      if (prefUserIds.size) {
+        const { data: prefs } = await admin
+          .from('alert_preferences')
+          .select('user_id, phone_e164, sms_enabled, notify_absent, notify_fees, notify_leave')
+          .eq('sms_enabled', true)
+          .in('user_id', [...prefUserIds])
+        for (const pref of prefs ?? []) {
+          if (!pref.phone_e164) continue
+          if (eventType === 'absent' && pref.notify_absent === false) continue
+          if (eventType === 'fees' && pref.notify_fees === false) continue
+          if (eventType === 'leave' && pref.notify_leave === false) continue
+          phones.add(String(pref.phone_e164))
+        }
+      }
+    } else if (!phones.size) {
+      const { data: schoolMembers } = await admin.from('profiles').select('id').eq('school_id', schoolId)
+      const memberIds = (schoolMembers ?? []).map((m: { id?: string }) => m.id as string)
+      if (memberIds.length) {
+        const { data: prefs } = await admin
+          .from('alert_preferences')
+          .select('user_id, phone_e164, sms_enabled, notify_absent, notify_fees, notify_leave')
+          .eq('sms_enabled', true)
+          .in('user_id', memberIds)
+        for (const pref of prefs ?? []) {
+          if (!pref.phone_e164) continue
+          if (eventType === 'absent' && pref.notify_absent === false) continue
+          if (eventType === 'fees' && pref.notify_fees === false) continue
+          if (eventType === 'leave' && pref.notify_leave === false) continue
+          phones.add(String(pref.phone_e164))
+        }
       }
     }
 

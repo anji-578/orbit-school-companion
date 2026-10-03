@@ -682,7 +682,7 @@ export const useOrbitStore = create<OrbitState>()(
             fetchTimetableByDay(timetableClass),
             fetchStaffDirectory(),
             fetchBusRoutes(),
-            fetchHiringApplications(),
+            role === 'teacher' || role === 'school' ? fetchHiringApplications() : Promise.resolve([]),
             get().loadPaymentWorkspace(),
           ])
         startAttendanceQueueSync((result) => {

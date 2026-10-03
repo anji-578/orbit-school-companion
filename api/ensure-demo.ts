@@ -1,4 +1,5 @@
 import { getAdmin } from './_lib/supabaseAdmin.js'
+import { demoEnsureAllowed } from './_lib/demoEnsure.js'
 
 export const config = { runtime: 'nodejs' }
 
@@ -69,6 +70,10 @@ export default async function handler(req: Request) {
   if (req.method === 'OPTIONS') return cors(new Response(null, { status: 204 }))
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
 
+  if (!demoEnsureAllowed()) {
+    return json({ error: 'Demo provisioning is disabled.' }, 403)
+  }
+
   const admin = getAdmin()
   if (!admin) return json({ error: 'Demo ensure unavailable (missing service role).' }, 503)
 
@@ -123,11 +128,16 @@ export default async function handler(req: Request) {
     const { data: school } = await admin.from('schools').select('id').eq('code', 'SUNRISE').maybeSingle()
     const schoolId = (school?.id as string | undefined) ?? null
 
-    const { data: existingProfile } = await admin.from('profiles').select('id, role, school_id').eq('id', userId).maybeSingle()
+    const { data: existingProfile } = await admin
+      .from('profiles')
+      .select('id, role, school_id')
+      .eq('id', userId)
+      .maybeSingle()
     if (existingProfile?.id) {
       await admin
         .from('profiles')
         .update({
+          role: demo.role,
           display_name: demo.displayName,
           subtitle: demo.subtitle,
           email: demo.email,

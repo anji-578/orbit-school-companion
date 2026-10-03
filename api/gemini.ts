@@ -1,5 +1,13 @@
 import { createClient } from '@supabase/supabase-js'
 import { envFirst } from './_lib/env.js'
+import {
+  AI_FETCH_TIMEOUT_MS,
+  AI_MAX_OUTPUT_TOKENS,
+  assertImagePart,
+  assertPromptSize,
+  checkAiRateLimit,
+  modelsToTry,
+} from './_lib/aiGuards.js'
 
 export const config = { runtime: 'nodejs' }
 
@@ -60,7 +68,9 @@ async function generate(
   temperature?: number,
 ) {
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
-  const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [{ text: prompt }]
+  const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [
+    { text: prompt },
+  ]
   if (image?.data) {
     parts.unshift({
       inlineData: {
@@ -70,40 +80,53 @@ async function generate(
     })
   }
 
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-goog-api-key': key,
-    },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: system }] },
-      contents: [{ role: 'user', parts }],
-      generationConfig: {
-        temperature: typeof temperature === 'number' ? Math.min(temperature, 0.7) : jsonMode ? 0.2 : 0.45,
-        maxOutputTokens: 2048,
-        ...(jsonMode ? { responseMimeType: 'application/json' } : {}),
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': key,
       },
-    }),
-  })
+      signal: AbortSignal.timeout(AI_FETCH_TIMEOUT_MS),
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: system }] },
+        contents: [{ role: 'user', parts }],
+        generationConfig: {
+          temperature: typeof temperature === 'number' ? Math.min(temperature, 0.7) : jsonMode ? 0.2 : 0.45,
+          maxOutputTokens: AI_MAX_OUTPUT_TOKENS,
+          ...(jsonMode ? { responseMimeType: 'application/json' } : {}),
+        },
+      }),
+    })
 
-  const payload = (await response.json().catch(() => null)) as {
-    candidates?: { content?: { parts?: { text?: string }[] } }[]
-    error?: { message?: string }
-  } | null
+    const payload = (await response.json().catch(() => null)) as {
+      candidates?: { content?: { parts?: { text?: string }[] } }[]
+      error?: { message?: string }
+    } | null
 
-  if (!response.ok) {
+    if (!response.ok) {
+      return {
+        ok: false as const,
+        status: response.status,
+        error: payload?.error?.message || `HTTP ${response.status}`,
+      }
+    }
+
+    const text =
+      payload?.candidates?.[0]?.content?.parts
+        ?.map((p) => p.text || '')
+        .join('')
+        .trim() || ''
+    if (!text) return { ok: false as const, status: 502, error: 'Empty model response' }
+    return { ok: true as const, text, model }
+  } catch (err) {
+    const timedOut = err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError')
     return {
       ok: false as const,
-      status: response.status,
-      error: payload?.error?.message || `HTTP ${response.status}`,
+      status: timedOut ? 504 : 502,
+      error: timedOut ? 'AI request timed out' : err instanceof Error ? err.message : 'AI request failed',
     }
   }
-
-  const text =
-    payload?.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('').trim() || ''
-  if (!text) return { ok: false as const, status: 502, error: 'Empty model response' }
-  return { ok: true as const, text, model }
 }
 
 export default async function handler(req: Request): Promise<Response> {
@@ -118,6 +141,14 @@ export default async function handler(req: Request): Promise<Response> {
   const authed = await requireAuthedUser(req)
   if (authed.ok === false) {
     return Response.json({ error: authed.error }, { status: authed.status, headers: cors })
+  }
+
+  const limited = checkAiRateLimit(authed.userId)
+  if (!limited.ok) {
+    return Response.json(
+      { error: 'Too many AI requests. Try again shortly.' },
+      { status: 429, headers: { ...cors, 'Retry-After': String(limited.retryAfterSec) } },
+    )
   }
 
   const key = getKey()
@@ -139,11 +170,10 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   const prompt = (body.prompt || '').trim()
-  if (!prompt) {
-    return Response.json({ error: 'prompt is required' }, { status: 400, headers: cors })
-  }
-  if (prompt.length > 12_000) {
-    return Response.json({ error: 'Prompt too long' }, { status: 413, headers: cors })
+  const promptErr = assertPromptSize(prompt)
+  if (promptErr) {
+    const status = promptErr === 'prompt is required' ? 400 : 413
+    return Response.json({ error: promptErr }, { status, headers: cors })
   }
 
   const jsonMode = Boolean(body.jsonMode)
@@ -151,19 +181,17 @@ export default async function handler(req: Request): Promise<Response> {
   const mimeType = (body.mimeType || 'image/jpeg').trim()
   const temperature = typeof body.temperature === 'number' ? body.temperature : undefined
 
-  if (imageBase64 && imageBase64.length > 5_500_000) {
-    return Response.json({ error: 'Image too large. Use a clearer, smaller photo.' }, { status: 413, headers: cors })
+  const imageErr = assertImagePart(imageBase64, mimeType)
+  if (imageErr) {
+    return Response.json({ error: imageErr }, { status: 413, headers: cors })
   }
 
   const image = imageBase64 ? { mimeType, data: imageBase64 } : undefined
   const errors: string[] = []
-  for (const model of MODELS) {
+  for (const model of modelsToTry(MODELS)) {
     const result = await generate(model, key, prompt, ORBIT_TUTOR_SYSTEM, jsonMode, image, temperature)
     if (result.ok) {
-      return Response.json(
-        { text: result.text, model: result.model, source: 'live', userId: authed.userId },
-        { headers: cors },
-      )
+      return Response.json({ text: result.text, model: result.model, source: 'live' }, { headers: cors })
     }
     errors.push(`${model}: ${result.error}`)
     if (result.status !== 404 && result.status !== 429 && result.status !== 503) {
