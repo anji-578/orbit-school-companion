@@ -11,6 +11,7 @@ export { TagChip } from './TagChip'
 export { StatTile } from './StatTile'
 export { HeroBanner } from './HeroBanner'
 export { FloatingChip } from './FloatingChip'
+export { Skeleton } from './Skeleton'
 export {
   canonicalSubjectKey,
   subjectTone,
