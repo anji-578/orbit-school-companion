@@ -45,14 +45,13 @@ export default async function handler(req: Request) {
   const signature = (body.razorpay_signature || '').trim()
   if (!orderId || !paymentId || !signature) return json({ error: 'Missing payment fields' }, 400)
 
-  if (
-    !verifyRazorpayCheckoutSignature({
-      orderId,
-      paymentId,
-      signature,
-      keySecret,
-    })
-  ) {
+  const signatureOk = await verifyRazorpayCheckoutSignature({
+    orderId,
+    paymentId,
+    signature,
+    keySecret,
+  })
+  if (!signatureOk) {
     return json({ error: 'Invalid payment signature' }, 400)
   }
 

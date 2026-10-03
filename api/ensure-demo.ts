@@ -55,9 +55,10 @@ async function findUserIdByEmail(
   for (let page = 1; page <= 10; page++) {
     const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 })
     if (error) throw error
-    const hit = data.users.find((u) => (u.email || '').toLowerCase() === normalized)
+    const users = (data?.users ?? []) as Array<{ id: string; email?: string | null }>
+    const hit = users.find((u) => (u.email || '').toLowerCase() === normalized)
     if (hit?.id) return hit.id
-    if (data.users.length < 200) break
+    if (users.length < 200) break
   }
   return null
 }

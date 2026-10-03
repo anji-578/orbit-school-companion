@@ -100,7 +100,7 @@ export default async function handler(req: Request) {
   const amountPaise = unpaid.reduce((sum, f) => sum + Number(f.amount_paise || 0), 0)
   if (amountPaise < 100) return json({ error: 'Amount too small' }, 400)
 
-  const authHeader = Buffer.from(`${keyId}:${keySecret}`).toString('base64')
+  const authHeader = btoa(`${keyId}:${keySecret}`)
   const receipt = `orbit_${Date.now().toString(36)}`.slice(0, 40)
   const rzpRes = await fetch('https://api.razorpay.com/v1/orders', {
     method: 'POST',

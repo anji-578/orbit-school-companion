@@ -144,7 +144,7 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   const limited = checkAiRateLimit(authed.userId)
-  if (!limited.ok) {
+  if (limited.ok === false) {
     return Response.json(
       { error: 'Too many AI requests. Try again shortly.' },
       { status: 429, headers: { ...cors, 'Retry-After': String(limited.retryAfterSec) } },
