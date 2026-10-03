@@ -29,10 +29,4 @@ function assertNoLiveReload(path, label) {
 }
 
 assertNoLiveReload(release, 'capacitor.config.release.ts')
-// Dev config may keep live-reload; warn only.
-if (existsSync(main)) {
-  const src = readFileSync(main, 'utf8')
-  if (/url:\s*['"]http/.test(src)) {
-    console.warn('[cap:release:check] WARN: capacitor.config.ts has live-reload url (dev only).')
-  }
-}
+assertNoLiveReload(main, 'capacitor.config.ts')

@@ -1,12 +1,16 @@
 import type { CapacitorConfig } from '@capacitor/cli'
 
-/** Default / release Capacitor config — packaged `dist` only, no live-reload URL. */
+/** Emulator live-reload only. Do not use for Play/release APKs. */
 const config: CapacitorConfig = {
   appId: 'app.orbit.student',
   appName: 'Orbit',
   webDir: 'dist',
+  server: {
+    url: 'http://10.0.2.2:5173',
+    cleartext: true,
+  },
   android: {
-    allowMixedContent: false,
+    allowMixedContent: true,
   },
 }
 

@@ -1,8 +1,21 @@
 import webpush from 'web-push'
 import { env, envFirst } from './_lib/env.js'
+import { corsHeaders } from './_lib/cors.js'
 import { getAdmin, loadProfile, requireUser } from './_lib/supabaseAdmin.js'
 
-export const config = { runtime: 'nodejs' }
+const notifyHits = new Map<string, number[]>()
+
+function notifyRateOk(key: string, now = Date.now()): boolean {
+  const windowMs = 10 * 60 * 1000
+  const next = (notifyHits.get(key) ?? []).filter((t) => now - t < windowMs)
+  if (next.length >= 30) {
+    notifyHits.set(key, next)
+    return false
+  }
+  next.push(now)
+  notifyHits.set(key, next)
+  return true
+}
 
 type NotifyBody = {
   eventType?: string
@@ -14,16 +27,15 @@ type NotifyBody = {
   studentId?: string
 }
 
-function cors(res: Response) {
+function cors(req: Request, res: Response) {
   const headers = new Headers(res.headers)
-  headers.set('Access-Control-Allow-Origin', '*')
-  headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS')
-  headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-orbit-notify-secret')
+  const extra = corsHeaders(req)
+  for (const [k, v] of Object.entries(extra)) headers.set(k, v)
   return new Response(res.body, { status: res.status, headers })
 }
 
-function json(data: unknown, status = 200) {
-  return cors(new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } }))
+function json(req: Request, data: unknown, status = 200) {
+  return cors(req, new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } }))
 }
 
 function configureWebPush() {
@@ -62,11 +74,11 @@ async function sendMsg91Sms(to: string, message: string) {
 }
 
 export default async function handler(req: Request) {
-  if (req.method === 'OPTIONS') return cors(new Response(null, { status: 204 }))
-  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
+  if (req.method === 'OPTIONS') return cors(req, new Response(null, { status: 204 }))
+  if (req.method !== 'POST') return json(req, { error: 'Method not allowed' }, 405)
 
   const admin = getAdmin()
-  if (!admin) return json({ error: 'Server misconfigured' }, 503)
+  if (!admin) return json(req, { error: 'Server misconfigured' }, 503)
 
   const internalSecret = env('NOTIFY_INTERNAL_SECRET')
   const providedSecret = (req.headers.get('x-orbit-notify-secret') || '').trim()
@@ -78,28 +90,31 @@ export default async function handler(req: Request) {
 
   if (!secretOk) {
     const auth = await requireUser(req, admin)
-    if ('error' in auth) return json({ error: auth.error }, auth.status)
+    if ('error' in auth) return json(req, { error: auth.error }, auth.status)
     const profile = await loadProfile(admin, auth.user.id)
-    if (!profile?.school_id) return json({ error: 'No school on profile' }, 400)
+    if (!profile?.school_id) return json(req, { error: 'No school on profile' }, 400)
     if (!['teacher', 'school'].includes(profile.role)) {
-      return json({ error: 'Only school staff can send notifications' }, 403)
+      return json(req, { error: 'Only school staff can send notifications' }, 403)
     }
     callerId = auth.user.id
     schoolId = profile.school_id
     callerRole = profile.role
+    if (!notifyRateOk(callerId)) {
+      return json(req, { error: 'Too many notifications. Try again shortly.' }, 429)
+    }
   }
 
   let payload: NotifyBody
   try {
     payload = (await req.json()) as NotifyBody
   } catch {
-    return json({ error: 'Invalid JSON' }, 400)
+    return json(req, { error: 'Invalid JSON' }, 400)
   }
 
   const title = (payload.title || 'Orbit').trim().slice(0, 120)
   const body = (payload.body || '').trim().slice(0, 500)
   const eventType = (payload.eventType || 'general').trim().slice(0, 64)
-  if (!body) return json({ error: 'body required' }, 400)
+  if (!body) return json(req, { error: 'body required' }, 400)
 
   // Internal secret path still needs an explicit school via student or fails closed for SMS fan-out
   if (secretOk && !schoolId && payload.studentId) {
@@ -137,7 +152,7 @@ export default async function handler(req: Request) {
       .eq('id', studentId)
       .maybeSingle()
     if (schoolId && student?.school_id && student.school_id !== schoolId) {
-      return json({ error: 'Student not in your school' }, 403)
+      return json(req, { error: 'Student not in your school' }, 403)
     }
     if (!schoolId && student?.school_id) schoolId = student.school_id as string
     if (student?.profile_id) recipientIds.add(student.profile_id as string)
@@ -148,24 +163,13 @@ export default async function handler(req: Request) {
     for (const p of parents ?? []) {
       if (p.parent_profile_id) recipientIds.add(p.parent_profile_id as string)
     }
-    if (schoolId) {
-      const { data: staff } = await admin
-        .from('profiles')
-        .select('id')
-        .eq('school_id', schoolId)
-        .in('role', ['teacher', 'school'])
-        .limit(200)
-      for (const s of staff ?? []) {
-        if (s.id) recipientIds.add(s.id as string)
-      }
-    }
     if (recipientIds.size) pushQuery = pushQuery.in('user_id', [...recipientIds])
   } else if (schoolId) {
     const { data: members } = await admin.from('profiles').select('id').eq('school_id', schoolId).limit(500)
     const ids = (members ?? []).map((m: { id?: string }) => m.id as string).filter(Boolean)
     if (ids.length) pushQuery = pushQuery.in('user_id', ids)
   } else {
-    return json({ error: 'school or studentId required for fan-out' }, 400)
+    return json(req, { error: 'school or studentId required for fan-out' }, 400)
   }
 
   const { data: subs } = await pushQuery
@@ -282,7 +286,7 @@ export default async function handler(req: Request) {
     }
   }
 
-  return json({
+  return json(req, {
     ok: true,
     eventType,
     pushSent,

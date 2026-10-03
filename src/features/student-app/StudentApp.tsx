@@ -13,7 +13,7 @@ import { loadDemoFixturesIfEnabled } from '@/dev/loadDemoFixtures'
 
 function StudentAppBody() {
   const { current, deepFocus, tab } = useStudentNav()
-  const hydrateFromSupabase = useOrbitStore((s) => s.hydrateFromSupabase)
+  const hydrateStudentFromSupabase = useOrbitStore((s) => s.hydrateStudentFromSupabase)
   const setRole = useOrbitStore((s) => s.setRole)
   const role = useOrbitStore((s) => s.role)
   // Minute clock for future countdown widgets; pauses when backgrounded.
@@ -27,9 +27,9 @@ function StudentAppBody() {
     if (import.meta.env.DEV && window.location.pathname.startsWith('/dev/student')) {
       return
     }
-    void hydrateFromSupabase()
+    void hydrateStudentFromSupabase()
     void loadDemoFixturesIfEnabled()
-  }, [hydrateFromSupabase])
+  }, [hydrateStudentFromSupabase])
 
   useEffect(() => startOfflineQueuePolling(), [])
 

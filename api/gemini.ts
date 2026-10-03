@@ -1,5 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 import { envFirst } from './_lib/env.js'
+import { corsHeaders } from './_lib/cors.js'
+import { matchFaq, routeAiRequest } from './_lib/aiRoute.js'
+import { getAdmin } from './_lib/supabaseAdmin.js'
 import {
   AI_FETCH_TIMEOUT_MS,
   AI_MAX_OUTPUT_TOKENS,
@@ -11,24 +14,11 @@ import {
 
 export const config = { runtime: 'nodejs' }
 
-const MODELS = [
-  'gemini-flash-latest',
-  'gemini-3.6-flash',
-  'gemini-3.5-flash-lite',
-  'gemini-flash-lite-latest',
-] as const
-
 /** Server-owned tutor system — client cannot override. */
 const ORBIT_TUTOR_SYSTEM = `You are Orbit AI, a careful K-12 school tutor.
 Prefer uncertainty over guessing. Never invent marks, fees, attendance, or school policy.
 If the question is outside school subjects, say you can only help with academics.
 Keep answers concise and age-appropriate.`
-
-const cors = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-}
 
 function getKey() {
   // Server-only. Never fall back to VITE_ (client) key material.
@@ -129,7 +119,30 @@ async function generate(
   }
 }
 
+async function recordUsage(input: {
+  userId: string
+  requestId: string
+  feature: string
+  model: string | null
+}): Promise<void> {
+  const admin = getAdmin()
+  if (!admin) return
+  const profile = await admin.from('profiles').select('school_id').eq('id', input.userId).maybeSingle()
+  await admin.from('ai_usage').upsert(
+    {
+      user_id: input.userId,
+      school_id: (profile.data?.school_id as string | null) ?? null,
+      feature: input.feature,
+      model: input.model,
+      request_id: input.requestId,
+      estimated_cost: 0,
+    },
+    { onConflict: 'user_id,request_id' },
+  )
+}
+
 export default async function handler(req: Request): Promise<Response> {
+  const cors = corsHeaders(req)
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: cors })
   }
@@ -187,10 +200,23 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   const image = imageBase64 ? { mimeType, data: imageBase64 } : undefined
+  const requestId =
+    (req.headers.get('x-orbit-request-id') || '').trim().slice(0, 80) ||
+    `${authed.userId}:${prompt.slice(0, 48)}:${Math.floor(Date.now() / 60_000)}`
+  const routed = routeAiRequest({ prompt, hasImage: Boolean(image), jsonMode })
+  if (routed.lane === 'faq') {
+    const cached = matchFaq(prompt)
+    if (cached) {
+      await recordUsage({ userId: authed.userId, requestId, feature: 'faq', model: 'cache' })
+      return Response.json({ text: cached, model: 'cache', source: 'live' }, { headers: cors })
+    }
+  }
+
   const errors: string[] = []
-  for (const model of modelsToTry(MODELS)) {
+  for (const model of modelsToTry(routed.models)) {
     const result = await generate(model, key, prompt, ORBIT_TUTOR_SYSTEM, jsonMode, image, temperature)
     if (result.ok) {
+      await recordUsage({ userId: authed.userId, requestId, feature: routed.feature, model: result.model })
       return Response.json({ text: result.text, model: result.model, source: 'live' }, { headers: cors })
     }
     errors.push(`${model}: ${result.error}`)

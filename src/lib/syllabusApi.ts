@@ -96,7 +96,7 @@ export async function saveSyllabusState(chapters: SyllabusChapter[]): Promise<{ 
 }
 
 function storagePath(schoolId: string, chapterId: string, subtopicId: string, fileName: string) {
-  const safe = fileName.replace(/[^\w.\-]+/g, '_').slice(0, 80)
+  const safe = fileName.replace(/[^\w.-]+/g, '_').slice(0, 80)
   return `${schoolId}/${chapterId}/${subtopicId}/${Date.now()}_${safe}`
 }
 
@@ -122,18 +122,23 @@ export async function uploadSyllabusNoteFile(
   if (error) {
     return { ok: false, error: error.message, localOnly: true }
   }
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path)
-  return { ok: true, publicUrl: data.publicUrl, path }
+  const { data: signed, error: signErr } = await supabase.storage.from(BUCKET).createSignedUrl(path, 60 * 60 * 24)
+  if (signErr || !signed?.signedUrl) {
+    return { ok: false, error: signErr?.message || 'Could not sign note URL', localOnly: true }
+  }
+  return { ok: true, publicUrl: signed.signedUrl, path }
 }
 
 export async function deleteSyllabusNoteFile(noteUrl?: string): Promise<void> {
   if (!noteUrl || !isRemoteNoteUrl(noteUrl) || !isSupabaseConfigured()) return
   const supabase = getSupabase()
   if (!supabase) return
-  // public URL …/object/public/syllabus-notes/<path>
-  const marker = `/object/public/${BUCKET}/`
+  // public URL …/object/public/syllabus-notes/<path> or signed …/object/sign/syllabus-notes/<path>
+  const markers = [`/object/public/${BUCKET}/`, `/object/sign/${BUCKET}/`]
+  const marker = markers.find((m) => noteUrl.includes(m))
+  if (!marker) return
   const idx = noteUrl.indexOf(marker)
-  if (idx < 0) return
-  const path = decodeURIComponent(noteUrl.slice(idx + marker.length))
-  await supabase.storage.from(BUCKET).remove([path])
+  const rest = decodeURIComponent(noteUrl.slice(idx + marker.length).split('?')[0] ?? '')
+  if (!rest) return
+  await supabase.storage.from(BUCKET).remove([rest])
 }

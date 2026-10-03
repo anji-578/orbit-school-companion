@@ -250,6 +250,7 @@ interface OrbitState {
   loadPaymentWorkspace: () => Promise<void>
   loadMoreFees: () => Promise<void>
   hydrateFromSupabase: () => Promise<void>
+  hydrateStudentFromSupabase: () => Promise<void>
   refreshNotifications: () => Promise<void>
   submitUtrPayment: (input: {
     amount: number
@@ -786,6 +787,76 @@ export const useOrbitStore = create<OrbitState>()(
         const sid = get().linkedStudent?.id
         if (sid) {
           const xp = await fetchXpProjection(sid)
+          if (xp) get().setGamificationProjection(xp.totalXp, xp.unlockedBadges)
+        }
+      },
+
+      hydrateStudentFromSupabase: async () => {
+        const cloud = isSupabaseConfigured()
+        await claimDemoLinks()
+        await fetchSchoolPolicy()
+        const sessionEmail = (await getSupabase()?.auth.getUser())?.data.user?.email ?? ''
+        const linkedStudents = await fetchLinkedStudents(sessionEmail, 'student')
+        const linkedStudent =
+          pickActiveStudent(linkedStudents) ?? (await fetchLinkedStudent(sessionEmail, 'student'))
+        const classLinked = await resolveClassLinked(sessionEmail, 'student')
+        const timetableClass = resolveClassLabel({
+          linkedClassName: linkedStudent?.className,
+          linkedSection: linkedStudent?.section,
+          ignoreTeacherFocus: true,
+        })
+        const [ops, attendanceRecords, remoteSyllabus, timetableByDay] = await Promise.all([
+          loadSchoolOpsSnapshot(linkedStudent?.id),
+          fetchAttendanceHistory(20, linkedStudent?.id),
+          fetchSyllabusState(),
+          fetchTimetableByDay(timetableClass),
+        ])
+        await get().refreshNotifications()
+        set((s) => {
+          const tasks = withSample(ops.tasks, initialTasks)
+          const broadcasts = withSample(ops.broadcasts, initialBroadcasts)
+          const calendarEvents = withSample(ops.calendarEvents, initialCalendar)
+          const nextAttendance = withSample(attendanceRecords, initialAttendance)
+          const nextTimetable = timetableHasSlots(timetableByDay)
+            ? timetableByDay
+            : cloud
+              ? timetableByDay
+              : getLocalTimetable()
+          const curriculumBase =
+            cloud && !(remoteSyllabus?.length)
+              ? initialCurriculum
+              : s.curriculum.length
+                ? s.curriculum
+                : initialCurriculum
+          const linkedClass =
+            linkedStudent?.className && linkedStudent.section
+              ? `${linkedStudent.className}-${linkedStudent.section}`
+              : linkedStudent?.className || ''
+          return {
+            usingCloudData: cloud,
+            showingSampleData: !cloud,
+            classLinked,
+            linkedStudent,
+            linkedStudents,
+            tasks,
+            broadcasts,
+            calendarEvents,
+            attendanceRecords: nextAttendance,
+            curriculum: withSyllabusLearningLinks(mergeCurriculum(remoteSyllabus, curriculumBase)),
+            timetableByDay: nextTimetable ?? s.timetableByDay,
+            studyScore: computeStudyScore(attendancePercent(nextAttendance), homeworkPercent(tasks)),
+            studentProfile: linkedStudent
+              ? {
+                  ...s.studentProfile,
+                  name: linkedStudent.displayName,
+                  grade: linkedClass || s.studentProfile.grade,
+                }
+              : s.studentProfile,
+          }
+        })
+        const studentId = get().linkedStudent?.id
+        if (studentId) {
+          const xp = await fetchXpProjection(studentId)
           if (xp) get().setGamificationProjection(xp.totalXp, xp.unlockedBadges)
         }
       },

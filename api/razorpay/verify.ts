@@ -1,32 +1,31 @@
 import { env } from '../_lib/env.js'
+import { corsHeaders } from '../_lib/cors.js'
 import { getAdmin, loadProfile, requireUser } from '../_lib/supabaseAdmin.js'
 import { verifyRazorpayCheckoutSignature } from '../_lib/razorpayCrypto.js'
 
 export const config = { runtime: 'nodejs' }
 
-function cors(res: Response) {
+function cors(req: Request, res: Response) {
   const headers = new Headers(res.headers)
-  headers.set('Access-Control-Allow-Origin', '*')
-  headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS')
-  headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  for (const [k, v] of Object.entries(corsHeaders(req))) headers.set(k, v)
   return new Response(res.body, { status: res.status, headers })
 }
 
-function json(data: unknown, status = 200) {
-  return cors(new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } }))
+function json(req: Request, data: unknown, status = 200) {
+  return cors(req, new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } }))
 }
 
 export default async function handler(req: Request) {
-  if (req.method === 'OPTIONS') return cors(new Response(null, { status: 204 }))
-  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
+  if (req.method === 'OPTIONS') return cors(req, new Response(null, { status: 204 }))
+  if (req.method !== 'POST') return json(req, { error: 'Method not allowed' }, 405)
 
   const keySecret = env('RAZORPAY_KEY_SECRET')
-  if (!keySecret) return json({ error: 'Razorpay not configured' }, 503)
+  if (!keySecret) return json(req, { error: 'Razorpay not configured' }, 503)
 
   const admin = getAdmin()
-  if (!admin) return json({ error: 'Server misconfigured' }, 503)
+  if (!admin) return json(req, { error: 'Server misconfigured' }, 503)
   const auth = await requireUser(req, admin)
-  if ('error' in auth) return json({ error: auth.error }, auth.status)
+  if ('error' in auth) return json(req, { error: auth.error }, auth.status)
 
   let body: {
     razorpay_order_id?: string
@@ -37,13 +36,13 @@ export default async function handler(req: Request) {
   try {
     body = (await req.json()) as typeof body
   } catch {
-    return json({ error: 'Invalid JSON' }, 400)
+    return json(req, { error: 'Invalid JSON' }, 400)
   }
 
   const orderId = (body.razorpay_order_id || '').trim()
   const paymentId = (body.razorpay_payment_id || '').trim()
   const signature = (body.razorpay_signature || '').trim()
-  if (!orderId || !paymentId || !signature) return json({ error: 'Missing payment fields' }, 400)
+  if (!orderId || !paymentId || !signature) return json(req, { error: 'Missing payment fields' }, 400)
 
   const signatureOk = await verifyRazorpayCheckoutSignature({
     orderId,
@@ -52,11 +51,11 @@ export default async function handler(req: Request) {
     keySecret,
   })
   if (!signatureOk) {
-    return json({ error: 'Invalid payment signature' }, 400)
+    return json(req, { error: 'Invalid payment signature' }, 400)
   }
 
   const profile = await loadProfile(admin, auth.user.id)
-  if (!profile?.school_id) return json({ error: 'No school on profile' }, 400)
+  if (!profile?.school_id) return json(req, { error: 'No school on profile' }, 400)
 
   const { data: order, error: orderErr } = await admin
     .from('payment_orders')
@@ -64,18 +63,18 @@ export default async function handler(req: Request) {
     .eq('razorpay_order_id', orderId)
     .maybeSingle()
 
-  if (orderErr) return json({ error: orderErr.message }, 500)
-  if (!order) return json({ error: 'Unknown order' }, 404)
-  if (order.school_id !== profile.school_id) return json({ error: 'Order school mismatch' }, 403)
+  if (orderErr) return json(req, { error: orderErr.message }, 500)
+  if (!order) return json(req, { error: 'Unknown order' }, 404)
+  if (order.school_id !== profile.school_id) return json(req, { error: 'Order school mismatch' }, 403)
   if (order.created_by !== auth.user.id && profile.role !== 'school') {
-    return json({ error: 'Not your order' }, 403)
+    return json(req, { error: 'Not your order' }, 403)
   }
   if (order.status === 'paid') {
-    return json({ ok: true, paymentId, alreadyPaid: true, feeItemIds: order.fee_item_ids || [] })
+    return json(req, { ok: true, paymentId, alreadyPaid: true, feeItemIds: order.fee_item_ids || [] })
   }
 
   const feeIds = [...new Set(((order.fee_item_ids as string[]) || []).filter(Boolean))]
-  if (!feeIds.length) return json({ error: 'Order has no invoices' }, 400)
+  if (!feeIds.length) return json(req, { error: 'Order has no invoices' }, 400)
 
   // Confirm invoices still belong to this school and match order amount.
   const { data: fees, error: feeReadErr } = await admin
@@ -84,9 +83,9 @@ export default async function handler(req: Request) {
     .eq('school_id', order.school_id)
     .in('id', feeIds)
 
-  if (feeReadErr) return json({ error: feeReadErr.message }, 500)
+  if (feeReadErr) return json(req, { error: feeReadErr.message }, 500)
   if (!fees?.length || fees.length !== feeIds.length) {
-    return json({ error: 'Order invoices missing or out of school scope' }, 400)
+    return json(req, { error: 'Order invoices missing or out of school scope' }, 400)
   }
 
   type FeeRow = {
@@ -102,7 +101,7 @@ export default async function handler(req: Request) {
   const unpaidPaise = unpaid.reduce((sum, f) => sum + Number(f.amount_paise || 0), 0)
   // If some already paid (partial retry), remaining unpaid must not exceed order amount.
   if (unpaid.length && unpaidPaise > Number(order.amount_paise)) {
-    return json({ error: 'Order amount mismatch with invoices' }, 400)
+    return json(req, { error: 'Order amount mismatch with invoices' }, 400)
   }
 
   const { data: existing } = await admin
@@ -133,7 +132,7 @@ export default async function handler(req: Request) {
         code === '23505' ||
         insertErr.message.toLowerCase().includes('duplicate') ||
         insertErr.message.toLowerCase().includes('unique')
-      if (!dup) return json({ error: insertErr.message }, 500)
+      if (!dup) return json(req, { error: insertErr.message }, 500)
     }
   }
 
@@ -146,7 +145,7 @@ export default async function handler(req: Request) {
       .in('id', unpaidIds)
       .neq('status', 'Paid')
 
-    if (feeUpdateErr) return json({ error: feeUpdateErr.message }, 500)
+    if (feeUpdateErr) return json(req, { error: feeUpdateErr.message }, 500)
   }
 
   const { error: orderPaidErr } = await admin
@@ -155,7 +154,7 @@ export default async function handler(req: Request) {
     .eq('id', order.id)
     .eq('status', 'created')
 
-  if (orderPaidErr) return json({ error: orderPaidErr.message }, 500)
+  if (orderPaidErr) return json(req, { error: orderPaidErr.message }, 500)
 
   // Best-effort audit (service role bypasses RLS)
   await admin.from('audit_log').insert({
@@ -173,7 +172,7 @@ export default async function handler(req: Request) {
     },
   })
 
-  return json({
+  return json(req, {
     ok: true,
     paymentId,
     feeItemIds: feeIds,

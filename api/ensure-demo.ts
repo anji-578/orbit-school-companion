@@ -1,5 +1,6 @@
 import { getAdmin } from './_lib/supabaseAdmin.js'
 import { demoEnsureAllowed } from './_lib/demoEnsure.js'
+import { corsHeaders } from './_lib/cors.js'
 
 export const config = { runtime: 'nodejs' }
 
@@ -35,16 +36,14 @@ const DEMO_ACCOUNTS = [
   },
 ] as const
 
-function cors(res: Response) {
+function cors(req: Request, res: Response) {
   const headers = new Headers(res.headers)
-  headers.set('Access-Control-Allow-Origin', '*')
-  headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS')
-  headers.set('Access-Control-Allow-Headers', 'Content-Type')
+  for (const [k, v] of Object.entries(corsHeaders(req))) headers.set(k, v)
   return new Response(res.body, { status: res.status, headers })
 }
 
-function json(data: unknown, status = 200) {
-  return cors(new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } }))
+function json(req: Request, data: unknown, status = 200) {
+  return cors(req, new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } }))
 }
 
 async function findUserIdByEmail(
@@ -68,21 +67,21 @@ async function findUserIdByEmail(
  * Only accepts exact DEMO_ACCOUNTS credentials — never arbitrary emails/passwords.
  */
 export default async function handler(req: Request) {
-  if (req.method === 'OPTIONS') return cors(new Response(null, { status: 204 }))
-  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
+  if (req.method === 'OPTIONS') return cors(req, new Response(null, { status: 204 }))
+  if (req.method !== 'POST') return json(req, { error: 'Method not allowed' }, 405)
 
   if (!demoEnsureAllowed()) {
-    return json({ error: 'Demo provisioning is disabled.' }, 403)
+    return json(req, { error: 'Demo provisioning is disabled.' }, 403)
   }
 
   const admin = getAdmin()
-  if (!admin) return json({ error: 'Demo ensure unavailable (missing service role).' }, 503)
+  if (!admin) return json(req, { error: 'Demo ensure unavailable (missing service role).' }, 503)
 
   let body: { email?: string; password?: string; role?: string }
   try {
     body = (await req.json()) as typeof body
   } catch {
-    return json({ error: 'Invalid JSON' }, 400)
+    return json(req, { error: 'Invalid JSON' }, 400)
   }
 
   const email = (body.email || '').trim().toLowerCase()
@@ -90,7 +89,7 @@ export default async function handler(req: Request) {
   const role = body.role || ''
   const demo = DEMO_ACCOUNTS.find((d) => d.email === email && d.password === password && d.role === role)
   if (!demo) {
-    return json({ error: 'Not a documented demo account.' }, 403)
+    return json(req, { error: 'Not a documented demo account.' }, 403)
   }
 
   const meta = {
@@ -109,7 +108,7 @@ export default async function handler(req: Request) {
         email_confirm: true,
         user_metadata: meta,
       })
-      if (error) return json({ error: error.message }, 500)
+      if (error) return json(req, { error: error.message }, 500)
     } else {
       const created = await admin.auth.admin.createUser({
         email: demo.email,
@@ -118,12 +117,12 @@ export default async function handler(req: Request) {
         user_metadata: meta,
       })
       if (created.error || !created.data.user?.id) {
-        return json({ error: created.error?.message || 'Could not create demo user.' }, 500)
+        return json(req, { error: created.error?.message || 'Could not create demo user.' }, 500)
       }
       userId = created.data.user.id
     }
 
-    if (!userId) return json({ error: 'Demo user id missing.' }, 500)
+    if (!userId) return json(req, { error: 'Demo user id missing.' }, 500)
 
     const stamp = new Date().toISOString()
     const { data: school } = await admin.from('schools').select('id').eq('code', 'SUNRISE').maybeSingle()
@@ -170,9 +169,9 @@ export default async function handler(req: Request) {
       )
     }
 
-    return json({ ok: true, email: demo.email, role: demo.role })
+    return json(req, { ok: true, email: demo.email, role: demo.role })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Ensure demo failed'
-    return json({ error: message }, 500)
+    return json(req, { error: message }, 500)
   }
 }
