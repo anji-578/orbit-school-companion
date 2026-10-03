@@ -3,9 +3,16 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { sentryVitePlugin } from '@sentry/vite-plugin'
 import path from 'node:path'
+import { orbitApiPlugin } from './scripts/vite-orbit-api-plugin.ts'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
+  for (const [key, value] of Object.entries(env)) {
+    if (process.env[key] === undefined && value) process.env[key] = value
+  }
+  if (!process.env.GEMINI_API_KEY && env.VITE_GEMINI_API_KEY) {
+    process.env.GEMINI_API_KEY = env.VITE_GEMINI_API_KEY
+  }
   if (mode === 'production' && env.VITE_GEMINI_API_KEY?.trim()) {
     const msg =
       'VITE_GEMINI_API_KEY is set. Remove it — use server-only GEMINI_API_KEY with /api/gemini.'
@@ -30,7 +37,7 @@ export default defineConfig(({ mode }) => {
       : []
 
   return {
-    plugins: [react(), tailwindcss(), ...sentryPlugins],
+    plugins: [react(), tailwindcss(), orbitApiPlugin(), ...sentryPlugins],
     base: './',
     build: {
       // Maps uploaded to Sentry then deleted; never served publicly when token is configured.
