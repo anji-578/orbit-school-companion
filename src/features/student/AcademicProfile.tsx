@@ -50,7 +50,12 @@ export function AcademicProfile() {
   const [newProj, setNewProj] = useState({ title: '', subtitle: '', date: '' })
 
   const handleSave = () => {
-    updateStudentProfile(editForm)
+    updateStudentProfile({
+      ...editForm,
+      name: studentProfile.name,
+      grade: studentProfile.grade,
+      school: studentProfile.school,
+    })
     setIsEditing(false)
     useOrbitStore.getState().triggerToast('Profile updated successfully!')
   }
@@ -137,30 +142,36 @@ export function AcademicProfile() {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Full Name</label>
+              <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                Full Name · Managed by school
+              </label>
               <input
                 type="text"
-                value={editForm.name}
-                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white focus:border-[var(--accent)] focus:outline-none"
+                value={displayName}
+                disabled
+                className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white opacity-70"
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">School</label>
+              <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                School · Managed by school
+              </label>
               <input
                 type="text"
-                value={editForm.school}
-                onChange={(e) => setEditForm({ ...editForm, school: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white focus:border-[var(--accent)] focus:outline-none"
+                value={displaySchool}
+                disabled
+                className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white opacity-70"
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Grade / Class</label>
+              <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                Grade / Class · Managed by school
+              </label>
               <input
                 type="text"
-                value={editForm.grade}
-                onChange={(e) => setEditForm({ ...editForm, grade: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white focus:border-[var(--accent)] focus:outline-none"
+                value={displayGrade}
+                disabled
+                className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white opacity-70"
               />
             </div>
           </div>

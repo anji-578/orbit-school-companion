@@ -1,6 +1,6 @@
 export type Role = 'student' | 'parent' | 'teacher' | 'school'
 export type Lang = 'en' | 'te'
-export type ThemeMode = 'dark' | 'light'
+export type ThemeMode = 'dark' | 'light' | 'system'
 export type AttendanceStatus = 'Present' | 'Absent'
 export type LeaveStatus = 'Reviewing' | 'Approved' | 'Declined'
 export type FeeStatus = 'Unpaid' | 'Pending' | 'Overdue' | 'Paid'
@@ -85,6 +85,8 @@ export interface StudentAcademicProfile {
   skills: string[]
   languages: string[]
   hobbies: string[]
+  /** Student-authored line on Me. School does not own this field. */
+  statement?: string
   sports: string[]
   certifications: ProfileListItem[]
   achievements: ProfileListItem[]
@@ -199,6 +201,7 @@ export interface NotificationItem {
   time: string
   /** When set, alert is scoped to this child (parent/student RLS). */
   studentId?: string
+  eventType?: string
 }
 
 export interface BroadcastMessage {

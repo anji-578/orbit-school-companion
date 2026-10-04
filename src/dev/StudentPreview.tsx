@@ -51,7 +51,7 @@ export function StudentPreview() {
       'orbit-student-nav-v1',
       JSON.stringify({
         savedAt: Date.now(),
-        state: { tab, stack, askOrbitOpen: q.get('ask') === '1', askOrbitSeed: '' },
+        state: { tab, stack, askOrbitOpen: q.get('ask') === '1', askOrbitSeed: '', logoutConfirmOpen: false },
       }),
     )
 

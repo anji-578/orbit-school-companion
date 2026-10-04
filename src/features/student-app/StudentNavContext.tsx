@@ -27,8 +27,11 @@ type StudentNavValue = {
   deepFocus: boolean
   askOrbitOpen: boolean
   askOrbitSeed: string
+  logoutConfirmOpen: boolean
   openAskOrbit: (seed?: string) => void
   closeAskOrbit: () => void
+  openLogoutConfirm: () => void
+  closeLogoutConfirm: () => void
 }
 
 const StudentNavContext = createContext<StudentNavValue | null>(null)
@@ -40,7 +43,12 @@ function loadPersistedNav(): NavState | null {
     const parsed = JSON.parse(raw) as { savedAt: number; state: NavState }
     if (!parsed?.state || Date.now() - parsed.savedAt > NAV_TTL_MS) return null
     if (!parsed.state.stack?.length) return null
-    return parsed.state
+    return {
+      ...parsed.state,
+      logoutConfirmOpen: Boolean(parsed.state.logoutConfirmOpen),
+      askOrbitOpen: Boolean(parsed.state.askOrbitOpen),
+      askOrbitSeed: parsed.state.askOrbitSeed ?? '',
+    }
   } catch {
     return null
   }
@@ -85,7 +93,10 @@ export function StudentNavProvider({ children }: { children: ReactNode }) {
         handles.push(
           await App.addListener('appUrlOpen', ({ url }) => {
             const link = resolveOrbitDeepLink(url)
-            if (!link.ok) return
+            if (!link.ok) {
+              dispatch({ type: 'push', dest: 'alerts', title: 'Notifications' })
+              return
+            }
             dispatch({
               type: 'push',
               dest: link.dest,
@@ -114,6 +125,8 @@ export function StudentNavProvider({ children }: { children: ReactNode }) {
     logger.debug('ask_orbit_open')
   }, [])
   const closeAskOrbit = useCallback(() => dispatch({ type: 'closeAskOrbit' }), [])
+  const openLogoutConfirm = useCallback(() => dispatch({ type: 'openLogoutConfirm' }), [])
+  const closeLogoutConfirm = useCallback(() => dispatch({ type: 'closeLogoutConfirm' }), [])
 
   const current = state.stack[state.stack.length - 1] ?? { dest: 'home' as const }
   const canGoBack = state.stack.length > 1
@@ -134,14 +147,18 @@ export function StudentNavProvider({ children }: { children: ReactNode }) {
       deepFocus,
       askOrbitOpen: state.askOrbitOpen,
       askOrbitSeed: state.askOrbitSeed,
+      logoutConfirmOpen: state.logoutConfirmOpen,
       openAskOrbit,
       closeAskOrbit,
+      openLogoutConfirm,
+      closeLogoutConfirm,
     }),
     [
       state.tab,
       state.stack,
       state.askOrbitOpen,
       state.askOrbitSeed,
+      state.logoutConfirmOpen,
       setTab,
       push,
       pop,
@@ -152,6 +169,8 @@ export function StudentNavProvider({ children }: { children: ReactNode }) {
       deepFocus,
       openAskOrbit,
       closeAskOrbit,
+      openLogoutConfirm,
+      closeLogoutConfirm,
     ],
   )
 

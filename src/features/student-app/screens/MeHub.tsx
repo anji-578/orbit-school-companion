@@ -7,6 +7,8 @@ import { SaSection, SaViewAll } from '../components/SaUi'
 import { useStudentNav } from '../StudentNavContext'
 import { presentStreak } from '@/domain/streak/present-streak'
 import { AchievementBadge, ICON, IconTile, ProgressBar, TagChip } from '@/shared/ui/orbit'
+import { orbitAppVersion } from '@/shared/lib/app-version'
+import type { SettingsSectionId, StudentDestination } from '../studentNav'
 
 const QUICK = [
   {
@@ -14,7 +16,8 @@ const QUICK = [
     desc: 'Name, photo, bio',
     icon: ICON.me.personal,
     tone: 'purple' as const,
-    go: 'profile' as const,
+    go: 'settings' as const,
+    settingsSection: 'personal' as const,
   },
   {
     title: 'School info',
@@ -29,6 +32,7 @@ const QUICK = [
     icon: ICON.me.security,
     tone: 'green' as const,
     go: 'settings' as const,
+    settingsSection: 'security' as const,
   },
   {
     title: 'Notifications',
@@ -39,15 +43,22 @@ const QUICK = [
   },
 ]
 
-const SUPPORT = [
-  { title: 'Help & support', desc: 'Guides and FAQs', icon: ICON.me.help, go: 'settings' as const },
+const SUPPORT: {
+  title: string
+  desc: string
+  icon: typeof ICON.me.help
+  go: StudentDestination
+  settingsSection: SettingsSectionId
+}[] = [
+  { title: 'Help & support', desc: 'Guides and FAQs', icon: ICON.me.help, go: 'settings', settingsSection: 'help' },
   {
     title: 'Give feedback',
     desc: 'Tell us what to improve',
     icon: ICON.me.feedback,
-    go: 'settings' as const,
+    go: 'settings',
+    settingsSection: 'feedback',
   },
-  { title: 'About Orbit', desc: 'Version 0.0.0', icon: ICON.me.about, go: 'settings' as const },
+  { title: 'About Orbit', desc: `Version ${orbitAppVersion()}`, icon: ICON.me.about, go: 'settings', settingsSection: 'about' },
 ]
 
 const BADGE_CATALOGUE = [
@@ -168,7 +179,7 @@ export function MeHub() {
         </div>
         <button
           type="button"
-          onClick={() => push('profile')}
+          onClick={() => push('settings', { settingsSection: 'personal' }, 'Personal details')}
           className="o-focus inline-flex min-h-11 items-center gap-1 rounded-button border border-o-border bg-o-surface-2 px-3 text-[12px] font-semibold text-o-primary"
         >
           <Edit className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
@@ -187,11 +198,11 @@ export function MeHub() {
           aria-hidden
         />
         <p className="relative max-w-[72%] font-display text-[16px] font-semibold leading-snug text-o-text">
-          “Curious today, capable tomorrow.”
+          “{studentProfile.statement?.trim() || 'Curious today, capable tomorrow.'}”
         </p>
         <button
           type="button"
-          onClick={() => push('profile')}
+          onClick={() => push('settings', { settingsSection: 'personal' }, 'Personal details')}
           className="o-focus relative mt-3 text-[12px] font-semibold text-o-primary"
         >
           Edit →
@@ -200,17 +211,21 @@ export function MeHub() {
 
       <SaSection eyebrow="Quick actions">
         <div className="grid grid-cols-2 gap-3">
-          {QUICK.map(({ title, desc, icon, tone, go }) => (
+          {QUICK.map((item) => (
             <button
-              key={title}
+              key={item.title}
               type="button"
-              onClick={() => push(go)}
+              onClick={() =>
+                item.go === 'settings' && 'settingsSection' in item && item.settingsSection
+                  ? push('settings', { settingsSection: item.settingsSection }, item.title)
+                  : push(item.go)
+              }
               className="o-card o-focus flex min-h-11 items-start gap-2.5 p-3 text-left active:scale-[0.98]"
             >
-              <IconTile icon={icon} tone={tone} size="md" />
+              <IconTile icon={item.icon} tone={item.tone} size="md" />
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold text-o-text">{title}</span>
-                <span className="mt-0.5 block text-[11px] text-o-muted">{desc}</span>
+                <span className="block text-sm font-semibold text-o-text">{item.title}</span>
+                <span className="mt-0.5 block text-[11px] text-o-muted">{item.desc}</span>
               </span>
               <Chevron className="mt-1 h-4 w-4 text-o-faint" strokeWidth={1.75} aria-hidden />
             </button>
@@ -302,11 +317,11 @@ export function MeHub() {
 
       <SaSection eyebrow="Support">
         <div className="o-card divide-y divide-o-border p-0">
-          {SUPPORT.map(({ title, desc, icon: Icon, go }) => (
+          {SUPPORT.map(({ title, desc, icon: Icon, go, settingsSection }) => (
             <button
               key={title}
               type="button"
-              onClick={() => push(go)}
+              onClick={() => push(go, { settingsSection }, title)}
               className="o-focus flex min-h-14 w-full items-center gap-3 px-4 py-3.5 text-left"
             >
               <Icon className="h-5 w-5 shrink-0 text-o-muted" strokeWidth={1.75} aria-hidden />

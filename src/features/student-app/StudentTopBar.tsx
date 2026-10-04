@@ -1,15 +1,13 @@
-import { useAuthStore } from '../../auth/authStore'
 import { useOrbitStore } from '../../store/orbitStore'
 import { titleForFrame } from './studentNav'
 import { useStudentNav } from './StudentNavContext'
 import { ICON } from '@/shared/ui/orbit'
 
 export function StudentTopBar() {
-  const { current, canGoBack, pop, push } = useStudentNav()
+  const { current, canGoBack, pop, push, openLogoutConfirm } = useStudentNav()
   const notifications = useOrbitStore((s) => s.notifications)
   const theme = useOrbitStore((s) => s.theme)
   const setTheme = useOrbitStore((s) => s.setTheme)
-  const logout = useAuthStore((s) => s.logout)
 
   const unread = notifications.filter((a) => a.unread && (a.role === 'student' || a.role === 'all')).length
 
@@ -17,8 +15,14 @@ export function StudentTopBar() {
   const rootTab = !canGoBack
   const Back = ICON.chrome.back
   const Bell = ICON.chrome.bell
-  const ThemeIcon = theme === 'dark' ? ICON.chrome.themeLight : ICON.chrome.themeDark
+  const ThemeIcon = theme === 'light' ? ICON.chrome.themeDark : ICON.chrome.themeLight
   const SignOut = ICON.chrome.signOut
+
+  const cycleTheme = () => {
+    if (theme === 'dark') setTheme('light')
+    else if (theme === 'light') setTheme('system')
+    else setTheme('dark')
+  }
 
   return (
     <header className="student-topbar sticky top-0 z-20 shrink-0 bg-o-bg/92 backdrop-blur-xl">
@@ -51,7 +55,7 @@ export function StudentTopBar() {
           type="button"
           onClick={() => push('alerts')}
           className="o-focus relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-o-border bg-o-surface-2 text-o-muted"
-          aria-label="Notifications"
+          aria-label={unread > 0 ? `Notifications, ${unread} unread` : 'Notifications'}
         >
           <Bell className="h-5 w-5" strokeWidth={1.75} aria-hidden />
           {unread > 0 ? (
@@ -65,15 +69,15 @@ export function StudentTopBar() {
           <>
             <button
               type="button"
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              onClick={cycleTheme}
               className="o-focus inline-flex h-11 w-11 items-center justify-center rounded-full border border-o-border bg-o-surface-2 text-o-muted"
-              aria-label="Toggle theme"
+              aria-label={`Theme: ${theme}`}
             >
               <ThemeIcon className="h-5 w-5" strokeWidth={1.75} aria-hidden />
             </button>
             <button
               type="button"
-              onClick={() => void logout()}
+              onClick={openLogoutConfirm}
               className="o-focus inline-flex h-11 w-11 items-center justify-center rounded-full border border-o-border bg-o-surface-2 text-o-muted"
               aria-label="Sign out"
             >

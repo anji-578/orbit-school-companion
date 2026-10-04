@@ -3,7 +3,10 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { sentryVitePlugin } from '@sentry/vite-plugin'
 import path from 'node:path'
+import { readFileSync } from 'node:fs'
 import { orbitApiPlugin } from './scripts/vite-orbit-api-plugin.ts'
+
+const pkgVersion = JSON.parse(readFileSync(path.resolve(__dirname, 'package.json'), 'utf8')).version as string
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
@@ -38,6 +41,10 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react(), tailwindcss(), orbitApiPlugin(), ...sentryPlugins],
+    define: {
+      __ORBIT_PKG_VERSION__: JSON.stringify(pkgVersion),
+      __ORBIT_BUILD__: JSON.stringify((process.env.GITHUB_SHA || '').slice(0, 7)),
+    },
     base: './',
     build: {
       // Maps uploaded to Sentry then deleted; never served publicly when token is configured.

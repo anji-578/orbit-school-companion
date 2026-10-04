@@ -1,15 +1,25 @@
+import { useMemo, useState } from 'react'
 import { useOrbitStore } from '../../../store/orbitStore'
-import { SaCard, SaSection } from '../components/SaUi'
+import { SaCard, SaChip, SaSection } from '../components/SaUi'
 import { AlertsPanel } from '../../shared/AlertsPanel'
+import { EmptyState, ICON, IconTile } from '@/shared/ui/orbit'
+import { useStudentNav } from '../StudentNavContext'
+import { routeForNotification } from '@/domain/notifications/notification-route'
 
-/** Glance announcements + optional push preferences (Level 3). */
+/** Glance announcements + optional push preferences. */
 export function StudentAnnouncements() {
+  const { push } = useStudentNav()
   const notifications = useOrbitStore((s) => s.notifications)
   const markNotificationRead = useOrbitStore((s) => s.markNotificationRead)
   const markAllNotificationsRead = useOrbitStore((s) => s.markAllNotificationsRead)
   const refreshNotifications = useOrbitStore((s) => s.refreshNotifications)
+  const Bell = ICON.chrome.bell
+  const [filter, setFilter] = useState<'all' | 'unread'>('all')
 
-  const visible = notifications.filter((n) => n.role === 'student' || n.role === 'all')
+  const visible = useMemo(() => {
+    const mine = notifications.filter((n) => n.role === 'student' || n.role === 'all')
+    return filter === 'unread' ? mine.filter((n) => n.unread) : mine
+  }, [notifications, filter])
 
   return (
     <div className="space-y-5 pb-4">
@@ -19,7 +29,7 @@ export function StudentAnnouncements() {
         action={
           <button
             type="button"
-            className="text-[10px] font-bold text-[var(--accent)]"
+            className="o-focus inline-flex min-h-11 items-center text-[13px] font-semibold text-o-primary"
             onClick={() => {
               markAllNotificationsRead()
               void refreshNotifications()
@@ -29,29 +39,50 @@ export function StudentAnnouncements() {
           </button>
         }
       >
-        <SaCard className="p-1">
-          {visible.length === 0 ? (
-            <p className="p-4 text-xs text-[var(--muted)]">No announcements right now.</p>
-          ) : (
-            <ul className="divide-y divide-[var(--border)]">
+        <div className="flex gap-2">
+          <SaChip active={filter === 'all'} onClick={() => setFilter('all')}>
+            All
+          </SaChip>
+          <SaChip active={filter === 'unread'} onClick={() => setFilter('unread')}>
+            Unread
+          </SaChip>
+        </div>
+        {visible.length === 0 ? (
+          <EmptyState
+            art="/art/caught-up.svg"
+            title={filter === 'unread' ? 'No unread notifications' : 'No announcements right now'}
+            body="School notices will land here."
+          />
+        ) : (
+          <SaCard className="divide-y divide-o-border p-1">
+            <ul>
               {visible.map((n) => (
                 <li key={n.id}>
                   <button
                     type="button"
-                    onClick={() => markNotificationRead(n.id)}
-                    className={`w-full text-left px-3.5 py-3.5 ${n.unread ? 'bg-[var(--accent)]/5' : ''}`}
+                    onClick={() => {
+                      markNotificationRead(n.id)
+                      const route = routeForNotification({
+                        eventType: n.eventType,
+                        title: n.title,
+                        body: n.body,
+                      })
+                      if (route.dest !== 'alerts') push(route.dest, route.params, route.title)
+                    }}
+                    className={`o-focus flex min-h-14 w-full items-start gap-3 px-3 py-3.5 text-left ${n.unread ? 'bg-o-primary/5' : ''}`}
                   >
-                    <div className="flex justify-between gap-2">
-                      <p className="text-sm font-bold text-[var(--fg)]">{n.title}</p>
-                      <span className="text-[9px] text-[var(--muted)] shrink-0">{n.time}</span>
-                    </div>
-                    <p className="text-[11px] text-[var(--muted)] mt-1 leading-relaxed">{n.body}</p>
+                    <IconTile icon={Bell} tone="blue" size="sm" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold text-o-text">{n.title}</span>
+                      <span className="mt-1 block text-[13px] leading-relaxed text-o-muted">{n.body}</span>
+                    </span>
+                    <span className="shrink-0 text-[12px] text-o-faint">{n.time}</span>
                   </button>
                 </li>
               ))}
             </ul>
-          )}
-        </SaCard>
+          </SaCard>
+        )}
       </SaSection>
 
       <SaSection eyebrow="Settings" title="Alert preferences">

@@ -26,7 +26,10 @@ export function mergeCurriculum(
   remote: SyllabusChapter[] | null | undefined,
   local: SyllabusChapter[],
 ): SyllabusChapter[] {
-  if (!remote?.length) return local.length ? local : initialCurriculum
+  if (!remote?.length) {
+    if (isSupabaseConfigured()) return []
+    return local.length ? local : initialCurriculum
+  }
   const localBySub = new Map<string, { noteDataUrl?: string; noteMime?: string; noteName?: string; noteUploadedAt?: string }>()
   for (const ch of local) {
     for (const st of ch.subtopics) {

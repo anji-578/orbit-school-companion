@@ -32,6 +32,14 @@ describe('studentNavReducer', () => {
 })
 
 describe('handleHardwareBack', () => {
+  it('closes logout confirm before Ask Orbit or pop', () => {
+    let s = initialNavState('home')
+    s = studentNavReducer(s, { type: 'openLogoutConfirm' })
+    const r = handleHardwareBack(s)
+    expect(r.state.logoutConfirmOpen).toBe(false)
+    expect(r.exitApp).toBe(false)
+  })
+
   it('closes Ask Orbit first', () => {
     let s = initialNavState('home')
     s = studentNavReducer(s, { type: 'openAskOrbit' })

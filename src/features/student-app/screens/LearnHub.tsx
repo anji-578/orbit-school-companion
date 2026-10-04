@@ -111,7 +111,7 @@ export function LearnHub() {
       seen.add(key)
       out.push(subjectDisplayName(s))
     }
-    return out.length > 0 ? out : ['Mathematics', 'Science', 'Chemistry', 'English']
+    return out
   }, [curriculum, tasks])
 
   const subjectMeta = useMemo(() => {
@@ -243,7 +243,15 @@ export function LearnHub() {
       )}
 
       <SaSection eyebrow="Your subjects" action={<SaViewAll onClick={() => push('syllabus')} />}>
-        <div className="flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [scroll-padding-left:20px] snap-x snap-mandatory [&::-webkit-scrollbar]:hidden">
+        {subjectMeta.length === 0 ? (
+          <EmptyState
+            compact
+            art="/art/caught-up.svg"
+            title="No subjects yet"
+            body="Subjects appear when your school publishes a syllabus or homework."
+          />
+        ) : (
+          <div className="flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [scroll-padding-left:20px] snap-x snap-mandatory [&::-webkit-scrollbar]:hidden">
           {subjectMeta.map(({ subject, avg }) => (
             <button
               key={subject}
@@ -270,7 +278,8 @@ export function LearnHub() {
               </span>
             </button>
           ))}
-        </div>
+          </div>
+        )}
       </SaSection>
 
       <SaSection eyebrow="Upcoming" action={<SaViewAll onClick={() => push('upcoming')} />}>

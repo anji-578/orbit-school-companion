@@ -24,14 +24,27 @@
 html[data-theme='light'] {
   color-scheme: light;
   --bg-base: #f4f7fc;
-  --fg: #0f172a;
+  --fg: #0b1430;
   --surface: rgba(255, 255, 255, 0.78);
   --surface-strong: rgba(255, 255, 255, 0.92);
   --border: rgba(11, 31, 68, 0.08);
   --border-strong: rgba(11, 31, 68, 0.12);
   --header-bg: rgba(255, 255, 255, 0.86);
   --panel: #ffffff;
-  --muted: #64748b;
+  --muted: var(--o-muted);
+}
+
+html[data-a11y-text='large'] {
+  font-size: 112.5%;
+}
+
+html[data-a11y-motion='reduce'] *,
+html[data-a11y-motion='reduce'] *::before,
+html[data-a11y-motion='reduce'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
 }
 
 html,
@@ -459,7 +472,7 @@ html[data-theme='light'] .orbit-root .text-slate-300 {
 
 html[data-theme='light'] .orbit-root .text-slate-400,
 html[data-theme='light'] .orbit-root .text-slate-500 {
-  color: #64748b;
+  color: var(--o-muted);
 }
 
 html[data-theme='light'] .orbit-root .border-white\/5 {
@@ -904,14 +917,14 @@ html[data-theme='light'] .landing-feat-tab.is-active svg {
 
 /* Home glance — soft cards, quiet hierarchy, gradient CTAs */
 .student-app {
-  --home-muted: #94a3b8;
+  --home-muted: var(--o-muted);
   --home-divider: rgba(255, 255, 255, 0.08);
   --home-card: #0e172c;
   --home-card-border: rgba(255, 255, 255, 0.08);
 }
 
 html[data-theme='light'] .student-app {
-  --home-muted: #64748b;
+  --home-muted: var(--o-muted);
   --home-divider: rgba(15, 23, 42, 0.08);
   --home-card: #ffffff;
   --home-card-border: rgba(15, 23, 42, 0.08);

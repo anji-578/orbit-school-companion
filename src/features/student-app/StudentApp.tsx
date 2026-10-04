@@ -6,6 +6,7 @@ import { StudentTopBar } from './StudentTopBar'
 import { StudentBottomNav } from './StudentBottomNav'
 import { StudentScreen } from './StudentScreen'
 import { AskOrbitSheet } from './components/AskOrbitSheet'
+import { LogoutConfirm } from './components/LogoutConfirm'
 import { ErrorBoundary } from '@/app/providers/ErrorBoundary'
 import { startOfflineQueuePolling } from '@/services/offline/mutation-queue'
 import { useNow } from '@/shared/lib/useNow'
@@ -50,6 +51,7 @@ function StudentAppBody() {
       </main>
       {!deepFocus ? <StudentBottomNav /> : null}
       <AskOrbitSheet />
+      <LogoutConfirm />
       <ToastHost />
     </div>
   )

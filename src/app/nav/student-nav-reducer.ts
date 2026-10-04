@@ -11,6 +11,7 @@ export type NavState = {
   stack: StudentNavFrame[]
   askOrbitOpen: boolean
   askOrbitSeed: string
+  logoutConfirmOpen: boolean
 }
 
 export type NavAction =
@@ -19,6 +20,8 @@ export type NavAction =
   | { type: 'pop' }
   | { type: 'openAskOrbit'; seed?: string }
   | { type: 'closeAskOrbit' }
+  | { type: 'openLogoutConfirm' }
+  | { type: 'closeLogoutConfirm' }
   | { type: 'restore'; state: NavState }
 
 const TAB_ROOT: Record<StudentTab, StudentDestination> = {
@@ -33,7 +36,7 @@ export function rootFrame(tab: StudentTab): StudentNavFrame {
 }
 
 export function initialNavState(tab: StudentTab = 'home'): NavState {
-  return { tab, stack: [rootFrame(tab)], askOrbitOpen: false, askOrbitSeed: '' }
+  return { tab, stack: [rootFrame(tab)], askOrbitOpen: false, askOrbitSeed: '', logoutConfirmOpen: false }
 }
 
 export function deepFocus(stack: StudentNavFrame[]): boolean {
@@ -48,6 +51,7 @@ export function studentNavReducer(state: NavState, action: NavAction): NavState 
         stack: [rootFrame(action.tab)],
         askOrbitOpen: false,
         askOrbitSeed: '',
+        logoutConfirmOpen: false,
       }
     case 'push': {
       const nextTab = tabForDestination(action.dest)
@@ -73,6 +77,10 @@ export function studentNavReducer(state: NavState, action: NavAction): NavState 
       return { ...state, askOrbitOpen: true, askOrbitSeed: action.seed ?? '' }
     case 'closeAskOrbit':
       return { ...state, askOrbitOpen: false, askOrbitSeed: '' }
+    case 'openLogoutConfirm':
+      return { ...state, logoutConfirmOpen: true }
+    case 'closeLogoutConfirm':
+      return { ...state, logoutConfirmOpen: false }
     case 'restore':
       return action.state
     default: {
@@ -82,8 +90,11 @@ export function studentNavReducer(state: NavState, action: NavAction): NavState 
   }
 }
 
-/** Hardware back: close sheet → pop → Home tab → consume (exit left to OS). */
+/** Hardware back: close sheet/dialog → pop → Home tab → consume (exit left to OS). */
 export function handleHardwareBack(state: NavState): { state: NavState; exitApp: boolean } {
+  if (state.logoutConfirmOpen) {
+    return { state: studentNavReducer(state, { type: 'closeLogoutConfirm' }), exitApp: false }
+  }
   if (state.askOrbitOpen) {
     return { state: studentNavReducer(state, { type: 'closeAskOrbit' }), exitApp: false }
   }

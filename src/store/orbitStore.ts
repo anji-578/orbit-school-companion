@@ -218,6 +218,13 @@ interface OrbitState {
   setLang: (lang: Lang) => void
   setTheme: (theme: ThemeMode) => void
   toggleTheme: () => void
+  largerText: boolean
+  reduceMotion: boolean
+  privacyProfile: 'school' | 'teachers' | 'private'
+  setLargerText: (value: boolean) => void
+  setReduceMotion: (value: boolean) => void
+  setPrivacyProfile: (value: 'school' | 'teachers' | 'private') => void
+  clearSensitiveSession: () => void
   setActiveTab: (tab: string) => void
   setMobileMenuOpen: (open: boolean) => void
   setMobileSimulator: (open: boolean) => void
@@ -353,6 +360,9 @@ export const useOrbitStore = create<OrbitState>()(
       role: 'student',
       lang: 'en',
       theme: 'dark',
+      largerText: false,
+      reduceMotion: false,
+      privacyProfile: 'school',
       activeTab: 'dashboard',
       mobileMenuOpen: false,
       mobileSimulator: false,
@@ -513,7 +523,37 @@ export const useOrbitStore = create<OrbitState>()(
 
       setLang: (lang) => set({ lang }),
       setTheme: (theme) => set({ theme }),
-      toggleTheme: () => set((s) => ({ theme: s.theme === 'dark' ? 'light' : 'dark' })),
+      toggleTheme: () =>
+        set((s) => ({
+          theme: s.theme === 'dark' ? 'light' : s.theme === 'light' ? 'system' : 'dark',
+        })),
+      setLargerText: (largerText) => set({ largerText }),
+      setReduceMotion: (reduceMotion) => set({ reduceMotion }),
+      setPrivacyProfile: (privacyProfile) => set({ privacyProfile }),
+      clearSensitiveSession: () =>
+        set({
+          linkedStudent: null,
+          linkedStudents: [],
+          classLinked: false,
+          tasks: [],
+          attendanceRecords: [],
+          studentGrades: [],
+          notifications: [],
+          broadcasts: [],
+          calendarEvents: [],
+          curriculum: [],
+          timetableByDay: {},
+          competitions: [],
+          competitionEnrollments: [],
+          teachers: [],
+          totalXp: 0,
+          unlockedBadges: [],
+          studentProfile: initialStudentProfile,
+          gkProgress: emptyGkProgress(),
+          confidentialDocs: [],
+          studyScore: 0,
+          usingCloudData: false,
+        }),
       setActiveTab: (activeTab) => set({ activeTab, mobileMenuOpen: false }),
       setMobileMenuOpen: (mobileMenuOpen) => set({ mobileMenuOpen }),
       setMobileSimulator: (mobileSimulator) => set({ mobileSimulator }),
@@ -822,12 +862,7 @@ export const useOrbitStore = create<OrbitState>()(
             : cloud
               ? timetableByDay
               : getLocalTimetable()
-          const curriculumBase =
-            cloud && !(remoteSyllabus?.length)
-              ? initialCurriculum
-              : s.curriculum.length
-                ? s.curriculum
-                : initialCurriculum
+          const curriculumBase = cloud ? [] : s.curriculum.length ? s.curriculum : []
           const linkedClass =
             linkedStudent?.className && linkedStudent.section
               ? `${linkedStudent.className}-${linkedStudent.section}`
@@ -1456,10 +1491,14 @@ export const useOrbitStore = create<OrbitState>()(
       partialize: (s) => ({
         lang: s.lang,
         theme: s.theme,
-        studentProfile: s.studentProfile,
-        gkProgress: s.gkProgress,
-        studyScore: s.studyScore,
-        confidentialDocs: s.confidentialDocs,
+        largerText: s.largerText,
+        reduceMotion: s.reduceMotion,
+        privacyProfile: s.privacyProfile,
+        studentProfile: {
+          ...initialStudentProfile,
+          interests: s.studentProfile.interests,
+          statement: s.studentProfile.statement,
+        },
         teacherClasses: s.teacherClasses,
         teacherActiveClass: s.teacherActiveClass,
         teacherAcademicProfile: s.teacherAcademicProfile,

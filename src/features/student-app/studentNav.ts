@@ -33,10 +33,43 @@ export type StudentDestination =
   | 'school-records'
   | 'settings'
 
+export type SettingsSectionId =
+  | 'personal'
+  | 'security'
+  | 'privacy'
+  | 'notifications'
+  | 'appearance'
+  | 'language'
+  | 'accessibility'
+  | 'school'
+  | 'academic'
+  | 'help'
+  | 'feedback'
+  | 'report'
+  | 'about'
+
+export const SETTINGS_SECTION_TITLES: Record<SettingsSectionId, string> = {
+  personal: 'Personal details',
+  security: 'Account & security',
+  privacy: 'Profile visibility',
+  notifications: 'Notifications',
+  appearance: 'Appearance',
+  language: 'Language',
+  accessibility: 'Accessibility',
+  school: 'School information',
+  academic: 'Academic information',
+  help: 'Help & support',
+  feedback: 'Give feedback',
+  report: 'Report a problem',
+  about: 'About Orbit',
+}
+
 export type StudentNavParams = {
   subject?: string
   taskId?: number | string
   section?: 'topics' | 'homework' | 'assessments' | 'resources' | 'progress'
+  settingsSection?: SettingsSectionId
+  competitionId?: string
 }
 
 export type StudentNavFrame = {
@@ -102,5 +135,8 @@ export function tabForDestination(dest: StudentDestination): StudentTab {
 export function titleForFrame(frame: StudentNavFrame): string {
   if (frame.title) return frame.title
   if (frame.dest === 'subject' && frame.params?.subject) return frame.params.subject
+  if (frame.dest === 'settings' && frame.params?.settingsSection) {
+    return SETTINGS_SECTION_TITLES[frame.params.settingsSection]
+  }
   return DESTINATION_TITLES[frame.dest]
 }

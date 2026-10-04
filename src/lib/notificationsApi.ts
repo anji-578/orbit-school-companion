@@ -18,7 +18,7 @@ export async function fetchAppNotifications(limit = 40): Promise<NotificationIte
   if (!supabase) return []
   const { data, error } = await supabase
     .from('app_notifications')
-    .select('id, role, title, body, read_at, created_at, student_id')
+    .select('id, role, title, body, read_at, created_at, student_id, event_type')
     .order('created_at', { ascending: false })
     .limit(limit)
   if (error || !data) return []
@@ -30,6 +30,7 @@ export async function fetchAppNotifications(limit = 40): Promise<NotificationIte
     time: relativeTime(row.created_at as string),
     unread: row.read_at == null,
     studentId: (row.student_id as string | null) || undefined,
+    eventType: (row.event_type as string | null) || undefined,
   }))
 }
 

@@ -4,6 +4,10 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+  define: {
+    __ORBIT_PKG_VERSION__: JSON.stringify('test'),
+    __ORBIT_BUILD__: JSON.stringify('test'),
+  },
   resolve: {
     alias: {
       '@/app': path.resolve(__dirname, 'src/app'),
