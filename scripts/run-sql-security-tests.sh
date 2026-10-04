@@ -25,6 +25,8 @@ echo "[sql-tests] security definer / XP negatives"
 psql_cmd -f "$ROOT/supabase/tests/02_security_definer.sql"
 echo "[sql-tests] isolation + RLS-all"
 psql_cmd -f "$ROOT/supabase/tests/03_isolation.sql"
+echo "[sql-tests] role matrix (student/parent/teacher/school/anon)"
+psql_cmd -f "$ROOT/supabase/tests/05_role_matrix_run.sql"
 
 echo "[sql-tests] grants/policies evidence dump"
 psql_cmd -c "select grantee, table_name, privilege_type from information_schema.role_table_grants where table_schema='public' and table_name in ('xp_events','student_badges','learning_events','xp_award_rules') and grantee in ('authenticated','anon','PUBLIC') order by 1,2,3;"
