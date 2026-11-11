@@ -187,6 +187,23 @@ export function LearnHub() {
     <div className="space-y-6 pb-8">
       <HeroBanner title="Learn" subtitle="Your learning journey, made simple." artSrc="/art/hero-learn.svg" />
 
+      <SaSection eyebrow="Study tools">
+        <div className="grid grid-cols-3 gap-3">
+          {TOOLS.map(({ title, hint, icon, tone, dest }) => (
+            <button
+              key={title}
+              type="button"
+              onClick={() => push(dest)}
+              className="o-card o-focus flex flex-col items-start gap-2 p-3 text-left active:scale-[0.98]"
+            >
+              <IconTile icon={icon} tone={tone} size="md" />
+              <span className="text-[13.5px] font-semibold text-o-text">{title}</span>
+              <span className="text-[11.5px] text-o-muted">{hint}</span>
+            </button>
+          ))}
+        </div>
+      </SaSection>
+
       {continueTask || continueChapter ? (
         <div
           className="o-card relative overflow-hidden space-y-3 p-4"
@@ -310,23 +327,6 @@ export function LearnHub() {
             ))}
           </div>
         )}
-      </SaSection>
-
-      <SaSection eyebrow="Study tools">
-        <div className="grid grid-cols-3 gap-3">
-          {TOOLS.map(({ title, hint, icon, tone, dest }) => (
-            <button
-              key={title}
-              type="button"
-              onClick={() => push(dest)}
-              className="o-card o-focus flex flex-col items-start gap-2 p-3 text-left active:scale-[0.98]"
-            >
-              <IconTile icon={icon} tone={tone} size="md" />
-              <span className="text-[13.5px] font-semibold text-o-text">{title}</span>
-              <span className="text-[11.5px] text-o-muted">{hint}</span>
-            </button>
-          ))}
-        </div>
       </SaSection>
     </div>
   )
