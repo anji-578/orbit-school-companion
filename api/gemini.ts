@@ -30,21 +30,37 @@ type ImagePart = { mimeType: string; data: string }
 type AuthOk = { ok: true; userId: string }
 type AuthFail = { ok: false; status: number; error: string }
 
+function localDevAiOpen(): boolean {
+  // Local Vite demos only — never on Vercel production.
+  if (envFirst('VERCEL_ENV') === 'production') return false
+  return envFirst('ORBIT_DEV_AI_OPEN') === '1' || envFirst('ORBIT_DEV_AI_OPEN') === 'true'
+}
+
 async function requireAuthedUser(req: Request): Promise<AuthOk | AuthFail> {
   const authHeader = req.headers.get('Authorization') || ''
   const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : ''
-  if (!bearer) return { ok: false, status: 401, error: 'Sign in required for Orbit AI' }
+  if (!bearer) {
+    // Demo walkthrough: local-demo sessions have no Supabase JWT.
+    if (localDevAiOpen()) return { ok: true, userId: 'local-demo-ai' }
+    return { ok: false, status: 401, error: 'Sign in required for Orbit AI' }
+  }
 
   const url = envFirst('VITE_SUPABASE_URL', 'SUPABASE_URL')
   const anon = envFirst('VITE_SUPABASE_ANON_KEY', 'SUPABASE_ANON_KEY')
-  if (!url || !anon) return { ok: false, status: 503, error: 'Auth not configured' }
+  if (!url || !anon) {
+    if (localDevAiOpen()) return { ok: true, userId: 'local-demo-ai' }
+    return { ok: false, status: 503, error: 'Auth not configured' }
+  }
 
   const supabase = createClient(url, anon, {
     global: { headers: { Authorization: `Bearer ${bearer}` } },
     auth: { persistSession: false, autoRefreshToken: false },
   })
   const { data, error } = await supabase.auth.getUser(bearer)
-  if (error || !data.user?.id) return { ok: false, status: 401, error: 'Unauthorized' }
+  if (error || !data.user?.id) {
+    if (localDevAiOpen()) return { ok: true, userId: 'local-demo-ai' }
+    return { ok: false, status: 401, error: 'Unauthorized' }
+  }
   return { ok: true, userId: data.user.id }
 }
 

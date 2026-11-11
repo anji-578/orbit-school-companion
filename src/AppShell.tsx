@@ -9,6 +9,7 @@ import { translate } from './i18n'
 import { useAuthStore } from './auth/authStore'
 import { useOrbitStore } from './store/orbitStore'
 import { childClassLabel } from './lib/linkedStudent'
+import { loadDemoFixturesIfEnabled } from '@/dev/loadDemoFixtures'
 
 /** Authenticated application chrome. Students get the 4-tab mobile product shell. */
 export function AppShell() {
@@ -34,7 +35,15 @@ export function AppShell() {
 
   useEffect(() => {
     if (!session || isStudent) return
-    void hydrateFromSupabase()
+    let cancelled = false
+    void (async () => {
+      await hydrateFromSupabase()
+      if (cancelled) return
+      await loadDemoFixturesIfEnabled()
+    })()
+    return () => {
+      cancelled = true
+    }
   }, [session, hydrateFromSupabase, isStudent])
 
   useEffect(() => {

@@ -28,8 +28,17 @@ function StudentAppBody() {
     if (import.meta.env.DEV && window.location.pathname.startsWith('/dev/student')) {
       return
     }
-    void hydrateStudentFromSupabase()
-    void loadDemoFixturesIfEnabled()
+    let cancelled = false
+    void (async () => {
+      await hydrateStudentFromSupabase()
+      if (cancelled) return
+      // Apply rich demo fixtures after hydrate so empty cloud / paused DB
+      // does not leave Home / Learn / Grow empty for walkthroughs.
+      await loadDemoFixturesIfEnabled()
+    })()
+    return () => {
+      cancelled = true
+    }
   }, [hydrateStudentFromSupabase])
 
   useEffect(() => startOfflineQueuePolling(), [])
