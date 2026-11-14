@@ -203,7 +203,7 @@ export function MeHub() {
         <button
           type="button"
           onClick={() => push('settings', { settingsSection: 'personal' }, 'Personal details')}
-          className="o-focus relative mt-3 text-[12px] font-semibold text-o-primary"
+          className="o-focus relative mt-3 text-[12px] font-semibold text-o-text underline decoration-o-primary-hi underline-offset-2"
         >
           Edit →
         </button>
