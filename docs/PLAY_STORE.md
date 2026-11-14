@@ -32,8 +32,8 @@ bash scripts/generate-upload-keystore.sh
    - `VITE_SENTRY_DSN` (+ CI `SENTRY_*` for maps)
    - **Never** set `ORBIT_DEV_AI_OPEN`, `ORBIT_ALLOW_DEMO_ENSURE`, `VITE_ENABLE_DEMO_FIXTURES` on production
 5. Apply migrations including `20261114120000_account_deletion_request.sql`.
-6. Set Play listing privacy URL to `https://<your-prod-host>/legal/privacy.html`.
-7. Data safety form: collect account info, app activity, diagnostics; not sold; deletion URL above.
+6. Set Play listing privacy URL to `https://orbit-school-companion.vercel.app/legal/privacy.html`.
+7. Data safety form: collect account info, app activity, diagnostics; not sold; deletion URL `https://orbit-school-companion.vercel.app/legal/delete-account.html`.
 8. Target audience: select school / education; complete Families / Designed for Families questionnaires honestly (minors).
 
 ## Build & upload

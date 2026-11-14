@@ -18,11 +18,15 @@ Confirm:
 
 - `android/app/build/outputs/bundle/release/app-release.aab` exists
 - Keystore backup folder exists and is offline-copied
-- Production legal URLs load (replace host):
+- Production legal URLs load (verified live):
 
-  - `https://<PROD_HOST>/legal/privacy.html`
-  - `https://<PROD_HOST>/legal/terms.html`
-  - `https://<PROD_HOST>/legal/delete-account.html`
+  - https://orbit-school-companion.vercel.app/legal/privacy.html
+  - https://orbit-school-companion.vercel.app/legal/terms.html
+  - https://orbit-school-companion.vercel.app/legal/delete-account.html
+
+```bash
+ORBIT_PROD_HOST=https://orbit-school-companion.vercel.app npm run smoke:legal
+```
 
 ## 1) Vercel production env (required)
 
