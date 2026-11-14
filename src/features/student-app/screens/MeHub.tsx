@@ -180,9 +180,9 @@ export function MeHub() {
         <button
           type="button"
           onClick={() => push('settings', { settingsSection: 'personal' }, 'Personal details')}
-          className="o-focus inline-flex min-h-11 items-center gap-1 rounded-button border border-o-border bg-o-surface-2 px-3 text-[12px] font-semibold text-o-primary"
+          className="o-focus inline-flex min-h-11 items-center gap-1 rounded-button border border-o-border bg-o-surface px-3 text-[12px] font-semibold text-o-text"
         >
-          <Edit className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+          <Edit className="h-3.5 w-3.5 text-o-primary-hi" strokeWidth={1.75} aria-hidden />
           Edit profile
         </button>
       </div>
@@ -263,7 +263,12 @@ export function MeHub() {
       </SaSection>
 
       <SaSection eyebrow="Achievements" action={<SaViewAll onClick={() => push('achievements')} />}>
-        <div className="flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div
+          className="flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          role="list"
+          tabIndex={0}
+          aria-label="Achievements"
+        >
           {BADGE_CATALOGUE.map((b) => {
             const locked = ![...earned].some(
               (e) => e.includes(b.id) || e.includes(b.title.toLowerCase().split(' ')[0]!),
@@ -271,6 +276,7 @@ export function MeHub() {
             return (
               <div
                 key={b.id}
+                role="listitem"
                 className="o-card flex w-[118px] shrink-0 flex-col items-center gap-2 p-3 text-center"
               >
                 <AchievementBadge
