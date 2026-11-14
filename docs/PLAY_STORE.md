@@ -14,6 +14,8 @@
   - `/legal/delete-account.html`
 - In-app: privacy ack (production), export data, request account deletion
 
+Operator day-of checklist (merge → AAB → Console): see **`docs/PLAY_UPLOAD_DAY.md`**.
+
 ## One-time setup (human)
 
 1. Create [Google Play Console](https://play.google.com/console) developer account (~₹2,100).

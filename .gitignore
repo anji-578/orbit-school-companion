@@ -37,6 +37,10 @@ dist-ssr
 
 # Android local machine SDK path
 android/local.properties
+
+# Local Play upload keystore backups (never commit)
+.play-secrets/
+Orbit-Play-Secrets/
 android/.gradle/
 android/app/build/
 android/build/
