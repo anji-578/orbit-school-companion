@@ -318,3 +318,35 @@ grant select on public.teacher_classes, public.hiring_applications, public.stude
   public.homework_tasks, public.class_timetable, public.leave_requests, public.broadcasts,
   public.calendar_events, public.audit_log, public.fee_items, public.payment_orders,
   public.school_payment_settings, public.bus_routes, public.staff_directory to authenticated;
+
+-- Minimal storage stubs so pilot_live_isolation storage policies can apply in CI images
+-- that ship a different/incomplete storage.buckets schema.
+create schema if not exists storage;
+
+create table if not exists storage.buckets (
+  id text primary key,
+  name text,
+  public boolean not null default false
+);
+
+-- Real supabase/postgres images may already have storage.buckets without `public`.
+alter table storage.buckets add column if not exists public boolean default false;
+alter table storage.buckets add column if not exists name text;
+
+create table if not exists storage.objects (
+  id uuid primary key default gen_random_uuid(),
+  bucket_id text,
+  name text
+);
+
+create or replace function storage.foldername(name text)
+returns text[]
+language sql
+immutable
+as $$
+  select string_to_array(coalesce(name, ''), '/');
+$$;
+
+insert into storage.buckets (id, name, public)
+values ('syllabus-notes', 'syllabus-notes', true)
+on conflict (id) do update set public = excluded.public;
