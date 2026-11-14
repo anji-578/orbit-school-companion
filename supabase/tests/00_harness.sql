@@ -238,6 +238,67 @@ create table if not exists public.audit_log (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.fee_items (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools (id) on delete cascade,
+  student_id uuid not null references public.students (id) on delete cascade,
+  name text not null,
+  amount_paise integer not null check (amount_paise >= 0),
+  status text not null check (status in ('Unpaid', 'Pending', 'Overdue', 'Paid')),
+  category text,
+  due_date date,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.payment_orders (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools (id) on delete cascade,
+  created_by uuid not null references public.profiles (id) on delete cascade,
+  student_id uuid references public.students (id) on delete set null,
+  fee_item_ids uuid[] not null default '{}',
+  amount_paise integer not null check (amount_paise > 0),
+  razorpay_order_id text not null unique,
+  status text not null default 'created'
+    check (status = any (array['created'::text, 'paid'::text, 'failed'::text])),
+  created_at timestamptz not null default now(),
+  paid_at timestamptz
+);
+
+create table if not exists public.school_payment_settings (
+  school_id uuid primary key references public.schools (id) on delete cascade,
+  upi_id text not null,
+  account_name text not null,
+  bank_name text,
+  ifsc text,
+  instructions text,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.bus_routes (
+  id text primary key,
+  school_id uuid not null references public.schools (id) on delete cascade,
+  name text not null,
+  route_label text,
+  driver_name text,
+  driver_phone text,
+  capacity text,
+  status text not null default 'idle'
+    check (status in ('en_route', 'at_school', 'idle', 'cancelled')),
+  eta_text text,
+  last_updated_at timestamptz not null default now()
+);
+
+create table if not exists public.staff_directory (
+  id text primary key,
+  school_id uuid not null references public.schools (id) on delete cascade,
+  display_name text not null,
+  subject_key text not null default 'mathSubject',
+  qualification text,
+  phone text,
+  avatar_url text,
+  created_at timestamptz not null default now()
+);
+
 alter table public.teacher_classes enable row level security;
 alter table public.hiring_applications enable row level security;
 alter table public.student_grades enable row level security;
@@ -247,7 +308,13 @@ alter table public.leave_requests enable row level security;
 alter table public.broadcasts enable row level security;
 alter table public.calendar_events enable row level security;
 alter table public.audit_log enable row level security;
+alter table public.fee_items enable row level security;
+alter table public.payment_orders enable row level security;
+alter table public.school_payment_settings enable row level security;
+alter table public.bus_routes enable row level security;
+alter table public.staff_directory enable row level security;
 
 grant select on public.teacher_classes, public.hiring_applications, public.student_grades,
   public.homework_tasks, public.class_timetable, public.leave_requests, public.broadcasts,
-  public.calendar_events, public.audit_log to authenticated;
+  public.calendar_events, public.audit_log, public.fee_items, public.payment_orders,
+  public.school_payment_settings, public.bus_routes, public.staff_directory to authenticated;
