@@ -72,9 +72,11 @@ create table if not exists public.homework_completions (
 alter table public.schools enable row level security;
 alter table public.profiles enable row level security;
 alter table public.students enable row level security;
+alter table public.parent_links enable row level security;
 alter table public.attendance enable row level security;
 alter table public.homework_completions enable row level security;
 alter table public.students force row level security;
+alter table public.parent_links force row level security;
 alter table public.attendance force row level security;
 alter table public.homework_completions force row level security;
 
