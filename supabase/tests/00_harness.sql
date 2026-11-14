@@ -96,3 +96,158 @@ create policy homework_completions_select_own on public.homework_completions
 
 grant usage on schema public to authenticated, anon;
 grant select on public.schools, public.profiles, public.students, public.attendance, public.homework_completions to authenticated;
+
+-- ── CI substrate: objects that live outside supabase/migrations/ in prod dumps ──
+-- Later migrations (pilot isolation, teacher auth, DSAR) assume these exist.
+
+alter table public.profiles add column if not exists email text;
+alter table public.profiles add column if not exists subtitle text;
+alter table public.students add column if not exists section text;
+alter table public.students add column if not exists active boolean not null default true;
+
+create or replace function public.current_profile_role()
+returns public.orbit_role
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select role from public.profiles where id = auth.uid();
+$$;
+
+create or replace function public.current_school_id()
+returns uuid
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select school_id from public.profiles where id = auth.uid();
+$$;
+
+revoke all on function public.current_profile_role() from public, anon;
+revoke all on function public.current_school_id() from public, anon;
+grant execute on function public.current_profile_role() to authenticated;
+grant execute on function public.current_school_id() to authenticated;
+
+create table if not exists public.teacher_classes (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools (id) on delete cascade,
+  teacher_profile_id uuid not null references public.profiles (id) on delete cascade,
+  class_name text not null,
+  section text,
+  created_at timestamptz not null default now(),
+  unique (teacher_profile_id, class_name, section)
+);
+
+create table if not exists public.hiring_applications (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools (id) on delete cascade,
+  name text not null,
+  subject text not null,
+  experience text,
+  qualification text,
+  status text not null default 'Applied'
+    check (status in ('Applied', 'Interview Scheduled', 'Hired', 'Declined')),
+  applied_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.student_grades (
+  id text primary key,
+  school_id uuid not null references public.schools (id) on delete cascade,
+  student_id uuid references public.students (id) on delete set null,
+  student_name text not null,
+  math text not null default '',
+  science text not null default '',
+  chem text not null default '',
+  comment text not null default '',
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.homework_tasks (
+  id bigserial primary key,
+  school_id uuid references public.schools (id) on delete cascade,
+  subject text not null,
+  task text not null,
+  due_label text,
+  xp integer not null default 40,
+  difficulty text not null default 'Medium',
+  completed boolean not null default false,
+  class_name text,
+  created_by uuid references public.profiles (id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.class_timetable (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools (id) on delete cascade,
+  class_name text not null default 'Grade 8-A',
+  day_code text not null check (day_code in ('MON', 'TUE', 'WED', 'THU', 'FRI')),
+  slot_type text not null check (slot_type in ('Theory', 'Lab')),
+  code text not null,
+  name text not null,
+  start_time text not null,
+  end_time text not null,
+  room text,
+  teacher_name text,
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.leave_requests (
+  id bigserial primary key,
+  school_id uuid references public.schools (id) on delete cascade,
+  teacher_profile_id uuid references public.profiles (id) on delete set null,
+  leave_date text not null,
+  reason text not null,
+  status text not null default 'Reviewing' check (status in ('Reviewing', 'Approved', 'Declined')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.broadcasts (
+  id bigserial primary key,
+  school_id uuid references public.schools (id) on delete cascade,
+  target text not null,
+  title text not null,
+  content text not null,
+  created_by uuid references public.profiles (id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.calendar_events (
+  id bigserial primary key,
+  school_id uuid references public.schools (id) on delete cascade,
+  title text not null,
+  category text not null,
+  event_date text not null,
+  created_by uuid references public.profiles (id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.audit_log (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools (id) on delete cascade,
+  actor_id uuid references public.profiles (id) on delete set null,
+  action text not null,
+  entity_type text not null,
+  entity_id text,
+  payload jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+alter table public.teacher_classes enable row level security;
+alter table public.hiring_applications enable row level security;
+alter table public.student_grades enable row level security;
+alter table public.homework_tasks enable row level security;
+alter table public.class_timetable enable row level security;
+alter table public.leave_requests enable row level security;
+alter table public.broadcasts enable row level security;
+alter table public.calendar_events enable row level security;
+alter table public.audit_log enable row level security;
+
+grant select on public.teacher_classes, public.hiring_applications, public.student_grades,
+  public.homework_tasks, public.class_timetable, public.leave_requests, public.broadcasts,
+  public.calendar_events, public.audit_log to authenticated;
