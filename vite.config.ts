@@ -49,6 +49,21 @@ export default defineConfig(({ mode }) => {
     build: {
       // Maps uploaded to Sentry then deleted; never served publicly when token is configured.
       sourcemap: Boolean(env.SENTRY_AUTH_TOKEN),
+      rollupOptions: {
+        output: {
+          // Vendor splits only — feature panels stay in their own lazy chunks from React.lazy.
+          manualChunks(id) {
+            if (!id.includes('node_modules')) return undefined
+            if (id.includes('react-dom') || id.includes('/react/') || id.includes('scheduler')) {
+              return 'vendor-react'
+            }
+            if (id.includes('@supabase')) return 'vendor-supabase'
+            if (id.includes('@tanstack')) return 'vendor-query'
+            if (id.includes('@sentry')) return 'vendor-sentry'
+            return undefined
+          },
+        },
+      },
     },
     resolve: {
       alias: {

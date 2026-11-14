@@ -1,15 +1,28 @@
-import { useEffect, useMemo } from 'react'
+import { Suspense, lazy, useEffect, useMemo } from 'react'
 import { Header } from './components/layout/Header'
 import { MobileSimulator } from './components/layout/MobileSimulator'
 import { Sidebar, getRoleMeta } from './components/layout/Sidebar'
 import { ToastHost } from './components/layout/ToastHost'
-import { MainContent } from './features/MainContent'
-import { StudentApp } from './features/student-app/StudentApp'
 import { translate } from './i18n'
 import { useAuthStore } from './auth/authStore'
 import { useOrbitStore } from './store/orbitStore'
 import { childClassLabel } from './lib/linkedStudent'
 import { loadDemoFixturesIfEnabled } from '@/dev/loadDemoFixtures'
+
+const StudentApp = lazy(() =>
+  import('./features/student-app/StudentApp').then((m) => ({ default: m.StudentApp })),
+)
+const MainContent = lazy(() =>
+  import('./features/MainContent').then((m) => ({ default: m.MainContent })),
+)
+
+function ShellFallback() {
+  return (
+    <div className="orbit-root grid min-h-dvh place-items-center text-sm text-slate-400" role="status">
+      Loading Orbit…
+    </div>
+  )
+}
 
 /** Authenticated application chrome. Students get the 4-tab mobile product shell. */
 export function AppShell() {
@@ -80,7 +93,11 @@ export function AppShell() {
   }, [role, linkedClassLabel, session?.subtitle, lang, meta.subKey])
 
   if (isStudent) {
-    return <StudentApp />
+    return (
+      <Suspense fallback={<ShellFallback />}>
+        <StudentApp />
+      </Suspense>
+    )
   }
 
   return (
@@ -106,7 +123,9 @@ export function AppShell() {
               <p className="text-[10px] text-amber-300/90 mt-2 font-semibold">{t('authDemoHint')}</p>
             ) : null}
           </div>
-          <MainContent />
+          <Suspense fallback={<ShellFallback />}>
+            <MainContent />
+          </Suspense>
         </main>
       </div>
 

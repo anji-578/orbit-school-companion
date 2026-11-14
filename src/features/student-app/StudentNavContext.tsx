@@ -128,13 +128,12 @@ export function StudentNavProvider({ children }: { children: ReactNode }) {
   const openLogoutConfirm = useCallback(() => dispatch({ type: 'openLogoutConfirm' }), [])
   const closeLogoutConfirm = useCallback(() => dispatch({ type: 'closeLogoutConfirm' }), [])
 
-  const current = state.stack[state.stack.length - 1] ?? { dest: 'home' as const }
-  const canGoBack = state.stack.length > 1
-  const params = current.params ?? {}
-  const deepFocus = computeDeepFocus(state.stack)
-
-  const value = useMemo(
-    () => ({
+  const value = useMemo(() => {
+    const current = state.stack[state.stack.length - 1] ?? { dest: 'home' as const }
+    const canGoBack = state.stack.length > 1
+    const params = current.params ?? {}
+    const deepFocus = computeDeepFocus(state.stack)
+    return {
       tab: state.tab,
       stack: state.stack,
       setTab,
@@ -152,27 +151,18 @@ export function StudentNavProvider({ children }: { children: ReactNode }) {
       closeAskOrbit,
       openLogoutConfirm,
       closeLogoutConfirm,
-    }),
-    [
-      state.tab,
-      state.stack,
-      state.askOrbitOpen,
-      state.askOrbitSeed,
-      state.logoutConfirmOpen,
-      setTab,
-      push,
-      pop,
-      resetToTab,
-      current,
-      canGoBack,
-      params,
-      deepFocus,
-      openAskOrbit,
-      closeAskOrbit,
-      openLogoutConfirm,
-      closeLogoutConfirm,
-    ],
-  )
+    }
+  }, [
+    state,
+    setTab,
+    push,
+    pop,
+    resetToTab,
+    openAskOrbit,
+    closeAskOrbit,
+    openLogoutConfirm,
+    closeLogoutConfirm,
+  ])
 
   return <StudentNavContext.Provider value={value}>{children}</StudentNavContext.Provider>
 }

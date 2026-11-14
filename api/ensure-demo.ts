@@ -11,14 +11,14 @@ const DEMO_ACCOUNTS = [
     email: 'student@orbit.app',
     password: 'student123',
     displayName: 'Ananya Rao',
-    subtitle: 'Class 11-A · Roll 14',
+    subtitle: 'Grade 8-A · Roll 14',
   },
   {
     role: 'parent',
     email: 'parent@orbit.app',
     password: 'parent123',
     displayName: 'Parent of Ananya',
-    subtitle: 'Guardian · Class 11-A',
+    subtitle: 'Guardian · Grade 8-A',
   },
   {
     role: 'teacher',
