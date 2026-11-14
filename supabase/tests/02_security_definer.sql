@@ -88,7 +88,8 @@ begin
   end;
 end $$;
 
--- Cross-student: A cannot award B's event
+-- Cross-student: A cannot award B's event (B creates the source row under RLS)
+select public.test_set_auth('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb');
 insert into public.learning_events (id, student_id, event_type, ref_id, created_by)
 values (
   'e2222222-2222-2222-2222-222222222222',
@@ -97,6 +98,7 @@ values (
   'hw-b',
   'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
 );
+select public.test_set_auth('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa');
 
 do $$
 begin
