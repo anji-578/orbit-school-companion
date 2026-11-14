@@ -45,9 +45,20 @@ Never apply experimental SQL to prod from a laptop.
 
 ## Android release checklist
 
-1. `npm run check`
-2. Copy `capacitor.config.release.ts` → `capacitor.config.ts` (or Cap config file flag)
-3. `npm run cap:release:check`
-4. `npm run build && npx cap sync android`
-5. Signed AAB; versionCode++; staged rollout
-6. Play Data safety + Families policy review
+1. `npm run check` (includes `check:android-release` + `check:cap-release`)
+2. Confirm `capacitor.config.ts` has no `server.url` (`npm run cap:release:check`)
+3. Ensure `android/key.properties` exists (`npm run android:keystore` once)
+4. `npm run android:aab` → upload `android/app/build/outputs/bundle/release/app-release.aab`
+5. Bump `versionCode` in `android/app/build.gradle` for every store upload
+6. Play Data safety + Families policy + privacy URL (`/legal/privacy.html`) — see `docs/PLAY_STORE.md`
+7. Staged rollout; confirm Sentry release + no spike in auth/AI 5xx
+
+## Production env lockdown
+
+Never set on Vercel **production**:
+
+- `ORBIT_DEV_AI_OPEN`
+- `ORBIT_ALLOW_DEMO_ENSURE`
+- `VITE_ENABLE_DEMO_FIXTURES`
+
+Required for a monitored pilot: `VITE_SENTRY_DSN`, server `GEMINI_API_KEY`, prod Supabase URL/anon (and service role server-only).

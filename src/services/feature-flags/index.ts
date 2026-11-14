@@ -15,7 +15,12 @@ const defaults: FeatureFlags = {
 let overrides: Partial<FeatureFlags> = {}
 
 export function getFlags(): FeatureFlags {
-  return { ...defaults, ...overrides }
+  const merged = { ...defaults, ...overrides }
+  // Production builds always require privacy acknowledgment unless explicitly overridden off in tests.
+  if (import.meta.env.PROD && overrides.consentGate === undefined) {
+    return { ...merged, consentGate: true }
+  }
+  return merged
 }
 
 export function setFlagOverrides(next: Partial<FeatureFlags>) {

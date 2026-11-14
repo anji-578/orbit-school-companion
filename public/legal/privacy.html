@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Orbit Privacy Policy</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #0b1220;
+        --fg: #e8eef9;
+        --muted: #9aa8c0;
+        --card: #121a2b;
+        --accent: #3d8bfd;
+      }
+      @media (prefers-color-scheme: light) {
+        :root {
+          --bg: #f4f7fb;
+          --fg: #0b1220;
+          --muted: #4b5a73;
+          --card: #ffffff;
+        }
+      }
+      body {
+        margin: 0;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--fg);
+        line-height: 1.55;
+      }
+      main {
+        max-width: 40rem;
+        margin: 0 auto;
+        padding: 2rem 1.25rem 4rem;
+      }
+      h1 {
+        font-size: 1.75rem;
+        margin: 0 0 0.35rem;
+      }
+      h2 {
+        font-size: 1.1rem;
+        margin: 1.75rem 0 0.5rem;
+      }
+      p,
+      li {
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+      .meta {
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+      a {
+        color: var(--accent);
+      }
+      .card {
+        background: var(--card);
+        border-radius: 12px;
+        padding: 1rem 1.1rem;
+        margin-top: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Orbit Privacy Policy</h1>
+      <p class="meta">Effective: 14 November 2026 · Version 1.0 · For school students in India</p>
+
+      <div class="card">
+        <p>
+          Orbit (“we”) provides a school learning companion for students, parents, teachers, and school
+          staff. This policy explains what we collect, why, and how schools and families can exercise
+          rights under applicable Indian law (including the Digital Personal Data Protection Act, 2023
+          principles we engineer toward).
+        </p>
+      </div>
+
+      <h2>1. Who controls the data</h2>
+      <p>
+        Your <strong>school</strong> is the primary controller of student education records (roster,
+        attendance, grades, homework). Orbit processes that data on the school’s instructions as a
+        processor / service provider. Contact your school office for most access or correction requests.
+      </p>
+
+      <h2>2. What we collect</h2>
+      <ul>
+        <li>Account: email, display name, role (student / parent / teacher / school).</li>
+        <li>School records synced for your class: timetable, homework, attendance, grades, notices.</li>
+        <li>App usage needed to run the product: device session, crash diagnostics (Sentry, if enabled), AI tutor prompts you submit.</li>
+        <li>Optional: push notification token if you enable alerts.</li>
+      </ul>
+      <p>We do not sell personal data. We do not use student data for advertising.</p>
+
+      <h2>3. Why we process data</h2>
+      <ul>
+        <li><strong>learning_support</strong> — homework help, Ask Orbit, study tools.</li>
+        <li><strong>operations</strong> — roster sync, school workflows.</li>
+        <li><strong>product_quality</strong> — reliability and defect diagnosis.</li>
+        <li><strong>safety</strong> — safeguarding signals required by school policy.</li>
+      </ul>
+
+      <h2>4. Children and guardians</h2>
+      <p>
+        Orbit is used by school-age students under school onboarding. Guardians should review school
+        consent forms. Students can limit profile visibility in-app; school records still follow school
+        permissions.
+      </p>
+
+      <h2>5. Retention</h2>
+      <p>
+        Education records follow the school’s retention schedule. App diagnostics are kept only as long
+        as needed for product quality. After account deletion / anonymization by the school, personal
+        identifiers are removed or irreversibly anonymized where technically feasible.
+      </p>
+
+      <h2>6. Sharing</h2>
+      <p>
+        Infrastructure vendors: Supabase (database/auth), Vercel (hosting/API), Google Gemini via our
+        authenticated server proxy (prompts you send to Orbit AI), and optionally Sentry (crashes). We
+        do not share student data with advertisers.
+      </p>
+
+      <h2>7. Your rights</h2>
+      <ul>
+        <li>Export your Orbit-held student package in Settings → Profile visibility / Your data.</li>
+        <li>
+          Request account deletion via
+          <a href="./delete-account.html">Delete account</a>
+          or in-app Settings. Schools complete erasure of official records.
+        </li>
+        <li>Contact: <a href="mailto:privacy@orbit.app">privacy@orbit.app</a></li>
+      </ul>
+
+      <h2>8. Security</h2>
+      <p>
+        Access is role-based with database row-level security. AI calls require a signed-in session on
+        production. The Android app disables cleartext HTTP and cloud backup of app data.
+      </p>
+
+      <h2>9. Changes</h2>
+      <p>We will update this page and the in-app policy version when material changes occur.</p>
+
+      <p class="meta"><a href="./terms.html">Terms of Use</a> · <a href="./delete-account.html">Delete account</a></p>
+    </main>
+  </body>
+</html>

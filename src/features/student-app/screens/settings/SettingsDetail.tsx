@@ -2,11 +2,12 @@ import { useState } from 'react'
 import { useAuthStore } from '../../../../auth/authStore'
 import { useOrbitStore } from '../../../../store/orbitStore'
 import { childClassLabel, childDisplayName } from '../../../../lib/linkedStudent'
-import { getSupabase } from '../../../../lib/supabase'
+import { updateAccountPassword } from '../../../../lib/accountSecurity'
 import { AlertsPanel } from '../../../shared/AlertsPanel'
 import { SaCard, SaSection } from '../../components/SaUi'
 import type { SettingsSectionId } from '../../studentNav'
 import { AboutSection, FeedbackSection, HelpSection } from './SettingsSupport'
+import { PrivacySettings } from './PrivacySettings'
 import type { ThemeMode } from '../../../../types'
 
 function Field({ label, value, managed }: { label: string; value: string; managed?: boolean }) {
@@ -28,7 +29,7 @@ export function SettingsDetail({ section }: { section: SettingsSectionId }) {
     case 'security':
       return <SecuritySection />
     case 'privacy':
-      return <PrivacySection />
+      return <PrivacySettings />
     case 'notifications':
       return (
         <div className="student-embed -mx-1">
@@ -111,16 +112,11 @@ function SecuritySection() {
   const canPassword = session?.provider === 'supabase'
 
   const changePassword = async () => {
-    if (password.length < 8) {
-      triggerToast('Use at least 8 characters')
-      return
-    }
     setBusy(true)
-    const supabase = getSupabase()
-    const { error } = supabase ? await supabase.auth.updateUser({ password }) : { error: { message: 'Unavailable' } }
+    const result = await updateAccountPassword(password)
     setBusy(false)
-    if (error) {
-      triggerToast(error.message)
+    if (!result.ok) {
+      triggerToast(result.error)
       return
     }
     setPassword('')
@@ -159,41 +155,6 @@ function SecuritySection() {
         <p className="px-1 text-[13px] text-o-muted">Password changes are available for school-signed-in accounts.</p>
       )}
     </div>
-  )
-}
-
-function PrivacySection() {
-  const privacyProfile = useOrbitStore((s) => s.privacyProfile)
-  const setPrivacyProfile = useOrbitStore((s) => s.setPrivacyProfile)
-  const options = [
-    { id: 'school' as const, label: 'School staff only', hint: 'Safest default' },
-    { id: 'teachers' as const, label: 'My teachers', hint: 'Class teachers can see growth details' },
-    { id: 'private' as const, label: 'Only me', hint: 'Hide extra profile details from classmates' },
-  ]
-  return (
-    <SaSection eyebrow="Who can see my profile">
-      <SaCard className="divide-y divide-o-border p-0">
-        {options.map((opt) => (
-          <button
-            key={opt.id}
-            type="button"
-            onClick={() => setPrivacyProfile(opt.id)}
-            className="o-focus flex min-h-14 w-full items-center justify-between gap-3 px-3 py-3 text-left"
-          >
-            <span>
-              <span className="block text-sm font-semibold text-o-text">{opt.label}</span>
-              <span className="text-[12px] text-o-muted">{opt.hint}</span>
-            </span>
-            <span className="text-[12px] font-semibold text-o-primary">
-              {privacyProfile === opt.id ? 'Selected' : ''}
-            </span>
-          </button>
-        ))}
-      </SaCard>
-      <p className="px-1 pt-2 text-[12px] text-o-muted">
-        School records still follow school permissions. This never bypasses them.
-      </p>
-    </SaSection>
   )
 }
 

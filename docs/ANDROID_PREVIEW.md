@@ -43,4 +43,6 @@ You should see **Home · Learn · Grow · Me**.
 ## Notes
 
 - Website vs Android UI are **not fully separated yet** — students get the mobile shell in both.
-- For a store APK without live-reload, remove `server.url` from `capacitor.config.ts`, then `npm run cap:sync`.
+- For a store build: `capacitor.config.ts` must have no `server.url` (already true for release).
+- Production checklist + AAB: see `docs/PLAY_STORE.md` (`npm run android:aab`).
+- Release AndroidManifest denies cleartext HTTP and cloud backup.

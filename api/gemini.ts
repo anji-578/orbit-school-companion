@@ -31,8 +31,9 @@ type AuthOk = { ok: true; userId: string }
 type AuthFail = { ok: false; status: number; error: string }
 
 function localDevAiOpen(): boolean {
-  // Local Vite demos only — never on Vercel production.
+  // Local Vite demos only — never on Vercel production or NODE_ENV=production.
   if (envFirst('VERCEL_ENV') === 'production') return false
+  if (envFirst('NODE_ENV') === 'production' && envFirst('VERCEL_ENV') !== 'development') return false
   return envFirst('ORBIT_DEV_AI_OPEN') === '1' || envFirst('ORBIT_DEV_AI_OPEN') === 'true'
 }
 

@@ -114,6 +114,28 @@ export function AboutSection() {
           </div>
         </div>
         <p className="text-[13px] text-o-muted">School companion for students.</p>
+        <ul className="space-y-1 text-[13px]">
+          <li>
+            <a className="text-o-primary underline" href="/legal/privacy.html" target="_blank" rel="noreferrer">
+              Privacy Policy
+            </a>
+          </li>
+          <li>
+            <a className="text-o-primary underline" href="/legal/terms.html" target="_blank" rel="noreferrer">
+              Terms of Use
+            </a>
+          </li>
+          <li>
+            <a
+              className="text-o-primary underline"
+              href="/legal/delete-account.html"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Delete account
+            </a>
+          </li>
+        </ul>
       </SaCard>
     </SaSection>
   )

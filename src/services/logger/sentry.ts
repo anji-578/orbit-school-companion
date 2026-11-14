@@ -10,7 +10,10 @@ import { getPublicEnv } from '@/shared/config/env'
  */
 export function initSentry(): void {
   const dsn = (import.meta.env.VITE_SENTRY_DSN as string | undefined)?.trim()
-  if (!dsn) return
+  if (!dsn) {
+    // Production pilots must set VITE_SENTRY_DSN — silent no-op keeps local/CI builds green.
+    return
+  }
   const env = getPublicEnv()
   Sentry.init({
     dsn,

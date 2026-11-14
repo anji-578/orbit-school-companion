@@ -50,8 +50,8 @@ export function LoginPage({ role }: { role: Role }) {
   }, [passwordRecovery])
 
   useEffect(() => {
-    if (mode === 'signin' && !email) setEmail(hint.email)
-  }, [mode, hint.email, email])
+    if (mode === 'signin' && !email && hint?.email) setEmail(hint.email)
+  }, [mode, hint?.email, email])
 
   const switchMode = (next: Mode) => {
     setMode(next)
@@ -59,7 +59,7 @@ export function LoginPage({ role }: { role: Role }) {
     clearAuthNotice()
     setPassword('')
     setConfirmPassword('')
-    if (next === 'signin') setEmail((e) => e || hint.email)
+    if (next === 'signin' && hint?.email) setEmail((e) => e || hint.email)
   }
 
   const enterApp = (toastKey: string) => {
@@ -256,7 +256,7 @@ export function LoginPage({ role }: { role: Role }) {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="field w-full rounded-xl pl-10 pr-3 py-2.5 text-sm"
-                    placeholder={mode === 'signin' ? hint.email : 'you@school.edu'}
+                    placeholder={mode === 'signin' && hint?.email ? hint.email : 'you@school.edu'}
                   />
                 </div>
               </label>
@@ -352,7 +352,7 @@ export function LoginPage({ role }: { role: Role }) {
             </button>
           ) : null}
 
-          {mode === 'signin' || mode === 'signup' ? (
+          {hint && (mode === 'signin' || mode === 'signup') ? (
             <div className="rounded-2xl bg-white/5 border border-white/10 p-3 space-y-1">
               <p className="text-[9px] font-black uppercase tracking-widest text-amber-300/90">
                 {t('demoCredentials')}

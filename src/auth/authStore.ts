@@ -7,6 +7,11 @@ import { createLocalAccount, findLocalAccount } from './localAccounts'
 import { restoreSupabaseSession, supabaseLogin, supabaseLogout, supabaseRequestPasswordReset, supabaseSignUp, supabaseUpdatePassword } from './supabaseAuth'
 import { getSupabase } from '../lib/supabase'
 
+/** Local/demo sessions are for development only — never in production builds. */
+function allowLocalDemoAuth(): boolean {
+  return !import.meta.env.PROD
+}
+
 export interface AuthSession {
   userId: string
   role: Role
@@ -66,6 +71,10 @@ export const useAuthStore = create<AuthState>()(
 
       bootstrap: async () => {
         if (get().bootstrapped) return
+        // Drop any persisted local-demo session when running a production build.
+        if (!allowLocalDemoAuth() && get().session?.provider === 'local-demo') {
+          set({ session: null })
+        }
         if (isSupabaseConfigured()) {
           const supabase = getSupabase()
           supabase?.auth.onAuthStateChange((event) => {
@@ -90,6 +99,8 @@ export const useAuthStore = create<AuthState>()(
           } else if (get().session?.provider === 'supabase') {
             set({ session: null })
           }
+        } else if (!allowLocalDemoAuth()) {
+          set({ session: null })
         }
         set({ bootstrapped: true })
       },
@@ -144,9 +155,8 @@ export const useAuthStore = create<AuthState>()(
             return true
           }
 
-          // Documented demo personas must still work on production even if Auth
-          // passwords drifted or /api/ensure-demo is unavailable.
-          if (result.demoFallback) {
+          // Demo persona fallback is local/dev only — never in production builds.
+          if (result.demoFallback && allowLocalDemoAuth()) {
             const demo = findDemoUser(role, email, password)
             if (demo) {
               set({
@@ -167,6 +177,14 @@ export const useAuthStore = create<AuthState>()(
           }
 
           set({ authError: result.error, session: null })
+          return false
+        }
+
+        if (!allowLocalDemoAuth()) {
+          set({
+            authError: 'School sign-in is required. Local demo accounts are disabled in production.',
+            session: null,
+          })
           return false
         }
 
@@ -225,6 +243,14 @@ export const useAuthStore = create<AuthState>()(
             },
           })
           return 'signed_in'
+        }
+
+        if (!allowLocalDemoAuth()) {
+          set({
+            authError: 'School sign-up is required. Local accounts are disabled in production.',
+            session: null,
+          })
+          return false
         }
 
         const created = createLocalAccount({

@@ -1,0 +1,9 @@
+# Copy to android/key.properties (gitignored) and fill after generating a keystore:
+#   bash scripts/generate-upload-keystore.sh
+#
+# Never commit key.properties, *.jks, or *.keystore.
+
+storePassword=CHANGE_ME
+keyPassword=CHANGE_ME
+keyAlias=orbit
+storeFile=upload-keystore.jks
