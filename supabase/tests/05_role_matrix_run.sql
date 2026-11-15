@@ -44,7 +44,8 @@ insert into public.students (id, school_id, profile_id, class_name, section, dis
   ('cccccccc-0001-4000-8000-0000000000b1', 'aaaaaaaa-0001-4000-8000-0000000000b1', 'bbbbbbbb-0001-4000-8000-0000000000b1', 'Grade 8', 'A', 'Student B1', true);
 
 insert into public.parent_links (parent_profile_id, student_id, relationship) values
-  ('bbbbbbbb-0001-4000-8000-0000000000c1', 'cccccccc-0001-4000-8000-0000000000a1', 'guardian');
+  ('bbbbbbbb-0001-4000-8000-0000000000c1', 'cccccccc-0001-4000-8000-0000000000a1', 'guardian')
+on conflict (parent_profile_id, student_id) do nothing;
 
 insert into public.teacher_classes (school_id, teacher_profile_id, class_name, section) values
   ('aaaaaaaa-0001-4000-8000-0000000000a1', 'bbbbbbbb-0001-4000-8000-0000000000d1', 'Grade 8', 'A');

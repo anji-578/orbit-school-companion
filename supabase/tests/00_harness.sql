@@ -49,8 +49,11 @@ create table if not exists public.parent_links (
   id uuid primary key default gen_random_uuid(),
   parent_profile_id uuid not null references public.profiles (id) on delete cascade,
   student_id uuid not null references public.students (id) on delete cascade,
+  relationship text,
   unique (parent_profile_id, student_id)
 );
+
+alter table public.parent_links add column if not exists relationship text;
 
 create table if not exists public.attendance (
   id uuid primary key default gen_random_uuid(),
