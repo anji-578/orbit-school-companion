@@ -8,6 +8,9 @@ create temporary table role_matrix_results (
   result text not null
 ) on commit drop;
 
+-- test_set_auth switches to authenticated/anon; allow those roles to record results.
+grant select, insert, update, delete on table role_matrix_results to authenticated, anon, public;
+
 create or replace function public.test_set_auth(uid uuid, role_name text default 'authenticated')
 returns void language plpgsql as $$
 begin
