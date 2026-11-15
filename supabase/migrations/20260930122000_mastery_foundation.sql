@@ -43,9 +43,25 @@ create table if not exists public.review_schedule (
   primary key (student_id, skill_code)
 );
 
+alter table public.questions enable row level security;
+alter table public.question_skills enable row level security;
 alter table public.attempts enable row level security;
 alter table public.mastery_state enable row level security;
 alter table public.review_schedule enable row level security;
+
+drop policy if exists questions_select_authenticated on public.questions;
+create policy questions_select_authenticated
+  on public.questions
+  for select
+  to authenticated
+  using (true);
+
+drop policy if exists question_skills_select_authenticated on public.question_skills;
+create policy question_skills_select_authenticated
+  on public.question_skills
+  for select
+  to authenticated
+  using (true);
 
 create policy attempts_own on public.attempts
   for all using (student_id in (select id from public.students where profile_id = auth.uid()))

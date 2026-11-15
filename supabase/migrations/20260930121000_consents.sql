@@ -13,6 +13,15 @@ insert into public.data_processing_purposes (code, description) values
   ('operations', 'School operations and roster sync')
 on conflict (code) do nothing;
 
+alter table public.data_processing_purposes enable row level security;
+
+drop policy if exists data_processing_purposes_select_authenticated on public.data_processing_purposes;
+create policy data_processing_purposes_select_authenticated
+  on public.data_processing_purposes
+  for select
+  to authenticated
+  using (true);
+
 create table if not exists public.consents (
   id uuid primary key default gen_random_uuid(),
   subject_student_id uuid not null references public.students(id) on delete cascade,
