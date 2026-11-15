@@ -23,65 +23,20 @@ insert into public.schools (id, name, code) values
   ('aaaaaaaa-0001-4000-8000-0000000000a1', 'Verify School A', 'VERIFY_A'),
   ('aaaaaaaa-0001-4000-8000-0000000000b1', 'Verify School B', 'VERIFY_B');
 
-insert into auth.users (
-  instance_id, id, aud, role, email, encrypted_password,
-  email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
-  created_at, updated_at
-) values
-  ('00000000-0000-0000-0000-000000000000', 'bbbbbbbb-0001-4000-8000-0000000000a1', 'authenticated', 'authenticated',
-   'a1@verify.test', crypt('verify', gen_salt('bf')), now(),
-   '{"provider":"email","providers":["email"]}'::jsonb,
-   '{"role":"student","display_name":"Student A1"}'::jsonb, now(), now()),
-  ('00000000-0000-0000-0000-000000000000', 'bbbbbbbb-0001-4000-8000-0000000000a2', 'authenticated', 'authenticated',
-   'a2@verify.test', crypt('verify', gen_salt('bf')), now(),
-   '{"provider":"email","providers":["email"]}'::jsonb,
-   '{"role":"student","display_name":"Student A2"}'::jsonb, now(), now()),
-  ('00000000-0000-0000-0000-000000000000', 'bbbbbbbb-0001-4000-8000-0000000000c1', 'authenticated', 'authenticated',
-   'p1@verify.test', crypt('verify', gen_salt('bf')), now(),
-   '{"provider":"email","providers":["email"]}'::jsonb,
-   '{"role":"parent","display_name":"Parent P1"}'::jsonb, now(), now()),
-  ('00000000-0000-0000-0000-000000000000', 'bbbbbbbb-0001-4000-8000-0000000000d1', 'authenticated', 'authenticated',
-   't1@verify.test', crypt('verify', gen_salt('bf')), now(),
-   '{"provider":"email","providers":["email"]}'::jsonb,
-   '{"role":"student","display_name":"Teacher T1"}'::jsonb, now(), now()),
-  ('00000000-0000-0000-0000-000000000000', 'bbbbbbbb-0001-4000-8000-0000000000e1', 'authenticated', 'authenticated',
-   's1@verify.test', crypt('verify', gen_salt('bf')), now(),
-   '{"provider":"email","providers":["email"]}'::jsonb,
-   '{"role":"student","display_name":"Admin S1"}'::jsonb, now(), now()),
-  ('00000000-0000-0000-0000-000000000000', 'bbbbbbbb-0001-4000-8000-0000000000b1', 'authenticated', 'authenticated',
-   'b1@verify.test', crypt('verify', gen_salt('bf')), now(),
-   '{"provider":"email","providers":["email"]}'::jsonb,
-   '{"role":"student","display_name":"Student B1"}'::jsonb, now(), now()),
-  ('00000000-0000-0000-0000-000000000000', 'bbbbbbbb-0001-4000-8000-0000000000f1', 'authenticated', 'authenticated',
-   'sb@verify.test', crypt('verify', gen_salt('bf')), now(),
-   '{"provider":"email","providers":["email"]}'::jsonb,
-   '{"role":"student","display_name":"Admin SB"}'::jsonb, now(), now());
-
-update public.profiles set
-  school_id = case id
-    when 'bbbbbbbb-0001-4000-8000-0000000000a1' then 'aaaaaaaa-0001-4000-8000-0000000000a1'::uuid
-    when 'bbbbbbbb-0001-4000-8000-0000000000a2' then 'aaaaaaaa-0001-4000-8000-0000000000a1'::uuid
-    when 'bbbbbbbb-0001-4000-8000-0000000000c1' then 'aaaaaaaa-0001-4000-8000-0000000000a1'::uuid
-    when 'bbbbbbbb-0001-4000-8000-0000000000d1' then 'aaaaaaaa-0001-4000-8000-0000000000a1'::uuid
-    when 'bbbbbbbb-0001-4000-8000-0000000000e1' then 'aaaaaaaa-0001-4000-8000-0000000000a1'::uuid
-    when 'bbbbbbbb-0001-4000-8000-0000000000b1' then 'aaaaaaaa-0001-4000-8000-0000000000b1'::uuid
-    when 'bbbbbbbb-0001-4000-8000-0000000000f1' then 'aaaaaaaa-0001-4000-8000-0000000000b1'::uuid
-  end,
-  role = case id
-    when 'bbbbbbbb-0001-4000-8000-0000000000a1' then 'student'::public.orbit_role
-    when 'bbbbbbbb-0001-4000-8000-0000000000a2' then 'student'::public.orbit_role
-    when 'bbbbbbbb-0001-4000-8000-0000000000c1' then 'parent'::public.orbit_role
-    when 'bbbbbbbb-0001-4000-8000-0000000000d1' then 'teacher'::public.orbit_role
-    when 'bbbbbbbb-0001-4000-8000-0000000000e1' then 'school'::public.orbit_role
-    when 'bbbbbbbb-0001-4000-8000-0000000000b1' then 'student'::public.orbit_role
-    when 'bbbbbbbb-0001-4000-8000-0000000000f1' then 'school'::public.orbit_role
-  end
-where id in (
-  'bbbbbbbb-0001-4000-8000-0000000000a1','bbbbbbbb-0001-4000-8000-0000000000a2',
-  'bbbbbbbb-0001-4000-8000-0000000000c1','bbbbbbbb-0001-4000-8000-0000000000d1',
-  'bbbbbbbb-0001-4000-8000-0000000000e1','bbbbbbbb-0001-4000-8000-0000000000b1',
-  'bbbbbbbb-0001-4000-8000-0000000000f1'
-);
+-- Seed profiles directly. Avoid auth.users inserts — column layouts differ across
+-- supabase/postgres image tags (email_confirmed_at etc.) and break CI.
+insert into public.profiles (id, school_id, role, display_name) values
+  ('bbbbbbbb-0001-4000-8000-0000000000a1', 'aaaaaaaa-0001-4000-8000-0000000000a1', 'student', 'Student A1'),
+  ('bbbbbbbb-0001-4000-8000-0000000000a2', 'aaaaaaaa-0001-4000-8000-0000000000a1', 'student', 'Student A2'),
+  ('bbbbbbbb-0001-4000-8000-0000000000c1', 'aaaaaaaa-0001-4000-8000-0000000000a1', 'parent', 'Parent P1'),
+  ('bbbbbbbb-0001-4000-8000-0000000000d1', 'aaaaaaaa-0001-4000-8000-0000000000a1', 'teacher', 'Teacher T1'),
+  ('bbbbbbbb-0001-4000-8000-0000000000e1', 'aaaaaaaa-0001-4000-8000-0000000000a1', 'school', 'Admin S1'),
+  ('bbbbbbbb-0001-4000-8000-0000000000b1', 'aaaaaaaa-0001-4000-8000-0000000000b1', 'student', 'Student B1'),
+  ('bbbbbbbb-0001-4000-8000-0000000000f1', 'aaaaaaaa-0001-4000-8000-0000000000b1', 'school', 'Admin SB')
+on conflict (id) do update set
+  school_id = excluded.school_id,
+  role = excluded.role,
+  display_name = excluded.display_name;
 
 insert into public.students (id, school_id, profile_id, class_name, section, display_name, active) values
   ('cccccccc-0001-4000-8000-0000000000a1', 'aaaaaaaa-0001-4000-8000-0000000000a1', 'bbbbbbbb-0001-4000-8000-0000000000a1', 'Grade 8', 'A', 'Student A1', true),
