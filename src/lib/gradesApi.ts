@@ -1,16 +1,14 @@
+import { getCachedAuthUser } from './authSession'
 import { getSupabase, isSupabaseConfigured } from './supabase'
 import { resolveSchoolId } from './schoolPolicy'
 import type { StudentGrade } from '../types'
 import { DEMO_STUDENT_IDS } from './attendanceApi'
 import { resolveLinkedStudentId } from './linkedStudent'
 
-
 async function currentRole(): Promise<string | null> {
   const supabase = getSupabase()
   if (!supabase) return null
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getCachedAuthUser()
   if (!user?.id) return null
   const { data } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
   return (data?.role as string | undefined) ?? null
@@ -23,10 +21,13 @@ export async function fetchStudentGrades(linkedStudentId?: string | null): Promi
   const schoolId = await resolveSchoolId()
   if (!schoolId) return []
 
-  const role = await currentRole()
   let studentId = linkedStudentId ?? null
-  if (!studentId && (role === 'parent' || role === 'student')) {
-    studentId = await resolveLinkedStudentId()
+  let role: string | null = null
+  if (!studentId) {
+    role = await currentRole()
+    if (role === 'parent' || role === 'student') {
+      studentId = await resolveLinkedStudentId()
+    }
   }
 
   let query = supabase
@@ -62,8 +63,7 @@ export async function saveStudentGrades(grades: StudentGrade[]): Promise<{ ok: b
   if (!schoolId) return { ok: false, error: 'School not found' }
 
   const role = await currentRole()
-  const fallbackStudentId =
-    role === 'parent' || role === 'student' ? await resolveLinkedStudentId() : null
+  const fallbackStudentId = role === 'parent' || role === 'student' ? await resolveLinkedStudentId() : null
 
   const rows = grades.map((g) => ({
     id: g.id,

@@ -1,3 +1,4 @@
+import { getCachedAuthUser } from './authSession'
 import { getSupabase, isSupabaseConfigured } from './supabase'
 import { DEMO_USERS } from '../auth/demoUsers'
 
@@ -18,9 +19,7 @@ export async function resolveClassLinked(email: string, role: string): Promise<b
   const supabase = getSupabase()
   if (!supabase) return false
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getCachedAuthUser()
   if (!user?.id) return false
 
   if (role === 'student') {
@@ -28,10 +27,18 @@ export async function resolveClassLinked(email: string, role: string): Promise<b
     return Boolean(data?.id)
   }
   if (role === 'parent') {
-    const { data } = await supabase.from('parent_links').select('id').eq('parent_profile_id', user.id).limit(1)
+    const { data } = await supabase
+      .from('parent_links')
+      .select('id')
+      .eq('parent_profile_id', user.id)
+      .limit(1)
     return Boolean(data?.length)
   }
-  const { data: profile } = await supabase.from('profiles').select('school_id').eq('id', user.id).maybeSingle()
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('school_id')
+    .eq('id', user.id)
+    .maybeSingle()
   return Boolean(profile?.school_id)
 }
 
@@ -56,7 +63,9 @@ export async function redeemInviteCode(
   return { ok: true, className: result.class_name }
 }
 
-export async function fetchSchoolInviteCodes(): Promise<{ code: string; role: string; className: string | null; uses: string }[]> {
+export async function fetchSchoolInviteCodes(): Promise<
+  { code: string; role: string; className: string | null; uses: string }[]
+> {
   if (!isSupabaseConfigured()) return []
   const supabase = getSupabase()
   if (!supabase) return []
@@ -98,7 +107,11 @@ export async function createClassInvite(input: {
   } = await supabase.auth.getUser()
   if (!user?.id) return { ok: false, error: 'Not signed in.' }
 
-  const { data: profile } = await supabase.from('profiles').select('school_id, role').eq('id', user.id).maybeSingle()
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('school_id, role')
+    .eq('id', user.id)
+    .maybeSingle()
   if (profile?.role !== 'school' || !profile.school_id) {
     return { ok: false, error: 'Only school admins can create invites.' }
   }
@@ -111,7 +124,11 @@ export async function createClassInvite(input: {
   if (!school?.id) return { ok: false, error: 'School not found.' }
 
   const prefix = ROLE_PREFIX[input.role] ?? 'INV'
-  const classSlug = (input.className || 'CLASS').replace(/[^a-zA-Z0-9]/g, '').slice(0, 6).toUpperCase() || 'CLS'
+  const classSlug =
+    (input.className || 'CLASS')
+      .replace(/[^a-zA-Z0-9]/g, '')
+      .slice(0, 6)
+      .toUpperCase() || 'CLS'
   const suffix = Math.random().toString(36).slice(2, 6).toUpperCase()
   const code = `${(school.code as string) || 'SCHOOL'}-${prefix}-${classSlug}-${suffix}`
 

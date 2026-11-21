@@ -1,3 +1,4 @@
+import { getCachedAuthUser } from './authSession'
 import { getSupabase, isSupabaseConfigured } from './supabase'
 import { classLabelsMatch, resolveClassLabel, resolveSchoolId } from './schoolPolicy'
 import { resolveLinkedStudentId } from './linkedStudent'
@@ -9,9 +10,7 @@ export type MutateResult<T = void> = { ok: true; data?: T } | { ok: false; error
 async function currentRole(): Promise<string | null> {
   const supabase = getSupabase()
   if (!supabase) return null
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getCachedAuthUser()
   if (!user?.id) return null
   const { data } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
   return (data?.role as string | undefined) ?? null
@@ -79,19 +78,25 @@ export async function syncToggleHomework(
   return { ok: true }
 }
 
-export async function fetchHomeworkTasks(linkedStudentId?: string | null): Promise<HomeworkTask[]> {
+export async function fetchHomeworkTasks(
+  linkedStudentId?: string | null,
+  classLabel?: string | null,
+): Promise<HomeworkTask[]> {
   if (!isSupabaseConfigured()) return []
   const supabase = getSupabase()
   if (!supabase) return []
 
-  const role = await currentRole()
   let studentId = linkedStudentId ?? null
-  if (!studentId && (role === 'student' || role === 'parent')) {
-    studentId = await resolveLinkedStudentId()
+  // Skip role/profile round-trip when hydrate already passed the linked student id.
+  if (!studentId) {
+    const role = await currentRole()
+    if (role === 'student' || role === 'parent') {
+      studentId = await resolveLinkedStudentId()
+    }
   }
 
-  let classFilter = resolveClassLabel()
-  if (studentId) {
+  let classFilter = (classLabel?.trim() || resolveClassLabel()).trim()
+  if (studentId && !classLabel?.trim()) {
     const { data: student } = await supabase
       .from('students')
       .select('class_name, section')
@@ -189,7 +194,10 @@ export async function fetchHomeworkClassOverview(
   if (!students?.length) return {}
 
   const hwClassById = new Map(
-    (homeworkRows ?? []).map((row) => [Number(row.id), ((row.class_name as string | null) || activeClass).trim()]),
+    (homeworkRows ?? []).map((row) => [
+      Number(row.id),
+      ((row.class_name as string | null) || activeClass).trim(),
+    ]),
   )
 
   const done = new Set(
@@ -379,4 +387,22 @@ export async function loadSchoolOpsSnapshot(linkedStudentId?: string | null): Pr
     broadcasts,
     calendarEvents,
   }
+}
+
+/** Student home hydrate — skips leave requests (teacher/school surface). */
+export async function loadStudentHomeSnapshot(
+  linkedStudentId?: string | null,
+  classLabel?: string | null,
+): Promise<{
+  tasks?: HomeworkTask[]
+  broadcasts?: BroadcastMessage[]
+  calendarEvents?: CalendarEvent[]
+}> {
+  if (!isSupabaseConfigured()) return {}
+  const [tasks, broadcasts, calendarEvents] = await Promise.all([
+    fetchHomeworkTasks(linkedStudentId, classLabel),
+    fetchBroadcasts(),
+    fetchCalendarEvents(),
+  ])
+  return { tasks, broadcasts, calendarEvents }
 }

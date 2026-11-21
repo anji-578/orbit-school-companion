@@ -21,14 +21,10 @@ import {
   initialCompetitionEnrollments,
 } from '../data/demo'
 import { computeStudyScore } from '../lib/studyScore'
-import { emptyGkProgress } from '../lib/gkQuiz'
-import {
-  deleteConfidentialDoc,
-  listConfidentialDocs,
-  uploadConfidentialDoc,
-} from '../lib/confidentialDocs'
+import { emptyGkProgress } from '../lib/gkProgress'
+import { deleteConfidentialDoc, listConfidentialDocs, uploadConfidentialDoc } from '../lib/confidentialDocs'
 import { dispatchRemoteAlert, eventTypeFromNotification } from '../lib/alerts'
-import { resolveClassLinked } from '../lib/classLink'
+import { isPilotDemoEmail, resolveClassLinked } from '../lib/classLink'
 import {
   DEMO_TEACHER_CLASSES,
   classLabelsMatch,
@@ -53,22 +49,31 @@ import {
   fetchHiringApplications,
   scheduleHiringInterview,
 } from '../lib/opsSurfacesApi'
-import { currentDayCode, fetchTimetableByDay, getLocalTimetable, saveTimetableWeek, type TimetableByDay } from '../lib/timetableApi'
+import {
+  currentDayCode,
+  fetchTimetableByDay,
+  getLocalTimetable,
+  saveTimetableWeek,
+  type TimetableByDay,
+} from '../lib/timetableApi'
 import { withSample, timetableHasSlots } from '../lib/sampleData'
 import { fetchStaffDirectory } from '../lib/staffApi'
-import { getSupabase, isSupabaseConfigured } from '../lib/supabase'
+import { isSupabaseConfigured } from '../lib/supabase'
 import { demoFixturesEnabled } from '@/shared/config/env'
 import { demoLocalAward, fetchXpProjection, recordAndAwardXp } from '@/services/xp/award'
 import type { XpEventType } from '@/domain/xp/rules'
-import { loadSchoolOpsSnapshot } from '../lib/schoolOpsApi'
-import {
-  claimDemoLinks,
-  fetchAttendanceHistory,
-  fetchRosterWithTodayAttendance,
-} from '../lib/attendanceApi'
+import { loadSchoolOpsSnapshot, loadStudentHomeSnapshot } from '../lib/schoolOpsApi'
+import { getCachedAuthUser } from '../lib/authSession'
+import { claimDemoLinks, fetchAttendanceHistory, fetchRosterWithTodayAttendance } from '../lib/attendanceApi'
 import { startAttendanceQueueSync } from '../lib/attendanceQueue'
 import { fetchStudentGrades, saveStudentGrades } from '../lib/gradesApi'
-import { deleteSyllabusNoteFile, fetchSyllabusState, mergeCurriculum, saveSyllabusState, uploadSyllabusNoteFile } from '../lib/syllabusApi'
+import {
+  deleteSyllabusNoteFile,
+  fetchSyllabusState,
+  mergeCurriculum,
+  saveSyllabusState,
+  uploadSyllabusNoteFile,
+} from '../lib/syllabusApi'
 import { withSyllabusLearningLinks } from '../lib/syllabusLinks'
 import { friendlyError } from '../lib/errors'
 import { attendancePercent, homeworkPercent } from './orbitHelpers'
@@ -346,10 +351,7 @@ async function awardXpEvent(
     }
   }
   if (demoFixturesEnabled()) {
-    const next = demoLocalAward(
-      { totalXp: get().totalXp, unlockedBadges: get().unlockedBadges },
-      eventType,
-    )
+    const next = demoLocalAward({ totalXp: get().totalXp, unlockedBadges: get().unlockedBadges }, eventType)
     get().setGamificationProjection(next.totalXp, next.unlockedBadges)
   }
 }
@@ -485,13 +487,14 @@ export const useOrbitStore = create<OrbitState>()(
 
       loadTeacherClasses: async () => {
         const remote = await fetchTeacherClasses()
-        const {
-          data: { user },
-        } = (await getSupabase()?.auth.getUser()) ?? { data: { user: null } }
+        const user = await getCachedAuthUser()
         const mine = remote
           .filter((row) => !user?.id || row.teacherProfileId === user.id)
           .map((row) =>
-            [row.className, row.section].filter(Boolean).join('-').replace(/\s*-\s*/g, '-'),
+            [row.className, row.section]
+              .filter(Boolean)
+              .join('-')
+              .replace(/\s*-\s*/g, '-'),
           )
           .filter(Boolean)
         const unique = [...new Set(mine.length ? mine : [...DEMO_TEACHER_CLASSES])]
@@ -691,15 +694,25 @@ export const useOrbitStore = create<OrbitState>()(
 
       hydrateFromSupabase: async () => {
         const cloud = isSupabaseConfigured()
-        await claimDemoLinks()
-        await fetchSchoolPolicy()
-        const sessionEmail = (await getSupabase()?.auth.getUser())?.data.user?.email ?? ''
+        const cachedUser = await getCachedAuthUser()
+        const sessionEmail = cachedUser?.email ?? ''
+        const emailLower = sessionEmail.toLowerCase()
         const role = get().role
-        if (role === 'teacher') {
-          await get().loadTeacherClasses()
-        }
-        const classLinked = await resolveClassLinked(sessionEmail, role)
-        const linkedStudents = await fetchLinkedStudents(sessionEmail, role)
+        const maybeClaimDemo =
+          emailLower.endsWith('@orbit.app') && !emailLower.endsWith('@pilot100.orbit.app')
+            ? claimDemoLinks()
+            : Promise.resolve()
+
+        await Promise.all([
+          maybeClaimDemo,
+          fetchSchoolPolicy(),
+          role === 'teacher' ? get().loadTeacherClasses() : Promise.resolve(),
+        ])
+
+        const [classLinked, linkedStudents] = await Promise.all([
+          resolveClassLinked(sessionEmail, role),
+          fetchLinkedStudents(sessionEmail, role),
+        ])
         const linkedStudent =
           pickActiveStudent(linkedStudents) ?? (await fetchLinkedStudent(sessionEmail, role))
         const timetableClass = resolveClassLabel({
@@ -707,32 +720,39 @@ export const useOrbitStore = create<OrbitState>()(
           linkedSection: linkedStudent?.section,
           ignoreTeacherFocus: role === 'student' || role === 'parent' || role === 'school',
         })
-        const [ops, roster, attendanceRecords, studentGrades, remoteSyllabus, timetableByDay, teachers, busRoutes, hiring] =
-          await Promise.all([
-            loadSchoolOpsSnapshot(linkedStudent?.id),
-            fetchRosterWithTodayAttendance({
-              activeClassOnly: role === 'teacher',
-              includeInactive: role === 'school',
-            }),
-            fetchAttendanceHistory(20, linkedStudent?.id),
-            // Teachers/school need the class roster grades; parents/students are scoped to the linked child.
-            fetchStudentGrades(
-              role === 'parent' || role === 'student' ? linkedStudent?.id : undefined,
-            ),
-            fetchSyllabusState(),
-            fetchTimetableByDay(timetableClass),
-            fetchStaffDirectory(),
-            fetchBusRoutes(),
-            role === 'teacher' || role === 'school' ? fetchHiringApplications() : Promise.resolve([]),
-            get().loadPaymentWorkspace(),
-          ])
+        const [
+          ops,
+          roster,
+          attendanceRecords,
+          studentGrades,
+          remoteSyllabus,
+          timetableByDay,
+          teachers,
+          busRoutes,
+          hiring,
+        ] = await Promise.all([
+          loadSchoolOpsSnapshot(linkedStudent?.id),
+          fetchRosterWithTodayAttendance({
+            activeClassOnly: role === 'teacher',
+            includeInactive: role === 'school',
+          }),
+          fetchAttendanceHistory(20, linkedStudent?.id),
+          // Teachers/school need the class roster grades; parents/students are scoped to the linked child.
+          fetchStudentGrades(role === 'parent' || role === 'student' ? linkedStudent?.id : undefined),
+          fetchSyllabusState(),
+          fetchTimetableByDay(timetableClass),
+          fetchStaffDirectory(),
+          fetchBusRoutes(),
+          role === 'teacher' || role === 'school' ? fetchHiringApplications() : Promise.resolve([]),
+          get().loadPaymentWorkspace(),
+          get().refreshNotifications(),
+        ])
         startAttendanceQueueSync((result) => {
           if (result.flushed > 0) {
             get().triggerToast(`Synced ${result.flushed} offline attendance mark(s).`)
             void get().hydrateFromSupabase()
           }
         })
-        await get().refreshNotifications()
         set((s) => {
           const tasks = withSample(ops.tasks, initialTasks)
           const leaves = withSample(ops.leaves, initialLeaves)
@@ -753,28 +773,26 @@ export const useOrbitStore = create<OrbitState>()(
               ? timetableByDay
               : getLocalTimetable()
           const curriculumBase =
-            cloud && !(remoteSyllabus?.length)
+            cloud && !remoteSyllabus?.length
               ? initialCurriculum
               : s.curriculum.length
                 ? s.curriculum
                 : initialCurriculum
           const curriculum = withSyllabusLearningLinks(mergeCurriculum(remoteSyllabus, curriculumBase))
 
-          const usedSample = !cloud && (
-            !(ops.tasks?.length) ||
-            !(ops.leaves?.length) ||
-            !(ops.broadcasts?.length) ||
-            !(ops.calendarEvents?.length) ||
-            !roster.length ||
-            !attendanceRecords.length ||
-            !studentGrades.length ||
-            !teachers.length ||
-            !timetableHasSlots(timetableByDay)
-          )
+          const usedSample =
+            !cloud &&
+            (!ops.tasks?.length ||
+              !ops.leaves?.length ||
+              !ops.broadcasts?.length ||
+              !ops.calendarEvents?.length ||
+              !roster.length ||
+              !attendanceRecords.length ||
+              !studentGrades.length ||
+              !teachers.length ||
+              !timetableHasSlots(timetableByDay))
 
-          const nextFleet = busRoutes.length
-            ? busRowsToFleet(busRoutes)
-            : withSample([], initialFleet)
+          const nextFleet = busRoutes.length ? busRowsToFleet(busRoutes) : withSample([], initialFleet)
           const nextCandidates = hiring.length ? hiring : withSample([], initialCandidates)
           const primaryBus = busRoutes.find((b) => b.id === 'bus_14') || busRoutes[0]
 
@@ -833,25 +851,39 @@ export const useOrbitStore = create<OrbitState>()(
 
       hydrateStudentFromSupabase: async () => {
         const cloud = isSupabaseConfigured()
-        await claimDemoLinks()
-        await fetchSchoolPolicy()
-        const sessionEmail = (await getSupabase()?.auth.getUser())?.data.user?.email ?? ''
-        const linkedStudents = await fetchLinkedStudents(sessionEmail, 'student')
+        // Local session only — avoid repeated Auth-server getUser() round-trips on mobile.
+        const cachedUser = await getCachedAuthUser()
+        const sessionEmail = cachedUser?.email ?? ''
+        const emailLower = sessionEmail.toLowerCase()
+        const maybeClaimDemo =
+          emailLower.endsWith('@orbit.app') && !emailLower.endsWith('@pilot100.orbit.app')
+            ? claimDemoLinks()
+            : Promise.resolve()
+
+        const [, linkedStudents] = await Promise.all([
+          Promise.all([maybeClaimDemo, fetchSchoolPolicy()]),
+          fetchLinkedStudents(sessionEmail, 'student'),
+        ])
         const linkedStudent =
-          pickActiveStudent(linkedStudents) ?? (await fetchLinkedStudent(sessionEmail, 'student'))
-        const classLinked = await resolveClassLinked(sessionEmail, 'student')
+          pickActiveStudent(linkedStudents) ??
+          linkedStudents[0] ??
+          (await fetchLinkedStudent(sessionEmail, 'student'))
+        // Derive link status from students query — skip a duplicate resolveClassLinked round-trip.
+        const classLinked = Boolean(linkedStudent) || isPilotDemoEmail(sessionEmail)
         const timetableClass = resolveClassLabel({
           linkedClassName: linkedStudent?.className,
           linkedSection: linkedStudent?.section,
           ignoreTeacherFocus: true,
         })
-        const [ops, attendanceRecords, remoteSyllabus, timetableByDay] = await Promise.all([
-          loadSchoolOpsSnapshot(linkedStudent?.id),
-          fetchAttendanceHistory(20, linkedStudent?.id),
+        const studentId = linkedStudent?.id
+        const [ops, attendanceRecords, remoteSyllabus, timetableByDay, , xp] = await Promise.all([
+          loadStudentHomeSnapshot(studentId, timetableClass),
+          fetchAttendanceHistory(20, studentId),
           fetchSyllabusState(),
           fetchTimetableByDay(timetableClass),
+          get().refreshNotifications(),
+          studentId ? fetchXpProjection(studentId) : Promise.resolve(null),
         ])
-        await get().refreshNotifications()
         set((s) => {
           const tasks = withSample(ops.tasks, initialTasks)
           const broadcasts = withSample(ops.broadcasts, initialBroadcasts)
@@ -887,13 +919,14 @@ export const useOrbitStore = create<OrbitState>()(
                   grade: linkedClass || s.studentProfile.grade,
                 }
               : s.studentProfile,
+            ...(xp
+              ? {
+                  totalXp: xp.totalXp,
+                  unlockedBadges: xp.unlockedBadges,
+                }
+              : {}),
           }
         })
-        const studentId = get().linkedStudent?.id
-        if (studentId) {
-          const xp = await fetchXpProjection(studentId)
-          if (xp) get().setGamificationProjection(xp.totalXp, xp.unlockedBadges)
-        }
       },
 
       toggleSyllabusSubtopic: (chapterId, subtopicId) => {
@@ -1121,7 +1154,8 @@ export const useOrbitStore = create<OrbitState>()(
             accountName: 'Sunrise Public School',
             bankName: 'Demo Bank',
             ifsc: '',
-            instructions: 'Pay the exact outstanding amount via UPI, then submit the UTR here. ₹0 gateway fee.',
+            instructions:
+              'Pay the exact outstanding amount via UPI, then submit the UTR here. ₹0 gateway fee.',
           },
           broadcasts: initialBroadcasts,
           calendarEvents: initialCalendar,
@@ -1183,7 +1217,8 @@ export const useOrbitStore = create<OrbitState>()(
       },
       setListening: (isListening) => set({ isListening }),
       setSpeaking: (isSpeaking) => set({ isSpeaking }),
-      clearAiPanel: () => set({ aiResponse: '', quizMode: false, activeQuiz: null, quizScore: null, aiSource: null }),
+      clearAiPanel: () =>
+        set({ aiResponse: '', quizMode: false, activeQuiz: null, quizScore: null, aiSource: null }),
 
       startScan: (target) => {
         const insight = getDemoInsight(target)
@@ -1232,7 +1267,8 @@ export const useOrbitStore = create<OrbitState>()(
             scanInsight: insight,
             scanConfidence: insight.confidence,
             scanModel: insight.model || (insight.source === 'live' ? 'Gemini vision' : 'Offline coach'),
-            scanError: insight.source === 'offline' ? 'Live vision unavailable — showing coach fallback.' : null,
+            scanError:
+              insight.source === 'offline' ? 'Live vision unavailable — showing coach fallback.' : null,
           })
           get().triggerToast(
             insight.source === 'live'
@@ -1340,69 +1376,73 @@ export const useOrbitStore = create<OrbitState>()(
 
       setGamificationProjection: (totalXp, unlockedBadges) => set({ totalXp, unlockedBadges }),
 
-      updateStudentProfile: (profile) => set((s) => ({
-        studentProfile: { ...s.studentProfile, ...profile }
-      })),
+      updateStudentProfile: (profile) =>
+        set((s) => ({
+          studentProfile: { ...s.studentProfile, ...profile },
+        })),
 
-      registerForCompetition: (competitionId) => set((s) => {
-        const exists = s.competitionEnrollments.some((e) => e.competitionId === competitionId)
-        if (exists) return s
-        const newEnrollment: CompetitionEnrollment = {
-          competitionId,
-          status: 'registered',
-          registeredAt: new Date().toISOString().slice(0, 10),
-        }
-        return {
-          competitionEnrollments: [...s.competitionEnrollments, newEnrollment]
-        }
-      }),
-
-      payForCompetition: (competitionId) => set((s) => {
-        const enrollments = s.competitionEnrollments.map((e) => {
-          if (e.competitionId !== competitionId) return e
-          return {
-            ...e,
-            status: 'paid' as const,
-            paidAt: new Date().toISOString().slice(0, 10),
+      registerForCompetition: (competitionId) =>
+        set((s) => {
+          const exists = s.competitionEnrollments.some((e) => e.competitionId === competitionId)
+          if (exists) return s
+          const newEnrollment: CompetitionEnrollment = {
+            competitionId,
+            status: 'registered',
+            registeredAt: new Date().toISOString().slice(0, 10),
           }
-        })
-        return { competitionEnrollments: enrollments }
-      }),
-
-      completeCompetition: (competitionId, rank) => set((s) => {
-        const comp = s.competitions.find((c) => c.id === competitionId)
-        if (!comp) return s
-        const enrollments = s.competitionEnrollments.map((e) => {
-          if (e.competitionId !== competitionId) return e
           return {
-            ...e,
-            status: 'result' as const,
-            participatedAt: new Date().toISOString().slice(0, 10),
-            rank,
-            totalParticipants: comp.participantCount,
-            resultPostedAt: new Date().toISOString().slice(0, 10),
+            competitionEnrollments: [...s.competitionEnrollments, newEnrollment],
           }
-        })
-        const newProfileComp = {
-          id: `comp_profile_${competitionId}`,
-          title: comp.title,
-          subtitle: comp.city,
-          date: comp.date,
-          meta: `Rank ${rank} / ${comp.participantCount}`,
-          sourceCompetitionId: competitionId,
-        }
-        const updatedProfile = {
-          ...s.studentProfile,
-          competitions: [
-            ...s.studentProfile.competitions.filter((c) => c.sourceCompetitionId !== competitionId),
-            newProfileComp,
-          ],
-        }
-        return {
-          competitionEnrollments: enrollments,
-          studentProfile: updatedProfile,
-        }
-      }),
+        }),
+
+      payForCompetition: (competitionId) =>
+        set((s) => {
+          const enrollments = s.competitionEnrollments.map((e) => {
+            if (e.competitionId !== competitionId) return e
+            return {
+              ...e,
+              status: 'paid' as const,
+              paidAt: new Date().toISOString().slice(0, 10),
+            }
+          })
+          return { competitionEnrollments: enrollments }
+        }),
+
+      completeCompetition: (competitionId, rank) =>
+        set((s) => {
+          const comp = s.competitions.find((c) => c.id === competitionId)
+          if (!comp) return s
+          const enrollments = s.competitionEnrollments.map((e) => {
+            if (e.competitionId !== competitionId) return e
+            return {
+              ...e,
+              status: 'result' as const,
+              participatedAt: new Date().toISOString().slice(0, 10),
+              rank,
+              totalParticipants: comp.participantCount,
+              resultPostedAt: new Date().toISOString().slice(0, 10),
+            }
+          })
+          const newProfileComp = {
+            id: `comp_profile_${competitionId}`,
+            title: comp.title,
+            subtitle: comp.city,
+            date: comp.date,
+            meta: `Rank ${rank} / ${comp.participantCount}`,
+            sourceCompetitionId: competitionId,
+          }
+          const updatedProfile = {
+            ...s.studentProfile,
+            competitions: [
+              ...s.studentProfile.competitions.filter((c) => c.sourceCompetitionId !== competitionId),
+              newProfileComp,
+            ],
+          }
+          return {
+            competitionEnrollments: enrollments,
+            studentProfile: updatedProfile,
+          }
+        }),
 
       recordGkRound: (level, score, total, passed) => {
         set((s) => {
@@ -1422,8 +1462,13 @@ export const useOrbitStore = create<OrbitState>()(
           }
         })
         const xpHint = passed ? 40 + Math.round((score / Math.max(total, 1)) * 40) : 15
-        const eventType =
-          !passed ? 'gk_attempt' : level === 'hard' ? 'gk_pass_hard' : level === 'medium' ? 'gk_pass_medium' : 'gk_pass_easy'
+        const eventType = !passed
+          ? 'gk_attempt'
+          : level === 'hard'
+            ? 'gk_pass_hard'
+            : level === 'medium'
+              ? 'gk_pass_medium'
+              : 'gk_pass_easy'
         void awardXpEvent(get, eventType, `gk-${level}`)
         get().triggerToast(`GK ${level}: ${score}/${total} · +${xpHint} XP`)
       },
@@ -1463,15 +1508,18 @@ export const useOrbitStore = create<OrbitState>()(
         return true
       },
 
-      startTask: (id) => set((s) => ({
-        tasks: s.tasks.map((t) => t.id === id ? { ...t, started: true } : t)
-      })),
+      startTask: (id) =>
+        set((s) => ({
+          tasks: s.tasks.map((t) => (t.id === id ? { ...t, started: true } : t)),
+        })),
     }),
     {
       name: 'orbit-school-v2',
       version: 3,
       migrate: (persisted: unknown) => {
-        const state = (persisted || {}) as { studentProfile?: { name?: string; grade?: string; school?: string } }
+        const state = (persisted || {}) as {
+          studentProfile?: { name?: string; grade?: string; school?: string }
+        }
         const profile = state.studentProfile
         // Drop stale offline Class 11-A demo grade so cloud roster can own identity.
         if (profile?.grade === 'Class 11-A') {

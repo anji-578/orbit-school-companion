@@ -1,3 +1,4 @@
+import { getCachedAuthUser } from './authSession'
 import { getSupabase, isSupabaseConfigured } from './supabase'
 import type { NotificationItem, Role } from '../types'
 
@@ -81,9 +82,7 @@ export async function markAllAppNotificationsRead(): Promise<{ ok: true } | { ok
   if (!isSupabaseConfigured()) return { ok: true }
   const supabase = getSupabase()
   if (!supabase) return { ok: false, error: 'Supabase unavailable' }
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getCachedAuthUser()
   if (!user?.id) return { ok: false, error: 'Not signed in' }
   const { error } = await supabase
     .from('app_notifications')

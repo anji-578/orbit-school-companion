@@ -1,5 +1,6 @@
 import type { Role } from '../types'
 import { DEMO_USERS, findDemoUser } from './demoUsers'
+import { clearSchoolIdCache } from '../lib/schoolPolicy'
 import { getSupabase } from '../lib/supabase'
 
 export interface OrbitProfile {
@@ -284,6 +285,7 @@ export async function supabaseLogin(
 }
 
 export async function supabaseLogout(): Promise<void> {
+  clearSchoolIdCache()
   const supabase = getSupabase()
   if (!supabase) return
   await supabase.auth.signOut()

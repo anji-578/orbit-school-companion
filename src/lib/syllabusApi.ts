@@ -1,10 +1,10 @@
+import { getCachedAuthUser } from './authSession'
 import { getSupabase, isSupabaseConfigured } from './supabase'
 import { resolveClassLabel, resolveSchoolId } from './schoolPolicy'
 import type { SyllabusChapter } from '../types'
 import { initialCurriculum } from '../data/demo'
 
 const BUCKET = 'syllabus-notes'
-
 
 function isRemoteNoteUrl(url?: string) {
   return Boolean(url && (url.startsWith('http://') || url.startsWith('https://')))
@@ -30,7 +30,10 @@ export function mergeCurriculum(
     if (isSupabaseConfigured()) return []
     return local.length ? local : initialCurriculum
   }
-  const localBySub = new Map<string, { noteDataUrl?: string; noteMime?: string; noteName?: string; noteUploadedAt?: string }>()
+  const localBySub = new Map<
+    string,
+    { noteDataUrl?: string; noteMime?: string; noteName?: string; noteUploadedAt?: string }
+  >()
   for (const ch of local) {
     for (const st of ch.subtopics) {
       localBySub.set(`${ch.id}:${st.id}`, {
@@ -49,7 +52,7 @@ export function mergeCurriculum(
         ? st.noteDataUrl
         : isRemoteNoteUrl(localNote?.noteDataUrl)
           ? localNote?.noteDataUrl
-          : localNote?.noteDataUrl ?? st.noteDataUrl
+          : (localNote?.noteDataUrl ?? st.noteDataUrl)
       return {
         ...st,
         noteDataUrl: preferredUrl,
@@ -78,15 +81,15 @@ export async function fetchSyllabusState(): Promise<SyllabusChapter[] | null> {
   return Array.isArray(curriculum) && curriculum.length ? curriculum : null
 }
 
-export async function saveSyllabusState(chapters: SyllabusChapter[]): Promise<{ ok: boolean; error?: string }> {
+export async function saveSyllabusState(
+  chapters: SyllabusChapter[],
+): Promise<{ ok: boolean; error?: string }> {
   if (!isSupabaseConfigured()) return { ok: true }
   const supabase = getSupabase()
   if (!supabase) return { ok: false, error: 'Supabase unavailable' }
   const schoolId = await resolveSchoolId()
   if (!schoolId) return { ok: false, error: 'School not found — run seed.sql' }
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getCachedAuthUser()
   const { error } = await supabase.from('syllabus_state').upsert({
     school_id: schoolId,
     class_name: resolveClassLabel(),
@@ -125,7 +128,9 @@ export async function uploadSyllabusNoteFile(
   if (error) {
     return { ok: false, error: error.message, localOnly: true }
   }
-  const { data: signed, error: signErr } = await supabase.storage.from(BUCKET).createSignedUrl(path, 60 * 60 * 24)
+  const { data: signed, error: signErr } = await supabase.storage
+    .from(BUCKET)
+    .createSignedUrl(path, 60 * 60 * 24)
   if (signErr || !signed?.signedUrl) {
     return { ok: false, error: signErr?.message || 'Could not sign note URL', localOnly: true }
   }

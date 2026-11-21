@@ -1,10 +1,9 @@
 import bank from '../data/gkQuizBank.json'
 import type { GkDifficulty, GkQuestion, GkQuizProgress } from '../types'
+import { GK_LEVEL_ORDER, GK_PASS_RATIO, GK_ROUND_SIZE } from './gkConstants'
 
-export const GK_ROUND_SIZE = 25
-export const GK_PASS_RATIO = 0.7
-
-export const GK_LEVEL_ORDER: GkDifficulty[] = ['easy', 'medium', 'hard']
+export { GK_LEVEL_ORDER, GK_PASS_RATIO, GK_ROUND_SIZE } from './gkConstants'
+export { emptyGkProgress } from './gkProgress'
 
 const questions = bank.questions as GkQuestion[]
 
@@ -13,21 +12,6 @@ export function getGkBankMeta() {
     total: bank.total as number,
     counts: bank.counts as Record<GkDifficulty, number>,
     topic: bank.topic as string,
-  }
-}
-
-export function emptyGkProgress(): GkQuizProgress {
-  const blank = (): GkQuizProgress['easy'] => ({
-    bestScore: 0,
-    bestTotal: GK_ROUND_SIZE,
-    attempts: 0,
-    passed: false,
-  })
-  return {
-    easy: blank(),
-    medium: blank(),
-    hard: blank(),
-    roundsCompleted: 0,
   }
 }
 

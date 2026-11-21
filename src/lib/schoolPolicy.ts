@@ -1,3 +1,4 @@
+import { getCachedAuthUser } from './authSession'
 import { getSupabase, isSupabaseConfigured } from './supabase'
 
 const POLICY_KEY = 'orbit_school_policy_v1'
@@ -69,30 +70,58 @@ export function writeSchoolPolicy(next: Partial<SchoolPolicy>): SchoolPolicy {
   return merged
 }
 
+/** In-flight / session memo so parallel hydrate calls share one profiles lookup. */
+let schoolIdCache: { userId: string | null; value: string | null } | null = null
+let schoolIdInFlight: Promise<string | null> | null = null
+
+/** Clear after logout or school switch so the next hydrate re-resolves. */
+export function clearSchoolIdCache(): void {
+  schoolIdCache = null
+  schoolIdInFlight = null
+}
+
 /** Prefer profile.school_id; fall back to demo school code only for empty profiles. */
 export async function resolveSchoolId(): Promise<string | null> {
   if (!isSupabaseConfigured()) return null
   const supabase = getSupabase()
   if (!supabase) return null
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (user?.id) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('school_id')
-      .eq('id', user.id)
-      .maybeSingle()
-    if (profile?.school_id) return profile.school_id as string
+  const user = await getCachedAuthUser()
+  const userId = user?.id ?? null
+  if (schoolIdCache && schoolIdCache.userId === userId) {
+    return schoolIdCache.value
   }
+  if (schoolIdInFlight) return schoolIdInFlight
 
-  const { data: school } = await supabase
-    .from('schools')
-    .select('id')
-    .eq('code', DEMO_SCHOOL_CODE)
-    .maybeSingle()
-  return (school?.id as string | undefined) ?? null
+  schoolIdInFlight = (async () => {
+    if (userId) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('school_id')
+        .eq('id', userId)
+        .maybeSingle()
+      if (profile?.school_id) {
+        const value = profile.school_id as string
+        schoolIdCache = { userId, value }
+        return value
+      }
+    }
+
+    const { data: school } = await supabase
+      .from('schools')
+      .select('id')
+      .eq('code', DEMO_SCHOOL_CODE)
+      .maybeSingle()
+    const value = (school?.id as string | undefined) ?? null
+    schoolIdCache = { userId, value }
+    return value
+  })()
+
+  try {
+    return await schoolIdInFlight
+  } finally {
+    schoolIdInFlight = null
+  }
 }
 
 /** Load active class from Supabase; cache locally. Falls back to local/demo. */
@@ -126,9 +155,7 @@ export async function saveSchoolPolicy(
   const schoolId = await resolveSchoolId()
   if (!schoolId) return { ok: false, policy, error: 'School not found' }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getCachedAuthUser()
 
   const { error } = await supabase.from('school_policy').upsert(
     {

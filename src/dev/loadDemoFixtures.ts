@@ -3,7 +3,7 @@ import { useOrbitStore } from '../store/orbitStore'
 import { computeStudyScore } from '../lib/studyScore'
 import { attendancePercent, homeworkPercent } from '../store/orbitHelpers'
 import { withSyllabusLearningLinks } from '../lib/syllabusLinks'
-import { emptyGkProgress } from '../lib/gkQuiz'
+import { emptyGkProgress } from '../lib/gkProgress'
 
 /** Dynamically load demo fixtures outside production builds. */
 export async function loadDemoFixturesIfEnabled(): Promise<void> {

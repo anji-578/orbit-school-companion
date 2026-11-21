@@ -1,3 +1,4 @@
+import { getCachedAuthUser } from './authSession'
 import { getSupabase, isSupabaseConfigured } from './supabase'
 import { classLabelsMatch, resolveClassLabel, resolveSchoolId } from './schoolPolicy'
 import { resolveLinkedStudentId } from './linkedStudent'
@@ -13,7 +14,6 @@ export const DEMO_STUDENT_IDS = {
   marcus: 'a1111111-1111-4111-8111-111111111103',
   pranitha: 'a1111111-1111-4111-8111-111111111104',
 } as const
-
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10)
@@ -32,9 +32,7 @@ export async function claimDemoLinks(): Promise<void> {
   const supabase = getSupabase()
   if (!supabase) return
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getCachedAuthUser()
   if (!user?.email) return
 
   const email = user.email.toLowerCase()
@@ -58,9 +56,7 @@ export async function fetchRosterWithTodayAttendance(options?: {
   const schoolId = await resolveSchoolId()
   if (!schoolId) return []
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getCachedAuthUser()
   let role: string | null = null
   if (user?.id) {
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
@@ -82,10 +78,7 @@ export async function fetchRosterWithTodayAttendance(options?: {
 
   const teacherClassesPromise =
     role === 'teacher' && user?.id
-      ? supabase
-          .from('teacher_classes')
-          .select('class_name, section')
-          .eq('teacher_profile_id', user.id)
+      ? supabase.from('teacher_classes').select('class_name, section').eq('teacher_profile_id', user.id)
       : Promise.resolve({ data: null as { class_name: string; section: string | null }[] | null })
 
   const teacherClassesResult = await teacherClassesPromise
@@ -122,11 +115,7 @@ export async function fetchRosterWithTodayAttendance(options?: {
 
   const [{ data: students }, { data: marks }] = await Promise.all([
     studentsQuery,
-    supabase
-      .from('attendance')
-      .select('student_id, status')
-      .eq('school_id', schoolId)
-      .eq('date', todayIso()),
+    supabase.from('attendance').select('student_id, status').eq('school_id', schoolId).eq('date', todayIso()),
   ])
 
   if (!students?.length) return []
@@ -203,9 +192,7 @@ export async function upsertAttendanceMark(
   const schoolId = await resolveSchoolId()
   if (!schoolId) return { ok: false, error: 'School not found' }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getCachedAuthUser()
 
   const { error } = await supabase.from('attendance').upsert(
     {

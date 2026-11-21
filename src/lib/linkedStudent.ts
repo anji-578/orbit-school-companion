@@ -1,3 +1,4 @@
+import { getCachedAuthUser } from './authSession'
 import { getSupabase, isSupabaseConfigured } from './supabase'
 import { DEMO_STUDENT_IDS } from './attendanceApi'
 import { isPilotDemoEmail } from './classLink'
@@ -57,9 +58,7 @@ export async function fetchLinkedStudents(sessionEmail: string, role: string): P
   const supabase = getSupabase()
   if (!supabase) return []
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getCachedAuthUser()
   if (!user?.id) {
     if (isPilotDemoEmail(sessionEmail) && (role === 'parent' || role === 'student')) {
       return role === 'parent' ? DEMO_CHILDREN : [DEMO_CHILDREN[0]]
@@ -73,7 +72,10 @@ export async function fetchLinkedStudents(sessionEmail: string, role: string): P
       .select('id, display_name, class_name, section')
       .eq('profile_id', user.id)
       .maybeSingle()
-    if (mine) return [mapStudentRow(mine as LinkedStudent & { display_name: string; class_name: string; section: string })]
+    if (mine)
+      return [
+        mapStudentRow(mine as LinkedStudent & { display_name: string; class_name: string; section: string }),
+      ]
     if (isPilotDemoEmail(sessionEmail)) return [DEMO_CHILDREN[0]]
     return []
   }
@@ -120,9 +122,7 @@ export async function resolveLinkedStudentId(preferredId?: string | null): Promi
   if (!isSupabaseConfigured()) return preferredId || getActiveStudentIdPreference() || DEMO_STUDENT_IDS.ananya
   const supabase = getSupabase()
   if (!supabase) return null
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getCachedAuthUser()
   if (!user?.id) return null
 
   const { data: mine } = await supabase.from('students').select('id').eq('profile_id', user.id).maybeSingle()

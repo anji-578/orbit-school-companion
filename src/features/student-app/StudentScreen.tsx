@@ -1,16 +1,4 @@
-import { AssignmentsPanel } from '../student/AssignmentsPanel'
-import { SchedulePanel } from '../student/SchedulePanel'
-import { StudyAssistant } from '../student/StudyAssistant'
-import { ScannerPanel } from '../shared/ScannerPanel'
-import { GkQuizPanel } from '../student/GkQuizPanel'
-import { AcademicsPanel } from '../student/AcademicsPanel'
-import { CalendarView } from '../shared/CalendarView'
-import { CompetitionsPanel } from '../student/CompetitionsPanel'
-import { ExtracurricularPanel } from '../shared/ExtracurricularPanel'
-import { AcademicProfile } from '../student/AcademicProfile'
-import { AttendancePanel } from '../student/AttendancePanel'
-import { AchievementsPanel } from '../student/AchievementsPanel'
-import { TeachersPanel } from '../parent/TeachersPanel'
+import { Suspense, lazy, type ComponentType, type ReactNode } from 'react'
 import type { StudentDestination } from './studentNav'
 import { useStudentNav } from './StudentNavContext'
 import { NestedChrome } from './components/NestedChrome'
@@ -18,15 +6,82 @@ import { HomeToday } from './screens/HomeToday'
 import { LearnHub } from './screens/LearnHub'
 import { GrowHub } from './screens/GrowHub'
 import { MeHub } from './screens/MeHub'
-import { InterestsDetail } from './screens/InterestsDetail'
-import { PortfolioDetail } from './screens/PortfolioDetail'
-import { StudentAnnouncements } from './screens/StudentAnnouncements'
-import { SettingsScreen } from './screens/SettingsScreen'
-import { SchoolRecordsScreen } from './screens/SchoolRecordsScreen'
 import { SubjectHome } from './screens/SubjectHome'
 import { UpcomingScreen } from './screens/UpcomingScreen'
 import { SubjectHomework } from './screens/SubjectHomework'
 import { SubjectTopics } from './screens/SubjectTopics'
+
+/** Heavy / rarely first-paint panels — keep them out of the home chunk. */
+const AssignmentsPanel = lazy(() =>
+  import('../student/AssignmentsPanel').then((m) => ({ default: m.AssignmentsPanel })),
+)
+const SchedulePanel = lazy(() =>
+  import('../student/SchedulePanel').then((m) => ({ default: m.SchedulePanel })),
+)
+const StudyAssistant = lazy(() =>
+  import('../student/StudyAssistant').then((m) => ({ default: m.StudyAssistant })),
+)
+const ScannerPanel = lazy(() => import('../shared/ScannerPanel').then((m) => ({ default: m.ScannerPanel })))
+const GkQuizPanel = lazy(() => import('../student/GkQuizPanel').then((m) => ({ default: m.GkQuizPanel })))
+const AcademicsPanel = lazy(() =>
+  import('../student/AcademicsPanel').then((m) => ({ default: m.AcademicsPanel })),
+)
+const CalendarView = lazy(() => import('../shared/CalendarView').then((m) => ({ default: m.CalendarView })))
+const CompetitionsPanel = lazy(() =>
+  import('../student/CompetitionsPanel').then((m) => ({ default: m.CompetitionsPanel })),
+)
+const ExtracurricularPanel = lazy(() =>
+  import('../shared/ExtracurricularPanel').then((m) => ({ default: m.ExtracurricularPanel })),
+)
+const AcademicProfile = lazy(() =>
+  import('../student/AcademicProfile').then((m) => ({ default: m.AcademicProfile })),
+)
+const AttendancePanel = lazy(() =>
+  import('../student/AttendancePanel').then((m) => ({ default: m.AttendancePanel })),
+)
+const AchievementsPanel = lazy(() =>
+  import('../student/AchievementsPanel').then((m) => ({ default: m.AchievementsPanel })),
+)
+const TeachersPanel = lazy(() =>
+  import('../parent/TeachersPanel').then((m) => ({ default: m.TeachersPanel })),
+)
+const InterestsDetail = lazy(() =>
+  import('./screens/InterestsDetail').then((m) => ({ default: m.InterestsDetail })),
+)
+const PortfolioDetail = lazy(() =>
+  import('./screens/PortfolioDetail').then((m) => ({ default: m.PortfolioDetail })),
+)
+const StudentAnnouncements = lazy(() =>
+  import('./screens/StudentAnnouncements').then((m) => ({ default: m.StudentAnnouncements })),
+)
+const SettingsScreen = lazy(() =>
+  import('./screens/SettingsScreen').then((m) => ({ default: m.SettingsScreen })),
+)
+const SchoolRecordsScreen = lazy(() =>
+  import('./screens/SchoolRecordsScreen').then((m) => ({ default: m.SchoolRecordsScreen })),
+)
+
+function ScreenFallback() {
+  return (
+    <div className="flex min-h-[40vh] items-center justify-center text-sm text-o-muted" aria-busy="true">
+      Loading…
+    </div>
+  )
+}
+
+function LazyPanel({ children }: { children: ReactNode }) {
+  return <Suspense fallback={<ScreenFallback />}>{children}</Suspense>
+}
+
+function nested(Panel: ComponentType, hint?: string) {
+  return (
+    <LazyPanel>
+      <NestedChrome hint={hint}>
+        <Panel />
+      </NestedChrome>
+    </LazyPanel>
+  )
+}
 
 /** Renders hub or nested destination for the student app stack. */
 export function StudentScreen({ dest }: { dest: StudentDestination }) {
@@ -50,95 +105,65 @@ export function StudentScreen({ dest }: { dest: StudentDestination }) {
       return hasSubject || params.taskId != null ? (
         <SubjectHomework />
       ) : (
-        <NestedChrome hint="All subjects">
-          <AssignmentsPanel />
-        </NestedChrome>
+        nested(AssignmentsPanel, 'All subjects')
       )
     case 'schedule':
-      return (
-        <NestedChrome>
-          <SchedulePanel />
-        </NestedChrome>
-      )
+      return nested(SchedulePanel)
     case 'syllabus':
       return <SubjectTopics />
     case 'study-assistant':
-      return (
-        <NestedChrome hint="You can also open Ask Orbit as a sheet from Home or Subject.">
-          <StudyAssistant />
-        </NestedChrome>
-      )
+      return nested(StudyAssistant, 'You can also open Ask Orbit as a sheet from Home or Subject.')
     case 'scanner':
-      return (
-        <NestedChrome hint={params.subject ? `Scan for ${params.subject}` : undefined}>
-          <ScannerPanel />
-        </NestedChrome>
-      )
+      return nested(ScannerPanel, params.subject ? `Scan for ${params.subject}` : undefined)
     case 'gk-quiz':
-      return (
-        <NestedChrome>
-          <GkQuizPanel />
-        </NestedChrome>
-      )
+      return nested(GkQuizPanel)
     case 'academics':
     case 'assessments':
-      return (
-        <NestedChrome hint={params.subject ? `Progress context: ${params.subject}` : undefined}>
-          <AcademicsPanel />
-        </NestedChrome>
-      )
+      return nested(AcademicsPanel, params.subject ? `Progress context: ${params.subject}` : undefined)
     case 'calendar':
-      return (
-        <NestedChrome>
-          <CalendarView />
-        </NestedChrome>
-      )
+      return nested(CalendarView)
     case 'competitions':
-      return (
-        <NestedChrome>
-          <CompetitionsPanel />
-        </NestedChrome>
-      )
+      return nested(CompetitionsPanel)
     case 'extracurriculars':
-      return (
-        <NestedChrome>
-          <ExtracurricularPanel />
-        </NestedChrome>
-      )
+      return nested(ExtracurricularPanel)
     case 'interests':
-      return <InterestsDetail />
+      return (
+        <LazyPanel>
+          <InterestsDetail />
+        </LazyPanel>
+      )
     case 'profile':
-      return (
-        <NestedChrome hint="Learning profile">
-          <AcademicProfile />
-        </NestedChrome>
-      )
+      return nested(AcademicProfile, 'Learning profile')
     case 'attendance':
-      return (
-        <NestedChrome>
-          <AttendancePanel />
-        </NestedChrome>
-      )
+      return nested(AttendancePanel)
     case 'achievements':
-      return (
-        <NestedChrome>
-          <AchievementsPanel />
-        </NestedChrome>
-      )
+      return nested(AchievementsPanel)
     case 'teachers':
-      return (
-        <NestedChrome>
-          <TeachersPanel />
-        </NestedChrome>
-      )
+      return nested(TeachersPanel)
     case 'alerts':
-      return <StudentAnnouncements />
+      return (
+        <LazyPanel>
+          <StudentAnnouncements />
+        </LazyPanel>
+      )
     case 'portfolio':
-      return <PortfolioDetail />
+      return (
+        <LazyPanel>
+          <PortfolioDetail />
+        </LazyPanel>
+      )
     case 'school-records':
-      return <SchoolRecordsScreen />
+      return (
+        <LazyPanel>
+          <SchoolRecordsScreen />
+        </LazyPanel>
+      )
     case 'settings':
-      return <SettingsScreen />
+      return (
+        <LazyPanel>
+          <SettingsScreen />
+        </LazyPanel>
+      )
     default:
       return <HomeToday />
   }
